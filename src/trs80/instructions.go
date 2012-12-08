@@ -427,7 +427,7 @@ func (cpu *cpu) loadInstructions(instructionList string) {
 
 	for _, line := range(lines) {
 		if len(line) > 0 {
-			fmt.Println(line)
+			/// fmt.Println(line)
 			cpu.parseInstructionLine(line)
 		}
 	}
@@ -438,7 +438,7 @@ func (cpu *cpu) parseInstructionLine(line string) {
 	cycles := strings.TrimSpace(line[14:20])
 	flags := strings.TrimSpace(line[24:32])
 	opcodes := strings.Split(strings.TrimSpace(line[32:]), " ")
-	// fmt.Println(asm)
+	/// fmt.Println(asm)
 
 	cpu.imap.addInstruction(asm, cycles, flags, opcodes[0], opcodes[1:])
 }
@@ -452,7 +452,7 @@ func (imap instructionMap) addInstruction(asm, cycles, flags, opcodeStr string, 
 		opcodeStr = strings.Replace(opcodeStr, "r", "0+r", 1)
 	}
 
-	fmt.Println(opcodeStr)
+	/// fmt.Println(opcodeStr)
 	opcode := parseByte(opcodeStr[:2])
 
 	if strings.HasSuffix(opcodeStr, "+8*b") {
@@ -522,6 +522,8 @@ func (cpu *cpu) step2() {
 	isJump := false
 	var jumpDest word
 
+	var extraInfo string
+
 	switch fields[0] {
 	case "DI":
 		cpu.iff = 0
@@ -530,16 +532,13 @@ func (cpu *cpu) step2() {
 		if len(subfields) == 2 {
 			panic("Don't yet handle conditions in JP")
 		}
+		extraInfo = fmt.Sprintf("%04X", addr)
 		isJump = true
 		jumpDest = addr
 	case "LD":
 		value := cpu.getWordValue(subfields[1])
-		switch subfields[0] {
-		case "HL":
-			cpu.hl = value
-		default:
-			panic("Can't handle destination of " + subfields[0])
-		}
+		cpu.setWord(subfields[0], value)
+		extraInfo = fmt.Sprintf("%04X", value)
 	case "OUT":
 		var port byte
 		value := cpu.getByteValue(subfields[1])
@@ -551,7 +550,7 @@ func (cpu *cpu) step2() {
 		default:
 			panic("Unknown OUT destination " + subfields[0])
 		}
-		fmt.Printf("Sending %02X to port %02X\n", value, port)
+		extraInfo = fmt.Sprintf("%02X <- %02X", port, value)
 	case "XOR":
 		value := cpu.getByteValue(fields[1])
 		cpu.a ^= value
@@ -561,7 +560,7 @@ func (cpu *cpu) step2() {
 	}
 
 	endPc := cpu.pc
-	cpu.log(beginPc, endPc, inst.asm)
+	cpu.log(beginPc, endPc, "%-15s %s", inst.asm, extraInfo)
 
 	if isJump {
 		cpu.pc = jumpDest
@@ -590,4 +589,17 @@ func (cpu *cpu) getWordValue(ref string) word {
 	}
 
 	panic("We don't yet handle addressing mode " + ref)
+}
+
+func (cpu *cpu) setWord(ref string, value word) {
+	switch ref {
+	case "BC":
+		cpu.bc = value
+	case "DE":
+		cpu.de = value
+	case "HL":
+		cpu.hl = value
+	default:
+		panic("Can't handle destination of " + ref)
+	}
 }
