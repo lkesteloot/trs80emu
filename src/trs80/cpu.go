@@ -30,23 +30,24 @@ func (cpu *cpu) run() {
 }
 
 func (cpu *cpu) step() {
-	opcodePc := cpu.pc
+	beginPc := cpu.pc
+	endPc := beginPc
 	opcode := cpu.fetchByte()
 
 	switch opcode {
 	case 0x00:
-		cpu.log(opcodePc, "NOP")
+		cpu.log(beginPc, endPc, "NOP")
 	case 0x01:
 		word := cpu.fetchWord()
-		cpu.log(opcodePc, "LD BC,%04X", word)
+		cpu.log(beginPc, endPc, "LD BC,%04X", word)
 		cpu.setBc(word)
 	case 0x11:
 		word := cpu.fetchWord()
-		cpu.log(opcodePc, "LD DE,%04X", word)
+		cpu.log(beginPc, endPc, "LD DE,%04X", word)
 		cpu.setDe(word)
 	case 0x20:
 		index := cpu.fetchByte()
-		cpu.log(opcodePc, "JR NZ,%02X", index)
+		cpu.log(beginPc, endPc, "JR NZ,%02X", index)
 		/*
 		if cpu.z == 0 {
 			cpu.pc += index
@@ -54,34 +55,34 @@ func (cpu *cpu) step() {
 		*/
 	case 0x21:
 		word := cpu.fetchWord()
-		cpu.log(opcodePc, "LD HL,%04X", word)
+		cpu.log(beginPc, endPc, "LD HL,%04X", word)
 		cpu.setHl(word)
 	case 0x31:
 		word := cpu.fetchWord()
-		cpu.log(opcodePc, "LD SP,%04X", word)
+		cpu.log(beginPc, endPc, "LD SP,%04X", word)
 		cpu.sp = word
 	case 0x3D:
-		cpu.log(opcodePc, "DEC A")
+		cpu.log(beginPc, endPc, "DEC A")
 		cpu.a--
 	case 0xF3:
-		cpu.log(opcodePc, "DI")
+		cpu.log(beginPc, endPc, "DI")
 		cpu.iff = 0
 	case 0xAF:
-		cpu.log(opcodePc, "XOR A")
+		cpu.log(beginPc, endPc, "XOR A")
 		cpu.a = cpu.a ^ cpu.a
 	case 0xC3:
 		addr := cpu.fetchWord()
-		cpu.log(opcodePc, "JP %04X", addr)
+		cpu.log(beginPc, endPc, "JP %04X", addr)
 		cpu.pc = addr
 	case 0xD3:
 		port := cpu.fetchByte()
-		cpu.log(opcodePc, "OUT (%02X),A", port)
+		cpu.log(beginPc, endPc, "OUT (%02X),A", port)
 		// XXX port
 	case 0xED:
 		opcode16 := uint16(opcode) << 8 | uint16(cpu.fetchByte())
 		switch opcode16 {
 		case 0xEDB0:
-			cpu.log(opcodePc, "LDIR (copy HL to DE for BC bytes)")
+			cpu.log(beginPc, endPc, "LDIR (copy HL to DE for BC bytes)")
 			// Not sure if this should be while or do while.
 			for cpu.bc() != 0xFFFF {
 				cpu.writeMem(cpu.de(), cpu.memory[cpu.hl()])
@@ -90,10 +91,10 @@ func (cpu *cpu) step() {
 				cpu.setBc(cpu.bc() - 1)
 			}
 		default:
-			panic(fmt.Sprintf("Don't know how to handle opcode %04X at %04X", opcode16, opcodePc))
+			panic(fmt.Sprintf("Don't know how to handle opcode %04X at %04X", opcode16, beginPc))
 		}
 	default:
-		panic(fmt.Sprintf("Don't know how to handle opcode %02X at %04X", opcode, opcodePc))
+		panic(fmt.Sprintf("Don't know how to handle opcode %02X at %04X", opcode, beginPc))
 	}
 }
 
@@ -110,8 +111,14 @@ func (cpu *cpu) fetchWord() uint16 {
 	return value
 }
 
-func (cpu *cpu) log(pc uint16, instFormat string, a ...interface{}) {
-	fmt.Printf("%04X ", pc)
+func (cpu *cpu) log(beginPc, endPc uint16, instFormat string, a ...interface{}) {
+	fmt.Printf("%04X ", beginPc)
+	for pc := beginPc; pc < endPc; pc++ {
+		fmt.Printf("%02X ", cpu.memory[pc])
+	}
+	for pc := endPc; pc < beginPc + 4; pc++ {
+		fmt.Print("   ")
+	}
 	fmt.Printf(instFormat, a...)
 	fmt.Println()
 }

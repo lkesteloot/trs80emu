@@ -399,6 +399,10 @@ XOR LY              2   00P0++  FD AD
 XOR N         7     2   00P0++  EE XX
 `
 
+// See explanation of +r in z80.txt
+var registerNybble []string = []string{"B", "C", "D", "E", "H", "L", "(HL)", "A"}
+var registerStarNybble []string = []string{"B", "C", "D", "E", "HX", "LX", "?", "A"}
+
 type instructionMap map[byte]*instruction
 
 type instruction struct {
@@ -440,6 +444,9 @@ func (cpu *cpu) parseInstructionLine(line string) {
 }
 
 func (imap instructionMap) addInstruction(asm, cycles, flags, opcodeStr string, opcodes []string) {
+	// Remove "$" from asm, not sure it means anything.
+	asm = strings.Replace(asm, "$", "", -1)
+
 	// Expand "8r" abbreviation to "80+r"
 	if strings.Contains(opcodeStr, "r") && !strings.Contains(opcodeStr, "+r") {
 		opcodeStr = strings.Replace(opcodeStr, "r", "0+r", 1)
@@ -457,12 +464,19 @@ func (imap instructionMap) addInstruction(asm, cycles, flags, opcodeStr string, 
 			fmt.Sprintf("%02X%s", opcode + 0, opcodeRest), opcodes)
 		imap.addInstruction(strings.Replace(asm, "b", "1", -1), cycles, flags,
 			fmt.Sprintf("%02X%s", opcode + 8, opcodeRest), opcodes)
-	} else if strings.HasSuffix(opcodeStr, "+r") {
-		// Parse registers.
-		for r := byte(0); r < 8; r++ {
-			// XXX replace "r" with register in asm.
-			imap.addInstruction(asm, cycles, flags,
-				fmt.Sprintf("%02X", opcode + r), opcodes)
+	} else if strings.HasSuffix(opcodeStr, "+r") || strings.HasSuffix(opcodeStr, "+r*") {
+		// Expand registers.
+		for n := byte(0); n < 8; n++ {
+			// Replace "r" with register in asm.
+			var r string
+			if strings.HasSuffix(opcodeStr, "*") {
+				r = registerStarNybble[n]
+			} else {
+				r = registerNybble[n]
+			}
+
+			imap.addInstruction(strings.Replace(asm, "r", r, -1), cycles, flags,
+				fmt.Sprintf("%02X", opcode + n), opcodes)
 		}
 	} else {
 		inst, ok := imap[opcode]
@@ -484,13 +498,96 @@ func (imap instructionMap) addInstruction(asm, cycles, flags, opcodeStr string, 
 }
 
 func (cpu *cpu) step2() {
-	opcodePc := cpu.pc
+	beginPc := cpu.pc
 	opcode := cpu.fetchByte()
 
 	inst, ok := cpu.imap[opcode]
 	if !ok {
-		panic(fmt.Sprintf("Don't know how to handle opcode %02X at %04X", opcode, opcodePc))
+		panic(fmt.Sprintf("Don't know how to handle opcode %02X at %04X", opcode, beginPc))
 	}
 
-	fmt.Println(inst.asm)
+	// cpu.log(beginPc, inst.asm)
+	fields := strings.Split(inst.asm, " ")
+	var subfields []string
+	switch len(fields) {
+	case 1:
+		subfields = nil
+	case 2:
+		subfields = strings.Split(fields[1], ",")
+	default:
+		panic(fmt.Sprintf("Unknown number of fields %d", len(fields)))
+	}
+
+	// In case the PC should jump at the end.
+	isJump := false
+	var jumpDest uint16
+
+	switch fields[0] {
+	case "DI":
+		cpu.iff = 0
+	case "JP":
+		addr := cpu.getWordValue(subfields[len(subfields) - 1])
+		if len(subfields) == 2 {
+			panic("Don't yet handle conditions in JP")
+		}
+		isJump = true
+		jumpDest = addr
+	case "LD":
+		value := cpu.getWordValue(subfields[1])
+		switch subfields[0] {
+		case "HL":
+			cpu.setHl(value)
+		default:
+			panic("Can't handle destination of " + subfields[0])
+		}
+	case "OUT":
+		var port byte
+		value := cpu.getByteValue(subfields[1])
+		switch subfields[0] {
+		case "(C)":
+			port = cpu.c
+		case "(N)":
+			port = cpu.fetchByte()
+		default:
+			panic("Unknown OUT destination " + subfields[0])
+		}
+		fmt.Printf("Sending %02X to port %02X\n", value, port)
+	case "XOR":
+		value := cpu.getByteValue(fields[1])
+		cpu.a ^= value
+	default:
+		panic(fmt.Sprintf("Don't know how to handle %s (%02X at %04X)",
+			inst.asm, opcode, beginPc))
+	}
+
+	endPc := cpu.pc
+	cpu.log(beginPc, endPc, inst.asm)
+
+	if isJump {
+		cpu.pc = jumpDest
+	}
+}
+
+func (cpu *cpu) getByteValue(ref string) byte {
+	switch ref {
+	case "A": return cpu.a
+	case "B": return cpu.b
+	case "C": return cpu.c
+	case "D": return cpu.d
+	case "E": return cpu.e
+	case "H": return cpu.h
+	case "L": return cpu.l
+	case "(HL)": return cpu.memory[cpu.hl()]
+	}
+
+	panic("We don't yet handle addressing mode " + ref)
+}
+
+func (cpu *cpu) getWordValue(ref string) uint16 {
+	switch ref {
+	case "NN":
+		return cpu.fetchWord()
+	}
+
+	panic("We don't yet handle addressing mode " + ref)
 }
