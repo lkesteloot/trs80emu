@@ -520,7 +520,7 @@ func (cpu *cpu) step2() {
 
 	// In case the PC should jump at the end.
 	isJump := false
-	var jumpDest uint16
+	var jumpDest word
 
 	switch fields[0] {
 	case "DI":
@@ -536,7 +536,7 @@ func (cpu *cpu) step2() {
 		value := cpu.getWordValue(subfields[1])
 		switch subfields[0] {
 		case "HL":
-			cpu.setHl(value)
+			cpu.hl = value
 		default:
 			panic("Can't handle destination of " + subfields[0])
 		}
@@ -545,7 +545,7 @@ func (cpu *cpu) step2() {
 		value := cpu.getByteValue(subfields[1])
 		switch subfields[0] {
 		case "(C)":
-			port = cpu.c
+			port = cpu.bc.l()
 		case "(N)":
 			port = cpu.fetchByte()
 		default:
@@ -571,19 +571,19 @@ func (cpu *cpu) step2() {
 func (cpu *cpu) getByteValue(ref string) byte {
 	switch ref {
 	case "A": return cpu.a
-	case "B": return cpu.b
-	case "C": return cpu.c
-	case "D": return cpu.d
-	case "E": return cpu.e
-	case "H": return cpu.h
-	case "L": return cpu.l
-	case "(HL)": return cpu.memory[cpu.hl()]
+	case "B": return cpu.bc.h()
+	case "C": return cpu.bc.l()
+	case "D": return cpu.de.h()
+	case "E": return cpu.de.l()
+	case "H": return cpu.hl.h()
+	case "L": return cpu.hl.l()
+	case "(HL)": return cpu.memory[cpu.hl]
 	}
 
 	panic("We don't yet handle addressing mode " + ref)
 }
 
-func (cpu *cpu) getWordValue(ref string) uint16 {
+func (cpu *cpu) getWordValue(ref string) word {
 	switch ref {
 	case "NN":
 		return cpu.fetchWord()

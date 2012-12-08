@@ -23,7 +23,7 @@ func main() {
 	copy(memory, rom)
 
 	// Make a CPU.
-	cpu := &cpu{memory: memory, romSize: uint16(len(rom))}
+	cpu := &cpu{memory: memory, romSize: word(len(rom))}
 	cpu.loadInstructions(instructionList)
 
 	// Make it go.

@@ -1,8 +1,7 @@
 
 next:
-    Replace individual h,l registers with "hl"
-        Type "word"
-        Has methods for getting/setting bytes.
+    Add methods for getting byte/word reference (for destination).
+        Returns pointer to byte/word.
     In load method:
         Statically determine whether 8-bit or 16-bit, then call arg.
         If either arg is 16-bit register, then it's 16-bit op.

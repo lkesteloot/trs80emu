@@ -6,20 +6,25 @@ import (
 
 type cpu struct {
 	memory []byte
-	romSize uint16
+	romSize word
 
 	// 8-bit registers:
-	a, f, b, c, d, e, h, l, i, r byte
+	a, f, i, r byte
+
+	// Registers that can be accessed as 8-bit or 16-bit:
+	bc, de, hl word
 
 	// "prime" registers:
-	ap, fp, bp, cp, dp, ep, hp, lp byte
+	ap, fp byte
+	bcp, dep, hlp word
 
 	// 16-bit registers:
-	sp, pc, ix, iy uint16
+	sp, pc, ix, iy word
 
 	// Not sure.
 	iff byte
 
+	// Map from opcodes to instructions.
 	imap instructionMap
 }
 
@@ -30,6 +35,7 @@ func (cpu *cpu) run() {
 }
 
 func (cpu *cpu) step() {
+	/*
 	beginPc := cpu.pc
 	endPc := beginPc
 	opcode := cpu.fetchByte()
@@ -48,11 +54,9 @@ func (cpu *cpu) step() {
 	case 0x20:
 		index := cpu.fetchByte()
 		cpu.log(beginPc, endPc, "JR NZ,%02X", index)
-		/*
 		if cpu.z == 0 {
 			cpu.pc += index
 		}
-		*/
 	case 0x21:
 		word := cpu.fetchWord()
 		cpu.log(beginPc, endPc, "LD HL,%04X", word)
@@ -79,7 +83,7 @@ func (cpu *cpu) step() {
 		cpu.log(beginPc, endPc, "OUT (%02X),A", port)
 		// XXX port
 	case 0xED:
-		opcode16 := uint16(opcode) << 8 | uint16(cpu.fetchByte())
+		opcode16 := word(opcode) << 8 | word(cpu.fetchByte())
 		switch opcode16 {
 		case 0xEDB0:
 			cpu.log(beginPc, endPc, "LDIR (copy HL to DE for BC bytes)")
@@ -96,6 +100,7 @@ func (cpu *cpu) step() {
 	default:
 		panic(fmt.Sprintf("Don't know how to handle opcode %02X at %04X", opcode, beginPc))
 	}
+	*/
 }
 
 func (cpu *cpu) fetchByte() byte {
@@ -104,14 +109,14 @@ func (cpu *cpu) fetchByte() byte {
 	return value
 }
 
-func (cpu *cpu) fetchWord() uint16 {
+func (cpu *cpu) fetchWord() word {
 	// Little endian.
-	value := uint16(cpu.memory[cpu.pc]) + 256*uint16(cpu.memory[cpu.pc + 1])
+	value := word(cpu.memory[cpu.pc]) + 256*word(cpu.memory[cpu.pc + 1])
 	cpu.pc += 2
 	return value
 }
 
-func (cpu *cpu) log(beginPc, endPc uint16, instFormat string, a ...interface{}) {
+func (cpu *cpu) log(beginPc, endPc word, instFormat string, a ...interface{}) {
 	fmt.Printf("%04X ", beginPc)
 	for pc := beginPc; pc < endPc; pc++ {
 		fmt.Printf("%02X ", cpu.memory[pc])
@@ -123,37 +128,10 @@ func (cpu *cpu) log(beginPc, endPc uint16, instFormat string, a ...interface{}) 
 	fmt.Println()
 }
 
-func (cpu *cpu) writeMem(addr uint16, b byte) {
+func (cpu *cpu) writeMem(addr word, b byte) {
 	if addr < cpu.romSize {
 		panic(fmt.Sprintf("Tried to write %02X to ROM at %04X", b, addr))
 	}
 
 	cpu.memory[addr] = b
-}
-
-func (cpu *cpu) bc() uint16 {
-	return uint16(cpu.b) << 8 | uint16(cpu.c)
-}
-
-func (cpu *cpu) setBc(word uint16) {
-	cpu.b = byte(word >> 8)
-	cpu.c = byte(word)
-}
-
-func (cpu *cpu) de() uint16 {
-	return uint16(cpu.d) << 8 | uint16(cpu.e)
-}
-
-func (cpu *cpu) setDe(word uint16) {
-	cpu.d = byte(word >> 8)
-	cpu.e = byte(word)
-}
-
-func (cpu *cpu) hl() uint16 {
-	return uint16(cpu.h) << 8 | uint16(cpu.l)
-}
-
-func (cpu *cpu) setHl(word uint16) {
-	cpu.h = byte(word >> 8)
-	cpu.l = byte(word)
 }
