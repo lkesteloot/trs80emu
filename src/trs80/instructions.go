@@ -406,8 +406,10 @@ var registerStarNybble []string = []string{"B", "C", "D", "E", "HX", "LX", "?", 
 type instructionMap map[byte]*instruction
 
 type instruction struct {
+	// Leave of tree.
 	asm, cycles, flags, opcodes string
 
+	// For extended instructions.
 	imap instructionMap
 }
 
@@ -479,9 +481,10 @@ func (imap instructionMap) addInstruction(asm, cycles, flags, opcodeStr string, 
 				fmt.Sprintf("%02X", opcode + n), opcodes)
 		}
 	} else {
+		// Get or create node in tree.
 		inst, ok := imap[opcode]
 		if !ok {
-			inst = &instruction{asm:asm, cycles:cycles, flags:flags}
+			inst = &instruction{}
 			imap[opcode] = inst
 		}
 
@@ -492,21 +495,26 @@ func (imap instructionMap) addInstruction(asm, cycles, flags, opcodeStr string, 
 			}
 			inst.imap.addInstruction(asm, cycles, flags, opcodes[0], opcodes[1:])
 		} else {
-			// XXX
+			// Leaf of tree.
+			inst.asm = asm
+			inst.cycles = cycles
+			inst.flags = flags
+		}
+
+		if (inst.imap != nil) == (inst.asm != "") {
+			panic("Instruction is both leaf and internal node")
 		}
 	}
 }
 
 func (cpu *cpu) step2() {
 	beginPc := cpu.pc
-	opcode := cpu.fetchByte()
 
-	inst, ok := cpu.imap[opcode]
-	if !ok {
-		panic(fmt.Sprintf("Don't know how to handle opcode %02X at %04X", opcode, beginPc))
+	inst := cpu.lookUpInst()
+	if inst.asm == "" {
+		panic("Instruction is empty leaf")
 	}
 
-	// cpu.log(beginPc, inst.asm)
 	fields := strings.Split(inst.asm, " ")
 	var subfields []string
 	switch len(fields) {
@@ -555,8 +563,8 @@ func (cpu *cpu) step2() {
 		value := cpu.getByteValue(fields[1])
 		cpu.a ^= value
 	default:
-		panic(fmt.Sprintf("Don't know how to handle %s (%02X at %04X)",
-			inst.asm, opcode, beginPc))
+		panic(fmt.Sprintf("Don't know how to handle %s (at %04X)",
+			inst.asm, beginPc))
 	}
 
 	endPc := cpu.pc
@@ -602,4 +610,25 @@ func (cpu *cpu) setWord(ref string, value word) {
 	default:
 		panic("Can't handle destination of " + ref)
 	}
+}
+
+func (cpu *cpu) lookUpInst() *instruction {
+	imap := cpu.imap
+	var inst *instruction
+	var ok bool
+
+	for imap != nil {
+		opcode := cpu.fetchByte()
+		/// fmt.Printf("Looking up opcode %02X\n", opcode)
+
+		inst, ok = imap[opcode]
+		if !ok {
+			panic(fmt.Sprintf("Don't know how to handle opcode %02X", opcode))
+		}
+
+		// Keep fetching as long as it's an extended instruction.
+		imap = inst.imap
+	}
+
+	return inst
 }
