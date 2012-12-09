@@ -1,7 +1,7 @@
 package main
 
 // http://www.zilog.com/docs/z80/um0080.pdf page 76
-type flags byte;
+type flags byte
 
 // Get carry flag.
 func (f flags) c() bool {
@@ -35,7 +35,7 @@ func (f flags) s() bool {
 
 // Set carry flag.
 func (f *flags) setC(c bool) {
-	if (c) {
+	if c {
 		*f |= 0x01
 	} else {
 		*f &^= 0x01
@@ -44,7 +44,7 @@ func (f *flags) setC(c bool) {
 
 // Set add/subtract flag.
 func (f *flags) setN(n bool) {
-	if (n) {
+	if n {
 		*f |= 0x02
 	} else {
 		*f &^= 0x02
@@ -53,7 +53,7 @@ func (f *flags) setN(n bool) {
 
 // Set parity/overflow flag.
 func (f *flags) setPv(pv bool) {
-	if (pv) {
+	if pv {
 		*f |= 0x04
 	} else {
 		*f &^= 0x04
@@ -62,7 +62,7 @@ func (f *flags) setPv(pv bool) {
 
 // Set half carry flag.
 func (f *flags) setH(h bool) {
-	if (h) {
+	if h {
 		*f |= 0x10
 	} else {
 		*f &^= 0x10
@@ -71,7 +71,7 @@ func (f *flags) setH(h bool) {
 
 // Set zero flag.
 func (f *flags) setZ(z bool) {
-	if (z) {
+	if z {
 		*f |= 0x40
 	} else {
 		*f &^= 0x40
@@ -80,7 +80,7 @@ func (f *flags) setZ(z bool) {
 
 // Set sign flag.
 func (f *flags) setS(s bool) {
-	if (s) {
+	if s {
 		*f |= 0x80
 	} else {
 		*f &^= 0x80
@@ -92,12 +92,12 @@ func (f *flags) setS(s bool) {
 func (f *flags) updateFromByte(value byte, hints string) {
 	// Z
 	switch hints[4] {
-		case '+':
-			f.setZ(value == 0)
-		case '0':
-			f.setZ(false)
-		case '1':
-			f.setZ(true)
+	case '+':
+		f.setZ(value == 0)
+	case '0':
+		f.setZ(false)
+	case '1':
+		f.setZ(true)
 	}
 }
 
@@ -106,11 +106,11 @@ func (f *flags) updateFromByte(value byte, hints string) {
 func (f *flags) updateFromWord(value word, hints string) {
 	// Z
 	switch hints[4] {
-		case '+':
-			f.setZ(value == 0)
-		case '0':
-			f.setZ(false)
-		case '1':
-			f.setZ(true)
+	case '+':
+		f.setZ(value == 0)
+	case '0':
+		f.setZ(false)
+	case '1':
+		f.setZ(true)
 	}
 }

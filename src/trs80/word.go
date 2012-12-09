@@ -1,6 +1,6 @@
 package main
 
-type word uint16;
+type word uint16
 
 func (w word) l() byte {
 	return byte(w)

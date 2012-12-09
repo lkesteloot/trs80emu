@@ -1,9 +1,9 @@
 package main
 
 import (
-	"strings"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // Copy and pasted from z80.txt (http://guide.ticalc.org/download/z80.txt)
@@ -427,7 +427,7 @@ func (cpu *cpu) loadInstructions(instructionList string) {
 
 	lines := strings.Split(instructionList, "\n")
 
-	for _, line := range(lines) {
+	for _, line := range lines {
 		if len(line) > 0 {
 			/// fmt.Println(line)
 			cpu.parseInstructionLine(line)
@@ -459,13 +459,13 @@ func (imap instructionMap) addInstruction(asm, cycles, flags, opcodeStr string, 
 
 	if strings.HasSuffix(opcodeStr, "+8*b") {
 		// Expand "+8*b" to each bit value.
-		opcodeRest := opcodeStr[2:len(opcodeStr) - 4] // May be empty.
+		opcodeRest := opcodeStr[2 : len(opcodeStr)-4] // May be empty.
 
 		// Replace "b" with bit value.
 		imap.addInstruction(strings.Replace(asm, "b", "0", -1), cycles, flags,
-			fmt.Sprintf("%02X%s", opcode + 0, opcodeRest), opcodes)
+			fmt.Sprintf("%02X%s", opcode+0, opcodeRest), opcodes)
 		imap.addInstruction(strings.Replace(asm, "b", "1", -1), cycles, flags,
-			fmt.Sprintf("%02X%s", opcode + 8, opcodeRest), opcodes)
+			fmt.Sprintf("%02X%s", opcode+8, opcodeRest), opcodes)
 	} else if strings.HasSuffix(opcodeStr, "+r") || strings.HasSuffix(opcodeStr, "+r*") {
 		// Expand registers.
 		for n := byte(0); n < 8; n++ {
@@ -478,7 +478,7 @@ func (imap instructionMap) addInstruction(asm, cycles, flags, opcodeStr string, 
 			}
 
 			imap.addInstruction(strings.Replace(asm, "r", r, -1), cycles, flags,
-				fmt.Sprintf("%02X", opcode + n), opcodes)
+				fmt.Sprintf("%02X", opcode+n), opcodes)
 		}
 	} else {
 		// Get or create node in tree.
@@ -538,9 +538,15 @@ func (cpu *cpu) step2() {
 		before := cpu.a
 		var symbol string
 		switch fields[0] {
-			case "AND": cpu.a &= value; symbol = "&"
-			case "XOR": cpu.a ^= value; symbol = "^"
-			case "OR": cpu.a |= value; symbol = "|"
+		case "AND":
+			cpu.a &= value
+			symbol = "&"
+		case "XOR":
+			cpu.a ^= value
+			symbol = "^"
+		case "OR":
+			cpu.a |= value
+			symbol = "|"
 		}
 		cpu.f.updateFromByte(cpu.a, inst.flags)
 		extraInfo = fmt.Sprintf("%02X %s %02X = %02X", before, symbol, value, cpu.a)
@@ -555,12 +561,12 @@ func (cpu *cpu) step2() {
 	case "DEC":
 		if isWordOperand(subfields[0]) {
 			value := cpu.getWordValue(subfields[0]) - 1
-			extraInfo = fmt.Sprintf("%04X - 1 = %04X", value + 1, value)
+			extraInfo = fmt.Sprintf("%04X - 1 = %04X", value+1, value)
 			cpu.setWord(subfields[0], value)
 			cpu.f.updateFromWord(value, inst.flags)
 		} else {
 			value := cpu.getByteValue(subfields[0]) - 1
-			extraInfo = fmt.Sprintf("%02X + 1 = %02X", value + 1, value)
+			extraInfo = fmt.Sprintf("%02X + 1 = %02X", value+1, value)
 			cpu.setByte(subfields[0], value)
 			cpu.f.updateFromByte(value, inst.flags)
 		}
@@ -579,17 +585,17 @@ func (cpu *cpu) step2() {
 	case "INC":
 		if isWordOperand(subfields[0]) {
 			value := cpu.getWordValue(subfields[0]) + 1
-			extraInfo = fmt.Sprintf("%04X + 1 = %04X", value - 1, value)
+			extraInfo = fmt.Sprintf("%04X + 1 = %04X", value-1, value)
 			cpu.setWord(subfields[0], value)
 			cpu.f.updateFromWord(value, inst.flags)
 		} else {
 			value := cpu.getByteValue(subfields[0]) + 1
-			extraInfo = fmt.Sprintf("%02X + 1 = %02X", value - 1, value)
+			extraInfo = fmt.Sprintf("%02X + 1 = %02X", value-1, value)
 			cpu.setByte(subfields[0], value)
 			cpu.f.updateFromByte(value, inst.flags)
 		}
 	case "JP", "CALL":
-		addr := cpu.getWordValue(subfields[len(subfields) - 1])
+		addr := cpu.getWordValue(subfields[len(subfields)-1])
 		jumpDest = addr
 		if len(subfields) == 2 {
 			isJump = cpu.conditionSatisfied(subfields[0])
@@ -605,8 +611,8 @@ func (cpu *cpu) step2() {
 			cpu.pushWord(cpu.pc)
 		}
 	case "JR":
-		if subfields[len(subfields) - 1] != "N+2" {
-			panic("Can only handle relative jumps to N, not " + subfields[len(subfields) - 1])
+		if subfields[len(subfields)-1] != "N+2" {
+			panic("Can only handle relative jumps to N, not " + subfields[len(subfields)-1])
 		}
 		// Relative jump is signed.
 		rel := int(int8(cpu.fetchByte()))
@@ -672,16 +678,26 @@ func (cpu *cpu) step2() {
 
 func (cpu *cpu) getByteValue(ref string) byte {
 	switch ref {
-	case "A": return cpu.a
-	case "B": return cpu.bc.h()
-	case "C": return cpu.bc.l()
-	case "D": return cpu.de.h()
-	case "E": return cpu.de.l()
-	case "H": return cpu.hl.h()
-	case "L": return cpu.hl.l()
-	case "(HL)": return cpu.memory[cpu.hl]
-	case "N": return cpu.fetchByte()
-	case "(NN)": return cpu.memory[cpu.fetchWord()]
+	case "A":
+		return cpu.a
+	case "B":
+		return cpu.bc.h()
+	case "C":
+		return cpu.bc.l()
+	case "D":
+		return cpu.de.h()
+	case "E":
+		return cpu.de.l()
+	case "H":
+		return cpu.hl.h()
+	case "L":
+		return cpu.hl.l()
+	case "(HL)":
+		return cpu.memory[cpu.hl]
+	case "N":
+		return cpu.fetchByte()
+	case "(NN)":
+		return cpu.memory[cpu.fetchWord()]
 	}
 
 	panic("We don't yet handle addressing mode " + ref)
@@ -747,7 +763,7 @@ func (cpu *cpu) setWord(ref string, value word) {
 	case "(NN)":
 		addr := cpu.fetchWord()
 		cpu.writeMem(addr, value.l())
-		cpu.writeMem(addr + 1, value.h())
+		cpu.writeMem(addr+1, value.h())
 	default:
 		panic("Can't handle destination of " + ref)
 	}

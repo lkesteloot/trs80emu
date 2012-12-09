@@ -7,7 +7,7 @@ import (
 
 func main() {
 	// Allocate memory.
-	memorySize := 1024*64
+	memorySize := 1024 * 64
 	memory := make([]byte, memorySize)
 	fmt.Printf("Memory has %d bytes.\n", len(memory))
 
