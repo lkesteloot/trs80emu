@@ -8,21 +8,21 @@ type cpu struct {
 	memory []byte
 	romSize word
 
-	// 8-bit registers:
-	a, f, i, r byte
-
-	// Registers that can be accessed as 8-bit or 16-bit:
+	// Registers:
+	a, i, r byte
+	f flags
 	bc, de, hl word
 
 	// "prime" registers:
-	ap, fp byte
+	ap byte
+	fp flags
 	bcp, dep, hlp word
 
 	// 16-bit registers:
 	sp, pc, ix, iy word
 
-	// Not sure.
-	iff byte
+	// Interrupt flag?
+	iff bool
 
 	// Map from opcodes to instructions.
 	imap instructionMap

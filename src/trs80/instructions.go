@@ -533,8 +533,12 @@ func (cpu *cpu) step2() {
 	var extraInfo string
 
 	switch fields[0] {
+	case "DEC":
+		value := cpu.getByteValue(subfields[0])
+		extraInfo = fmt.Sprintf("%02X - 1 = %02X", value, value - 1)
+		cpu.setByte(subfields[0], value - 1)
 	case "DI":
-		cpu.iff = 0
+		cpu.iff = false
 	case "JP":
 		addr := cpu.getWordValue(subfields[len(subfields) - 1])
 		if len(subfields) == 2 {
@@ -543,10 +547,55 @@ func (cpu *cpu) step2() {
 		extraInfo = fmt.Sprintf("%04X", addr)
 		isJump = true
 		jumpDest = addr
+	case "JR":
+		if subfields[len(subfields) - 1] != "N+2" {
+			panic("Can only handle relative jumps to N, not " + subfields[len(subfields) - 1])
+		}
+		// Relative jump is signed.
+		jumpDest = word(int(cpu.pc) + int(int8(cpu.fetchByte())))
+		if len(subfields) == 2 {
+			switch subfields[0] {
+			case "C":
+				if cpu.f.c() {
+					isJump = true
+				}
+			case "NC":
+				if !cpu.f.c() {
+					isJump = true
+				}
+			case "Z":
+				if cpu.f.z() {
+					isJump = true
+				}
+			case "NZ":
+				if !cpu.f.z() {
+					isJump = true
+				}
+			default:
+				panic("Unknown JR condition " + subfields[0])
+			}
+		} else {
+			// Unconditional.
+			isJump = true
+		}
+		if isJump {
+			extraInfo = fmt.Sprintf("%04X", jumpDest)
+		} else {
+			extraInfo = "jump skipped"
+		}
 	case "LD":
 		value := cpu.getWordValue(subfields[1])
 		cpu.setWord(subfields[0], value)
 		extraInfo = fmt.Sprintf("%04X", value)
+	case "LDIR":
+		// Not sure if this should be while or do while.
+		extraInfo = fmt.Sprintf("copying %04X bytes from %04X to %04X", cpu.bc, cpu.hl, cpu.de)
+		for cpu.bc != 0xFFFF {
+			cpu.writeMem(cpu.de, cpu.memory[cpu.hl])
+			cpu.hl--
+			cpu.de--
+			cpu.bc--
+		}
 	case "OUT":
 		var port byte
 		value := cpu.getByteValue(subfields[1])
@@ -597,6 +646,15 @@ func (cpu *cpu) getWordValue(ref string) word {
 	}
 
 	panic("We don't yet handle addressing mode " + ref)
+}
+
+func (cpu *cpu) setByte(ref string, value byte) {
+	switch ref {
+	case "A":
+		cpu.a = value
+	default:
+		panic("Can't handle destination of " + ref)
+	}
 }
 
 func (cpu *cpu) setWord(ref string, value word) {
