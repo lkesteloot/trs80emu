@@ -533,67 +533,112 @@ func (cpu *cpu) step2() {
 	var extraInfo string
 
 	switch fields[0] {
-	case "DEC":
+	case "AND", "XOR", "OR":
 		value := cpu.getByteValue(subfields[0])
-		extraInfo = fmt.Sprintf("%02X - 1 = %02X", value, value - 1)
-		cpu.setByte(subfields[0], value - 1)
+		before := cpu.a
+		var symbol string
+		switch fields[0] {
+			case "AND": cpu.a &= value; symbol = "&"
+			case "XOR": cpu.a ^= value; symbol = "^"
+			case "OR": cpu.a |= value; symbol = "|"
+		}
+		cpu.f.updateFromByte(cpu.a, inst.flags)
+		extraInfo = fmt.Sprintf("%02X %s %02X = %02X", before, symbol, value, cpu.a)
+	case "CP":
+		value := cpu.getByteValue(subfields[0])
+		diff := int(cpu.a) - int(value)
+		cpu.f.setS(diff < 0)
+		cpu.f.setZ(diff == 0)
+		cpu.f.setC(diff < 0) // Borrow.
+		cpu.f.setN(true)
+		extraInfo = fmt.Sprintf("%02X - %02X", cpu.a, value)
+	case "DEC":
+		if isWordOperand(subfields[0]) {
+			value := cpu.getWordValue(subfields[0]) - 1
+			extraInfo = fmt.Sprintf("%04X - 1 = %04X", value + 1, value)
+			cpu.setWord(subfields[0], value)
+			cpu.f.updateFromWord(value, inst.flags)
+		} else {
+			value := cpu.getByteValue(subfields[0]) - 1
+			extraInfo = fmt.Sprintf("%02X + 1 = %02X", value + 1, value)
+			cpu.setByte(subfields[0], value)
+			cpu.f.updateFromByte(value, inst.flags)
+		}
 	case "DI":
 		cpu.iff = false
-	case "JP":
-		addr := cpu.getWordValue(subfields[len(subfields) - 1])
-		if len(subfields) == 2 {
-			panic("Don't yet handle conditions in JP")
+	case "DJNZ":
+		rel := int(int8(cpu.fetchByte()))
+		jumpDest = word(int(cpu.pc) + rel)
+		cpu.bc.setH(cpu.bc.h() - 1)
+		if cpu.bc.h() != 0 {
+			isJump = true
+			extraInfo = fmt.Sprintf("%04X (%d), b = %02X", jumpDest, rel, cpu.bc.h())
+		} else {
+			extraInfo = "jump skipped"
 		}
-		extraInfo = fmt.Sprintf("%04X", addr)
-		isJump = true
+	case "INC":
+		if isWordOperand(subfields[0]) {
+			value := cpu.getWordValue(subfields[0]) + 1
+			extraInfo = fmt.Sprintf("%04X + 1 = %04X", value - 1, value)
+			cpu.setWord(subfields[0], value)
+			cpu.f.updateFromWord(value, inst.flags)
+		} else {
+			value := cpu.getByteValue(subfields[0]) + 1
+			extraInfo = fmt.Sprintf("%02X + 1 = %02X", value - 1, value)
+			cpu.setByte(subfields[0], value)
+			cpu.f.updateFromByte(value, inst.flags)
+		}
+	case "JP", "CALL":
+		addr := cpu.getWordValue(subfields[len(subfields) - 1])
 		jumpDest = addr
+		if len(subfields) == 2 {
+			isJump = cpu.conditionSatisfied(subfields[0])
+		} else {
+			isJump = true
+		}
+		if isJump {
+			extraInfo = fmt.Sprintf("%04X", addr)
+		} else {
+			extraInfo = "jump skipped"
+		}
+		if fields[0] == "CALL" {
+			cpu.pushWord(cpu.pc)
+		}
 	case "JR":
 		if subfields[len(subfields) - 1] != "N+2" {
 			panic("Can only handle relative jumps to N, not " + subfields[len(subfields) - 1])
 		}
 		// Relative jump is signed.
-		jumpDest = word(int(cpu.pc) + int(int8(cpu.fetchByte())))
+		rel := int(int8(cpu.fetchByte()))
+		jumpDest = word(int(cpu.pc) + rel)
 		if len(subfields) == 2 {
-			switch subfields[0] {
-			case "C":
-				if cpu.f.c() {
-					isJump = true
-				}
-			case "NC":
-				if !cpu.f.c() {
-					isJump = true
-				}
-			case "Z":
-				if cpu.f.z() {
-					isJump = true
-				}
-			case "NZ":
-				if !cpu.f.z() {
-					isJump = true
-				}
-			default:
-				panic("Unknown JR condition " + subfields[0])
-			}
+			isJump = cpu.conditionSatisfied(subfields[0])
 		} else {
 			// Unconditional.
 			isJump = true
 		}
 		if isJump {
-			extraInfo = fmt.Sprintf("%04X", jumpDest)
+			extraInfo = fmt.Sprintf("%04X (%d)", jumpDest, rel)
 		} else {
 			extraInfo = "jump skipped"
 		}
 	case "LD":
-		value := cpu.getWordValue(subfields[1])
-		cpu.setWord(subfields[0], value)
-		extraInfo = fmt.Sprintf("%04X", value)
+		if isWordOperand(subfields[0]) || isWordOperand(subfields[1]) {
+			value := cpu.getWordValue(subfields[1])
+			cpu.setWord(subfields[0], value)
+			extraInfo = fmt.Sprintf("%04X", value)
+		} else {
+			value := cpu.getByteValue(subfields[1])
+			cpu.setByte(subfields[0], value)
+			extraInfo = fmt.Sprintf("%02X", value)
+		}
 	case "LDIR":
 		// Not sure if this should be while or do while.
 		extraInfo = fmt.Sprintf("copying %04X bytes from %04X to %04X", cpu.bc, cpu.hl, cpu.de)
 		for cpu.bc != 0xFFFF {
 			cpu.writeMem(cpu.de, cpu.memory[cpu.hl])
-			cpu.hl--
-			cpu.de--
+			cpu.hl++
+			cpu.de++
 			cpu.bc--
 		}
 	case "OUT":
@@ -608,9 +653,10 @@ func (cpu *cpu) step2() {
 			panic("Unknown OUT destination " + subfields[0])
 		}
 		extraInfo = fmt.Sprintf("%02X <- %02X", port, value)
-	case "XOR":
-		value := cpu.getByteValue(fields[1])
-		cpu.a ^= value
+	case "POP":
+		value := cpu.popWord()
+		cpu.setWord(subfields[0], value)
+		extraInfo = fmt.Sprintf("%04X", value)
 	default:
 		panic(fmt.Sprintf("Don't know how to handle %s (at %04X)",
 			inst.asm, beginPc))
@@ -634,6 +680,8 @@ func (cpu *cpu) getByteValue(ref string) byte {
 	case "H": return cpu.hl.h()
 	case "L": return cpu.hl.l()
 	case "(HL)": return cpu.memory[cpu.hl]
+	case "N": return cpu.fetchByte()
+	case "(NN)": return cpu.memory[cpu.fetchWord()]
 	}
 
 	panic("We don't yet handle addressing mode " + ref)
@@ -641,8 +689,17 @@ func (cpu *cpu) getByteValue(ref string) byte {
 
 func (cpu *cpu) getWordValue(ref string) word {
 	switch ref {
+	case "BC":
+		return cpu.bc
+	case "DE":
+		return cpu.de
+	case "HL":
+		return cpu.hl
 	case "NN":
 		return cpu.fetchWord()
+	case "(NN)":
+		addr := cpu.fetchWord()
+		return cpu.readMemWord(addr)
 	}
 
 	panic("We don't yet handle addressing mode " + ref)
@@ -652,6 +709,26 @@ func (cpu *cpu) setByte(ref string, value byte) {
 	switch ref {
 	case "A":
 		cpu.a = value
+	case "B":
+		cpu.bc.setH(value)
+	case "C":
+		cpu.bc.setL(value)
+	case "D":
+		cpu.de.setH(value)
+	case "E":
+		cpu.de.setL(value)
+	case "H":
+		cpu.hl.setH(value)
+	case "L":
+		cpu.hl.setL(value)
+	case "(BC)":
+		cpu.writeMem(cpu.bc, value)
+	case "(DE)":
+		cpu.writeMem(cpu.de, value)
+	case "(HL)":
+		cpu.writeMem(cpu.hl, value)
+	case "(NN)":
+		cpu.writeMem(cpu.fetchWord(), value)
 	default:
 		panic("Can't handle destination of " + ref)
 	}
@@ -665,6 +742,12 @@ func (cpu *cpu) setWord(ref string, value word) {
 		cpu.de = value
 	case "HL":
 		cpu.hl = value
+	case "SP":
+		cpu.sp = value
+	case "(NN)":
+		addr := cpu.fetchWord()
+		cpu.writeMem(addr, value.l())
+		cpu.writeMem(addr + 1, value.h())
 	default:
 		panic("Can't handle destination of " + ref)
 	}
@@ -689,4 +772,28 @@ func (cpu *cpu) lookUpInst() *instruction {
 	}
 
 	return inst
+}
+
+func (cpu *cpu) conditionSatisfied(cond string) bool {
+	switch cond {
+	case "C":
+		return cpu.f.c()
+	case "NC":
+		return !cpu.f.c()
+	case "Z":
+		return cpu.f.z()
+	case "NZ":
+		return !cpu.f.z()
+	}
+
+	panic("Unknown condition " + cond)
+}
+
+func isWordOperand(op string) bool {
+	switch op {
+	case "BC", "DE", "HL", "NN":
+		return true
+	}
+
+	return false
 }

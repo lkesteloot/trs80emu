@@ -135,3 +135,34 @@ func (cpu *cpu) writeMem(addr word, b byte) {
 
 	cpu.memory[addr] = b
 }
+
+func (cpu *cpu) readMemWord(addr word) (w word) {
+	w.setL(cpu.memory[addr])
+	w.setH(cpu.memory[addr + 1])
+
+	return
+}
+
+func (cpu *cpu) pushByte(b byte) {
+	cpu.sp--
+	cpu.writeMem(cpu.sp, b)
+}
+
+func (cpu *cpu) pushWord(w word) {
+	cpu.pushByte(w.h())
+	cpu.pushByte(w.l())
+}
+
+func (cpu *cpu) popByte() byte {
+	cpu.sp++
+	return cpu.memory[cpu.sp - 1]
+}
+
+func (cpu *cpu) popWord() word {
+	var w word
+
+	w.setL(cpu.popByte())
+	w.setH(cpu.popByte())
+
+	return w
+}

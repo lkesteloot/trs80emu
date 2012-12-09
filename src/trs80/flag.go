@@ -86,3 +86,31 @@ func (f *flags) setS(s bool) {
 		*f &^= 0x80
 	}
 }
+
+// Update all flags based on result of operation. The "hints" string is
+// the fourth column from the z80.txt files.
+func (f *flags) updateFromByte(value byte, hints string) {
+	// Z
+	switch hints[4] {
+		case '+':
+			f.setZ(value == 0)
+		case '0':
+			f.setZ(false)
+		case '1':
+			f.setZ(true)
+	}
+}
+
+// Update all flags based on result of operation. The "hints" string is
+// the fourth column from the z80.txt files.
+func (f *flags) updateFromWord(value word, hints string) {
+	// Z
+	switch hints[4] {
+		case '+':
+			f.setZ(value == 0)
+		case '0':
+			f.setZ(false)
+		case '1':
+			f.setZ(true)
+	}
+}
