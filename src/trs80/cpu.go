@@ -164,7 +164,8 @@ func (cpu *cpu) readMem(addr word) (b byte) {
 	} else if addr >= keyboardFirst && addr <= keyboardLast {
 		b = cpu.readKeyboard(addr)
 	} else if addr >= 0x3C00 && addr <= 0x3FFF {
-		panic(fmt.Sprintf("Tried to read from display at %04X", addr))
+		// panic(fmt.Sprintf("Tried to read from display at %04X", addr))
+		b = cpu.memory[addr]
 	} else {
 		b = cpu.memory[addr]
 	}

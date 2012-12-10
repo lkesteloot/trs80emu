@@ -775,6 +775,11 @@ func (cpu *cpu) getByteValue(ref string, byteData byte, wordData word) byte {
 
 func (cpu *cpu) getWordValue(ref string, byteData byte, wordData word) word {
 	switch ref {
+	case "AF":
+		var w word
+		w.setH(cpu.a)
+		w.setL(byte(cpu.f))
+		return w
 	case "BC":
 		return cpu.bc
 	case "DE":
@@ -822,6 +827,14 @@ func (cpu *cpu) setByte(ref string, value byte, byteData byte, wordData word) {
 	case "(HL)":
 		cpu.writeMem(cpu.hl, value)
 		fmt.Printf("(HL = %04X) ", cpu.hl)
+	case "(IX+N)":
+		addr := cpu.ix + signExtend(byteData)
+		cpu.writeMem(addr, value)
+		fmt.Printf("(IX = %04X + %02X = %04X) ", cpu.ix, byteData, addr)
+	case "(IY+N)":
+		addr := cpu.iy + signExtend(byteData)
+		cpu.writeMem(addr, value)
+		fmt.Printf("(IY = %04X + %02X = %04X) ", cpu.iy, byteData, addr)
 	case "(NN)":
 		cpu.writeMem(wordData, value)
 		fmt.Printf("(NN = %04X) ", wordData)
@@ -832,6 +845,9 @@ func (cpu *cpu) setByte(ref string, value byte, byteData byte, wordData word) {
 
 func (cpu *cpu) setWord(ref string, value word, byteData byte, wordData word) {
 	switch ref {
+	case "AF":
+		cpu.a = value.h()
+		cpu.f = flags(value.l())
 	case "BC":
 		cpu.bc = value
 	case "DE":
