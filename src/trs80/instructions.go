@@ -250,6 +250,7 @@ LD L,(IX+N)   19    3   ------  DD 6E XX
 LD L,(IY+N)   19    3   ------  FD 6E XX
 LD L,r        4     1   ------  68+r
 LD L,N        7     2   ------  2E XX
+// Bug, same as two below:
 LD LX,r*            2   ------  DD 68+r*
 LD LX,N             3   ------  FD 2E XX
 LD LY,r*            2   ------  DD 68+r*
@@ -401,7 +402,7 @@ XOR N         7     2   00P0++  EE XX
 
 // See explanation of +r in z80.txt
 var registerNybble []string = []string{"B", "C", "D", "E", "H", "L", "(HL)", "A"}
-var registerStarNybble []string = []string{"B", "C", "D", "E", "HX", "LX", "?", "A"}
+var registerStarNybble []string = []string{"B", "C", "D", "E", "HX", "LX", "", "A"}
 
 type instructionMap map[byte]*instruction
 
@@ -428,8 +429,7 @@ func (cpu *cpu) loadInstructions(instructionList string) {
 	lines := strings.Split(instructionList, "\n")
 
 	for _, line := range lines {
-		if len(line) > 0 {
-			/// fmt.Println(line)
+		if len(line) > 0 && !strings.HasPrefix(line, "//") {
 			cpu.parseInstructionLine(line)
 		}
 	}
@@ -477,8 +477,10 @@ func (imap instructionMap) addInstruction(asm, cycles, flags, opcodeStr string, 
 				r = registerNybble[n]
 			}
 
-			imap.addInstruction(strings.Replace(asm, "r", r, -1), cycles, flags,
-				fmt.Sprintf("%02X", opcode+n), opcodes)
+			if r != "" {
+				imap.addInstruction(strings.Replace(asm, "r", r, -1), cycles, flags,
+					fmt.Sprintf("%02X", opcode+n), opcodes)
+			}
 		}
 	} else {
 		// Get or create node in tree.
@@ -509,6 +511,18 @@ func (imap instructionMap) addInstruction(asm, cycles, flags, opcodeStr string, 
 
 func (cpu *cpu) step2() {
 	beginPc := cpu.pc
+
+	defer func () {
+		e := recover()
+		if e != nil {
+			fmt.Printf("%04X ", beginPc)
+			for i := word(0); i < 4; i++ {
+				fmt.Printf("%02X ", cpu.readMem(beginPc + i))
+			}
+			fmt.Println()
+			panic(e)
+		}
+	}()
 
 	inst := cpu.lookUpInst()
 	if inst.asm == "" {
@@ -573,12 +587,12 @@ func (cpu *cpu) step2() {
 	case "DI":
 		cpu.iff = false
 	case "DJNZ":
-		rel := int(int8(cpu.fetchByte()))
-		jumpDest = word(int(cpu.pc) + rel)
+		rel := signExtend(cpu.fetchByte())
+		jumpDest = cpu.pc + rel
 		cpu.bc.setH(cpu.bc.h() - 1)
 		if cpu.bc.h() != 0 {
 			isJump = true
-			extraInfo = fmt.Sprintf("%04X (%d), b = %02X", jumpDest, rel, cpu.bc.h())
+			extraInfo = fmt.Sprintf("%04X (%d), b = %02X", jumpDest, int16(rel), cpu.bc.h())
 		} else {
 			extraInfo = "jump skipped"
 		}
@@ -615,8 +629,8 @@ func (cpu *cpu) step2() {
 			panic("Can only handle relative jumps to N, not " + subfields[len(subfields)-1])
 		}
 		// Relative jump is signed.
-		rel := int(int8(cpu.fetchByte()))
-		jumpDest = word(int(cpu.pc) + rel)
+		rel := signExtend(cpu.fetchByte())
+		jumpDest = cpu.pc + rel
 		if len(subfields) == 2 {
 			isJump = cpu.conditionSatisfied(subfields[0])
 		} else {
@@ -624,7 +638,7 @@ func (cpu *cpu) step2() {
 			isJump = true
 		}
 		if isJump {
-			extraInfo = fmt.Sprintf("%04X (%d)", jumpDest, rel)
+			extraInfo = fmt.Sprintf("%04X (%d)", jumpDest, int16(rel))
 		} else {
 			extraInfo = "jump skipped"
 		}
@@ -642,11 +656,13 @@ func (cpu *cpu) step2() {
 		// Not sure if this should be while or do while.
 		extraInfo = fmt.Sprintf("copying %04X bytes from %04X to %04X", cpu.bc, cpu.hl, cpu.de)
 		for cpu.bc != 0xFFFF {
-			cpu.writeMem(cpu.de, cpu.memory[cpu.hl])
+			cpu.writeMem(cpu.de, cpu.readMem(cpu.hl))
 			cpu.hl++
 			cpu.de++
 			cpu.bc--
 		}
+	case "NOP":
+		// Nothing to do!
 	case "OUT":
 		var port byte
 		value := cpu.getByteValue(subfields[1])
@@ -658,11 +674,28 @@ func (cpu *cpu) step2() {
 		default:
 			panic("Unknown OUT destination " + subfields[0])
 		}
-		extraInfo = fmt.Sprintf("%02X <- %02X", port, value)
+		portDescription, ok := ports[port]
+		if !ok {
+			panic(fmt.Sprintf("Unknown port %02X", port))
+		}
+		extraInfo = fmt.Sprintf("%02X (%s) <- %02X", port, portDescription, value)
 	case "POP":
 		value := cpu.popWord()
 		cpu.setWord(subfields[0], value)
 		extraInfo = fmt.Sprintf("%04X", value)
+	case "PUSH":
+		value := cpu.getWordValue(subfields[0])
+		cpu.pushWord(value)
+		extraInfo = fmt.Sprintf("%04X", value)
+	case "RET":
+		if len(fields) == 1 || cpu.conditionSatisfied(fields[1]) {
+			value := cpu.popWord()
+			isJump = true
+			jumpDest = value
+			extraInfo = fmt.Sprintf("%04X", value)
+		} else {
+			extraInfo = "return skipped"
+		}
 	default:
 		panic(fmt.Sprintf("Don't know how to handle %s (at %04X)",
 			inst.asm, beginPc))
@@ -692,12 +725,20 @@ func (cpu *cpu) getByteValue(ref string) byte {
 		return cpu.hl.h()
 	case "L":
 		return cpu.hl.l()
+	case "(BC)":
+		return cpu.readMem(cpu.bc)
+	case "(DE)":
+		return cpu.readMem(cpu.de)
 	case "(HL)":
-		return cpu.memory[cpu.hl]
+		return cpu.readMem(cpu.hl)
+	case "(IX+N)":
+		return cpu.readMem(cpu.ix + signExtend(cpu.fetchByte()))
+	case "(IY+N)":
+		return cpu.readMem(cpu.iy + signExtend(cpu.fetchByte()))
 	case "N":
 		return cpu.fetchByte()
 	case "(NN)":
-		return cpu.memory[cpu.fetchWord()]
+		return cpu.readMem(cpu.fetchWord())
 	}
 
 	panic("We don't yet handle addressing mode " + ref)
@@ -711,11 +752,17 @@ func (cpu *cpu) getWordValue(ref string) word {
 		return cpu.de
 	case "HL":
 		return cpu.hl
+	case "IX":
+		return cpu.ix
+	case "IY":
+		return cpu.iy
 	case "NN":
 		return cpu.fetchWord()
 	case "(NN)":
 		addr := cpu.fetchWord()
 		return cpu.readMemWord(addr)
+	case "(HL)":
+		return cpu.readMemWord(cpu.hl)
 	}
 
 	panic("We don't yet handle addressing mode " + ref)
@@ -760,6 +807,10 @@ func (cpu *cpu) setWord(ref string, value word) {
 		cpu.hl = value
 	case "SP":
 		cpu.sp = value
+	case "IX":
+		cpu.ix = value
+	case "IY":
+		cpu.iy = value
 	case "(NN)":
 		addr := cpu.fetchWord()
 		cpu.writeMem(addr, value.l())
@@ -800,6 +851,14 @@ func (cpu *cpu) conditionSatisfied(cond string) bool {
 		return cpu.f.z()
 	case "NZ":
 		return !cpu.f.z()
+	case "P":
+		return cpu.f.s()
+	case "M": // Negative.
+		return !cpu.f.s()
+	case "PE":
+		return cpu.f.pv()
+	case "PO":
+		return !cpu.f.pv()
 	}
 
 	panic("Unknown condition " + cond)
@@ -812,4 +871,8 @@ func isWordOperand(op string) bool {
 	}
 
 	return false
+}
+
+func signExtend(b byte) word {
+	return word(int8(b))
 }

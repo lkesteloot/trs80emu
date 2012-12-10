@@ -89,7 +89,7 @@ func (cpu *cpu) step() {
 				cpu.log(beginPc, endPc, "LDIR (copy HL to DE for BC bytes)")
 				// Not sure if this should be while or do while.
 				for cpu.bc() != 0xFFFF {
-					cpu.writeMem(cpu.de(), cpu.memory[cpu.hl()])
+					cpu.writeMem(cpu.de(), cpu.readMem(cpu.hl()))
 					cpu.setHl(cpu.hl() + 1)
 					cpu.setDe(cpu.de() + 1)
 					cpu.setBc(cpu.bc() - 1)
@@ -104,16 +104,17 @@ func (cpu *cpu) step() {
 }
 
 func (cpu *cpu) fetchByte() byte {
-	value := cpu.memory[cpu.pc]
+	value := cpu.readMem(cpu.pc)
 	cpu.pc++
 	return value
 }
 
-func (cpu *cpu) fetchWord() word {
+func (cpu *cpu) fetchWord() (w word) {
 	// Little endian.
-	value := word(cpu.memory[cpu.pc]) + 256*word(cpu.memory[cpu.pc+1])
-	cpu.pc += 2
-	return value
+	w.setL(cpu.fetchByte())
+	w.setH(cpu.fetchByte())
+
+	return
 }
 
 func (cpu *cpu) log(beginPc, endPc word, instFormat string, a ...interface{}) {
@@ -129,16 +130,45 @@ func (cpu *cpu) log(beginPc, endPc word, instFormat string, a ...interface{}) {
 }
 
 func (cpu *cpu) writeMem(addr word, b byte) {
+	// Check ROM writing. Harmless in real life, but may indicate a bug here.
 	if addr < cpu.romSize {
 		panic(fmt.Sprintf("Tried to write %02X to ROM at %04X", b, addr))
+	}
+
+	// Memory-mapped I/O.
+	// http://www.trs-80.com/trs80-zaps-internals.htm#memmapio
+	if addr >= 0x3000 && addr <= 0x37DD {
+		panic(fmt.Sprintf("Tried to write %02X to missing memory at %04X", b, addr))
+	} else if addr >= 0x37E0 && addr <= 0x37FF {
+		panic(fmt.Sprintf("Tried to write %02X to cassette/disk at %04X", b, addr))
+	} else if addr >= 0x3801 && addr <= 0x3880 {
+		panic(fmt.Sprintf("Tried to write %02X to keyboard at %04X", b, addr))
+	} else if addr >= 0x3C00 && addr <= 0x3FFF {
+		panic(fmt.Sprintf("Tried to write %02X to display at %04X", b, addr))
 	}
 
 	cpu.memory[addr] = b
 }
 
+func (cpu *cpu) readMem(addr word) byte {
+	// Memory-mapped I/O.
+	// http://www.trs-80.com/trs80-zaps-internals.htm#memmapio
+	if addr >= 0x3000 && addr <= 0x37DD {
+		panic(fmt.Sprintf("Tried to read from missing memory at %04X", addr))
+	} else if addr >= 0x37E0 && addr <= 0x37FF {
+		panic(fmt.Sprintf("Tried to read from cassette/disk at %04X", addr))
+	} else if addr >= 0x3801 && addr <= 0x3880 {
+		panic(fmt.Sprintf("Tried to read from keyboard at %04X", addr))
+	} else if addr >= 0x3C00 && addr <= 0x3FFF {
+		panic(fmt.Sprintf("Tried to read from display at %04X", addr))
+	}
+
+	return cpu.memory[addr]
+}
+
 func (cpu *cpu) readMemWord(addr word) (w word) {
-	w.setL(cpu.memory[addr])
-	w.setH(cpu.memory[addr+1])
+	w.setL(cpu.readMem(addr))
+	w.setH(cpu.readMem(addr+1))
 
 	return
 }
@@ -155,7 +185,7 @@ func (cpu *cpu) pushWord(w word) {
 
 func (cpu *cpu) popByte() byte {
 	cpu.sp++
-	return cpu.memory[cpu.sp-1]
+	return cpu.readMem(cpu.sp-1)
 }
 
 func (cpu *cpu) popWord() word {
