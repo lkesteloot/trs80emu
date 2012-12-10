@@ -150,20 +150,23 @@ func (cpu *cpu) writeMem(addr word, b byte) {
 	cpu.memory[addr] = b
 }
 
-func (cpu *cpu) readMem(addr word) byte {
+func (cpu *cpu) readMem(addr word) (b byte) {
+
 	// Memory-mapped I/O.
 	// http://www.trs-80.com/trs80-zaps-internals.htm#memmapio
 	if addr >= 0x3000 && addr <= 0x37DD {
 		panic(fmt.Sprintf("Tried to read from missing memory at %04X", addr))
 	} else if addr >= 0x37E0 && addr <= 0x37FF {
-		return cpu.readDisk(addr)
+		b = cpu.readDisk(addr)
 	} else if addr >= keyboardFirst && addr <= keyboardLast {
-		return cpu.readKeyboard(addr)
+		b = cpu.readKeyboard(addr)
 	} else if addr >= 0x3C00 && addr <= 0x3FFF {
 		panic(fmt.Sprintf("Tried to read from display at %04X", addr))
+	} else {
+		b = cpu.memory[addr]
 	}
 
-	return cpu.memory[addr]
+	return
 }
 
 func (cpu *cpu) readMemWord(addr word) (w word) {

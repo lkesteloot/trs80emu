@@ -725,18 +725,26 @@ func (cpu *cpu) getByteValue(ref string, byteData byte, wordData word) byte {
 	case "L":
 		return cpu.hl.l()
 	case "(BC)":
+		fmt.Printf("(BC = %04X) ", cpu.bc)
 		return cpu.readMem(cpu.bc)
 	case "(DE)":
+		fmt.Printf("(DE = %04X) ", cpu.de)
 		return cpu.readMem(cpu.de)
 	case "(HL)":
+		fmt.Printf("(HL = %04X) ", cpu.hl)
 		return cpu.readMem(cpu.hl)
 	case "(IX+N)":
-		return cpu.readMem(cpu.ix + signExtend(byteData))
+		addr := cpu.ix + signExtend(byteData)
+		fmt.Printf("(IX = %04X + %02X = %04X) ", cpu.ix, byteData, addr)
+		return cpu.readMem(addr)
 	case "(IY+N)":
-		return cpu.readMem(cpu.iy + signExtend(byteData))
+		addr := cpu.iy + signExtend(byteData)
+		fmt.Printf("(IY = %04X + %02X = %04X) ", cpu.iy, byteData, addr)
+		return cpu.readMem(addr)
 	case "N":
 		return byteData
 	case "(NN)":
+		fmt.Printf("(NN = %04X) ", wordData)
 		return cpu.readMem(wordData)
 	}
 
@@ -758,6 +766,7 @@ func (cpu *cpu) getWordValue(ref string, byteData byte, wordData word) word {
 	case "NN":
 		return wordData
 	case "(NN)":
+		fmt.Printf("(NN = %04X) ", wordData)
 		return cpu.readMemWord(wordData)
 	case "(HL)":
 		return cpu.readMemWord(cpu.hl)
@@ -784,12 +793,16 @@ func (cpu *cpu) setByte(ref string, value byte, byteData byte, wordData word) {
 		cpu.hl.setL(value)
 	case "(BC)":
 		cpu.writeMem(cpu.bc, value)
+		fmt.Printf("(BC = %04X) ", cpu.bc)
 	case "(DE)":
 		cpu.writeMem(cpu.de, value)
+		fmt.Printf("(DE = %04X) ", cpu.de)
 	case "(HL)":
 		cpu.writeMem(cpu.hl, value)
+		fmt.Printf("(HL = %04X) ", cpu.hl)
 	case "(NN)":
 		cpu.writeMem(wordData, value)
+		fmt.Printf("(NN = %04X) ", wordData)
 	default:
 		panic("Can't handle destination of " + ref)
 	}
@@ -813,6 +826,7 @@ func (cpu *cpu) setWord(ref string, value word, byteData byte, wordData word) {
 		addr := wordData
 		cpu.writeMem(addr, value.l())
 		cpu.writeMem(addr+1, value.h())
+		fmt.Printf("(NN = %04X) ", addr)
 	default:
 		panic("Can't handle destination of " + ref)
 	}
