@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+// XXX tmp
+var nextScreenDump uint64 = 0
+
 // Copy and pasted from z80.txt (http://guide.ticalc.org/download/z80.txt)
 var instructionList string = `
 ADC A,(HL)    7     1   +0V+++  8E
@@ -831,6 +834,32 @@ func (cpu *cpu) step2() {
 		value := origValue | (1 << b)
 		cpu.setByte(subfields[1], value, byteData, wordData)
 		fmt.Printf("%02X | %02X = %02X", origValue, 1 << b, value)
+	case "SBC":
+		// Subtract with carry.
+		if len(subfields) == 1 {
+			panic("Can't handle SBC with one parameter")
+		}
+		if (isWordOperand(subfields[0])) {
+			before := cpu.getWordValue(subfields[0], byteData, wordData)
+			value := cpu.getWordValue(subfields[1], byteData, wordData)
+			result := before - value
+			if cpu.f.c() {
+				result--
+			}
+			fmt.Printf("%04X - %04X - %v = %04X", before, value, cpu.f.c(), result)
+			cpu.f.updateFromWord(result, inst.flags)
+			cpu.setWord(subfields[0], result, byteData, wordData)
+		} else {
+			before := cpu.getByteValue(subfields[0], byteData, wordData)
+			value := cpu.getByteValue(subfields[1], byteData, wordData)
+			result := before - value
+			if cpu.f.c() {
+				result--
+			}
+			fmt.Printf("%02X - %02X - %v = %02X", before, value, cpu.f.c(), result)
+			cpu.f.updateFromByte(result, inst.flags)
+			cpu.setByte(subfields[0], result, byteData, wordData)
+		}
 	case "SUB":
 		// Always 8-bit, always to accumulator.
 		before := cpu.a
@@ -851,9 +880,9 @@ func (cpu *cpu) step2() {
 		cpu.clock += inst.jumpPenalty
 	}
 
-	if cpu.clock > 2000000 && false {
+	if cpu.clock > nextScreenDump {
 		cpu.dumpScreen()
-		panic("Done")
+		nextScreenDump += 1000000
 	}
 }
 
