@@ -58,7 +58,6 @@ BIT b,r       8     2   -0 1+   CB 4r+8*b
 CALL C,NN     17/10 3   ------  DC XX XX
 CALL M,NN     17/10 3   ------  FC XX XX
 CALL NC,NN    17/10 3   ------  D4 XX XX
-CALL NC,NN    17/10 3   ------  D4 XX XX
 CALL NN       17    3   ------  CD XX XX
 CALL NZ,NN    17/10 3   ------  C4 XX XX
 CALL P,NN     17/10 3   ------  F4 XX XX
@@ -250,10 +249,9 @@ LD L,(IX+N)   19    3   ------  DD 6E XX
 LD L,(IY+N)   19    3   ------  FD 6E XX
 LD L,r        4     1   ------  68+r
 LD L,N        7     2   ------  2E XX
-// Bug, same as two below:
 LD LX,r*            2   ------  DD 68+r*
-LD LX,N             3   ------  FD 2E XX
-LD LY,r*            2   ------  DD 68+r*
+LD LX,N             3   ------  DD 2E XX
+LD LY,r*            2   ------  FD 68+r*
 LD LY,N             3   ------  FD 2E XX
 LD R,A        9     2   ------  ED 4F
 LD SP,(NN)    20    4   ------  ED 7B XX XX
@@ -401,14 +399,17 @@ XOR N         7     2   00P0++  EE XX
 `
 
 // See explanation of +r in z80.txt
-var registerNybble []string = []string{"B", "C", "D", "E", "H", "L", "(HL)", "A"}
+var registerNybble []string = []string{"B", "C", "D", "E", "H", "L", /*"(HL)"*/"", "A"}
 var registerStarNybble []string = []string{"B", "C", "D", "E", "HX", "LX", "", "A"}
 
 type instructionMap map[byte]*instruction
 
 type instruction struct {
-	// Leave of tree.
+	// Leaf of tree.
 	asm, cycles, flags, opcodes string
+
+	// For XX data byte.
+	xx *instruction
 
 	// For extended instructions.
 	imap instructionMap
@@ -424,88 +425,115 @@ func parseByte(s string) byte {
 }
 
 func (cpu *cpu) loadInstructions(instructionList string) {
-	cpu.imap = make(instructionMap)
+	cpu.root = &instruction{}
 
 	lines := strings.Split(instructionList, "\n")
 
 	for _, line := range lines {
-		if len(line) > 0 && !strings.HasPrefix(line, "//") {
-			cpu.parseInstructionLine(line)
-		}
+		cpu.parseInstructionLine(line)
 	}
 }
 
 func (cpu *cpu) parseInstructionLine(line string) {
+	line = strings.TrimSpace(line)
+	if line == "" || strings.HasPrefix(line, "#") {
+		return
+	}
+
 	asm := strings.TrimSpace(line[:14])
 	cycles := strings.TrimSpace(line[14:20])
 	flags := strings.TrimSpace(line[24:32])
 	opcodes := strings.Split(strings.TrimSpace(line[32:]), " ")
-	/// fmt.Println(asm)
 
-	cpu.imap.addInstruction(asm, cycles, flags, opcodes[0], opcodes[1:])
-}
-
-func (imap instructionMap) addInstruction(asm, cycles, flags, opcodeStr string, opcodes []string) {
 	// Remove "$" from asm, not sure it means anything.
 	asm = strings.Replace(asm, "$", "", -1)
 
-	// Expand "8r" abbreviation to "80+r"
-	if strings.Contains(opcodeStr, "r") && !strings.Contains(opcodeStr, "+r") {
-		opcodeStr = strings.Replace(opcodeStr, "r", "0+r", 1)
+	cpu.root.addInstruction(asm, cycles, flags, opcodes)
+}
+
+func (inst *instruction) addInstruction(asm, cycles, flags string, opcodes []string) {
+	// See if it's a terminal node.
+	if len(opcodes) == 0 {
+		if inst.asm != "" {
+			panic(fmt.Sprintf("Already have %s in leaf, trying to write %s", inst.asm, asm))
+		}
+
+		// Leaf of tree.
+		inst.asm = asm
+		inst.cycles = cycles
+		inst.flags = flags
+	} else {
+		opcodeStr := opcodes[0]
+
+		// See if it's user data.
+		if opcodeStr == "XX" {
+			inst.xx = &instruction{}
+			inst.xx.addInstruction(asm, cycles, flags, opcodes[1:])
+		} else {
+			// Expand "8r" abbreviation to "80+r"
+			if strings.Contains(opcodeStr, "r") && !strings.Contains(opcodeStr, "+r") {
+				opcodeStr = strings.Replace(opcodeStr, "r", "0+r", 1)
+			}
+
+			opcode := parseByte(opcodeStr[:2])
+
+			if strings.HasSuffix(opcodeStr, "+8*b") {
+				// Expand "+8*b" to each bit value.
+				opcodeRest := opcodeStr[2 : len(opcodeStr)-4] // May be empty.
+
+				// Replace "b" with bit value.
+				opcodes[0] = fmt.Sprintf("%02X%s", opcode+0, opcodeRest)
+				inst.addInstruction(strings.Replace(asm, "b", "0", -1), cycles, flags, opcodes)
+				opcodes[0] = fmt.Sprintf("%02X%s", opcode+8, opcodeRest)
+				inst.addInstruction(strings.Replace(asm, "b", "1", -1), cycles, flags, opcodes)
+			} else if strings.HasSuffix(opcodeStr, "+r") || strings.HasSuffix(opcodeStr, "+r*") {
+				// Expand registers.
+				for n := byte(0); n < 8; n++ {
+					// Replace "r" with register in asm.
+					var r string
+					if strings.HasSuffix(opcodeStr, "*") {
+						r = registerStarNybble[n]
+					} else {
+						r = registerNybble[n]
+					}
+
+					if r != "" {
+						opcodes[0] = fmt.Sprintf("%02X", opcode+n)
+						inst.addInstruction(strings.Replace(asm, "r", r, -1),
+							cycles, flags, opcodes)
+					}
+				}
+			} else {
+				if inst.imap == nil {
+					inst.imap = make(instructionMap)
+				}
+
+				// Get or create node in tree.
+				subInst, ok := inst.imap[opcode]
+				if !ok {
+					subInst = &instruction{}
+					inst.imap[opcode] = subInst
+				}
+
+				subInst.addInstruction(asm, cycles, flags, opcodes[1:])
+			}
+		}
 	}
 
-	/// fmt.Println(opcodeStr)
-	opcode := parseByte(opcodeStr[:2])
+	var hasiMap, hasXx, isLeaf int
+	if inst.imap != nil {
+		hasiMap = 1
+	}
+	if inst.xx != nil {
+		hasXx = 1
+	}
+	if inst.asm != "" {
+		isLeaf = 1
+	}
 
-	if strings.HasSuffix(opcodeStr, "+8*b") {
-		// Expand "+8*b" to each bit value.
-		opcodeRest := opcodeStr[2 : len(opcodeStr)-4] // May be empty.
-
-		// Replace "b" with bit value.
-		imap.addInstruction(strings.Replace(asm, "b", "0", -1), cycles, flags,
-			fmt.Sprintf("%02X%s", opcode+0, opcodeRest), opcodes)
-		imap.addInstruction(strings.Replace(asm, "b", "1", -1), cycles, flags,
-			fmt.Sprintf("%02X%s", opcode+8, opcodeRest), opcodes)
-	} else if strings.HasSuffix(opcodeStr, "+r") || strings.HasSuffix(opcodeStr, "+r*") {
-		// Expand registers.
-		for n := byte(0); n < 8; n++ {
-			// Replace "r" with register in asm.
-			var r string
-			if strings.HasSuffix(opcodeStr, "*") {
-				r = registerStarNybble[n]
-			} else {
-				r = registerNybble[n]
-			}
-
-			if r != "" {
-				imap.addInstruction(strings.Replace(asm, "r", r, -1), cycles, flags,
-					fmt.Sprintf("%02X", opcode+n), opcodes)
-			}
-		}
-	} else {
-		// Get or create node in tree.
-		inst, ok := imap[opcode]
-		if !ok {
-			inst = &instruction{}
-			imap[opcode] = inst
-		}
-
-		// Check if it's an extended instruction.
-		if len(opcodes) > 0 && opcodes[0] != "XX" {
-			if inst.imap == nil {
-				inst.imap = make(instructionMap)
-			}
-			inst.imap.addInstruction(asm, cycles, flags, opcodes[0], opcodes[1:])
-		} else {
-			// Leaf of tree.
-			inst.asm = asm
-			inst.cycles = cycles
-			inst.flags = flags
-		}
-
-		if (inst.imap != nil) == (inst.asm != "") {
-			panic("Instruction is both leaf and internal node")
-		}
+	if hasiMap + hasXx + isLeaf != 1 {
+		panic(fmt.Sprintf("Instruction %s has wrong number of children (%d, %d, %d)",
+			asm, hasiMap, hasXx, isLeaf))
 	}
 }
 
@@ -524,10 +552,8 @@ func (cpu *cpu) step2() {
 		}
 	}()
 
-	inst := cpu.lookUpInst()
-	if inst.asm == "" {
-		panic("Instruction is empty leaf")
-	}
+	// Look up the instruction in the tree.
+	inst, byteData, wordData := cpu.lookUpInst()
 
 	fields := strings.Split(inst.asm, " ")
 	var subfields []string
@@ -548,7 +574,7 @@ func (cpu *cpu) step2() {
 
 	switch fields[0] {
 	case "AND", "XOR", "OR":
-		value := cpu.getByteValue(subfields[0])
+		value := cpu.getByteValue(subfields[0], byteData, wordData)
 		before := cpu.a
 		var symbol string
 		switch fields[0] {
@@ -565,7 +591,7 @@ func (cpu *cpu) step2() {
 		cpu.f.updateFromByte(cpu.a, inst.flags)
 		extraInfo = fmt.Sprintf("%02X %s %02X = %02X", before, symbol, value, cpu.a)
 	case "CP":
-		value := cpu.getByteValue(subfields[0])
+		value := cpu.getByteValue(subfields[0], byteData, wordData)
 		diff := int(cpu.a) - int(value)
 		cpu.f.setS(diff < 0)
 		cpu.f.setZ(diff == 0)
@@ -574,20 +600,20 @@ func (cpu *cpu) step2() {
 		extraInfo = fmt.Sprintf("%02X - %02X", cpu.a, value)
 	case "DEC":
 		if isWordOperand(subfields[0]) {
-			value := cpu.getWordValue(subfields[0]) - 1
+			value := cpu.getWordValue(subfields[0], byteData, wordData) - 1
 			extraInfo = fmt.Sprintf("%04X - 1 = %04X", value+1, value)
-			cpu.setWord(subfields[0], value)
+			cpu.setWord(subfields[0], value, byteData, wordData)
 			cpu.f.updateFromWord(value, inst.flags)
 		} else {
-			value := cpu.getByteValue(subfields[0]) - 1
+			value := cpu.getByteValue(subfields[0], byteData, wordData) - 1
 			extraInfo = fmt.Sprintf("%02X + 1 = %02X", value+1, value)
-			cpu.setByte(subfields[0], value)
+			cpu.setByte(subfields[0], value, byteData, wordData)
 			cpu.f.updateFromByte(value, inst.flags)
 		}
 	case "DI":
 		cpu.iff = false
 	case "DJNZ":
-		rel := signExtend(cpu.fetchByte())
+		rel := signExtend(byteData)
 		jumpDest = cpu.pc + rel
 		cpu.bc.setH(cpu.bc.h() - 1)
 		if cpu.bc.h() != 0 {
@@ -598,18 +624,18 @@ func (cpu *cpu) step2() {
 		}
 	case "INC":
 		if isWordOperand(subfields[0]) {
-			value := cpu.getWordValue(subfields[0]) + 1
+			value := cpu.getWordValue(subfields[0], byteData, wordData) + 1
 			extraInfo = fmt.Sprintf("%04X + 1 = %04X", value-1, value)
-			cpu.setWord(subfields[0], value)
+			cpu.setWord(subfields[0], value, byteData, wordData)
 			cpu.f.updateFromWord(value, inst.flags)
 		} else {
-			value := cpu.getByteValue(subfields[0]) + 1
+			value := cpu.getByteValue(subfields[0], byteData, wordData) + 1
 			extraInfo = fmt.Sprintf("%02X + 1 = %02X", value-1, value)
-			cpu.setByte(subfields[0], value)
+			cpu.setByte(subfields[0], value, byteData, wordData)
 			cpu.f.updateFromByte(value, inst.flags)
 		}
 	case "JP", "CALL":
-		addr := cpu.getWordValue(subfields[len(subfields)-1])
+		addr := cpu.getWordValue(subfields[len(subfields)-1], byteData, wordData)
 		jumpDest = addr
 		if len(subfields) == 2 {
 			isJump = cpu.conditionSatisfied(subfields[0])
@@ -629,7 +655,7 @@ func (cpu *cpu) step2() {
 			panic("Can only handle relative jumps to N, not " + subfields[len(subfields)-1])
 		}
 		// Relative jump is signed.
-		rel := signExtend(cpu.fetchByte())
+		rel := signExtend(byteData)
 		jumpDest = cpu.pc + rel
 		if len(subfields) == 2 {
 			isJump = cpu.conditionSatisfied(subfields[0])
@@ -644,12 +670,12 @@ func (cpu *cpu) step2() {
 		}
 	case "LD":
 		if isWordOperand(subfields[0]) || isWordOperand(subfields[1]) {
-			value := cpu.getWordValue(subfields[1])
-			cpu.setWord(subfields[0], value)
+			value := cpu.getWordValue(subfields[1], byteData, wordData)
+			cpu.setWord(subfields[0], value, byteData, wordData)
 			extraInfo = fmt.Sprintf("%04X", value)
 		} else {
-			value := cpu.getByteValue(subfields[1])
-			cpu.setByte(subfields[0], value)
+			value := cpu.getByteValue(subfields[1], byteData, wordData)
+			cpu.setByte(subfields[0], value, byteData, wordData)
 			extraInfo = fmt.Sprintf("%02X", value)
 		}
 	case "LDIR":
@@ -665,12 +691,12 @@ func (cpu *cpu) step2() {
 		// Nothing to do!
 	case "OUT":
 		var port byte
-		value := cpu.getByteValue(subfields[1])
+		value := cpu.getByteValue(subfields[1], byteData, wordData)
 		switch subfields[0] {
 		case "(C)":
 			port = cpu.bc.l()
 		case "(N)":
-			port = cpu.fetchByte()
+			port = byteData
 		default:
 			panic("Unknown OUT destination " + subfields[0])
 		}
@@ -681,10 +707,10 @@ func (cpu *cpu) step2() {
 		extraInfo = fmt.Sprintf("%02X (%s) <- %02X", port, portDescription, value)
 	case "POP":
 		value := cpu.popWord()
-		cpu.setWord(subfields[0], value)
+		cpu.setWord(subfields[0], value, byteData, wordData)
 		extraInfo = fmt.Sprintf("%04X", value)
 	case "PUSH":
-		value := cpu.getWordValue(subfields[0])
+		value := cpu.getWordValue(subfields[0], byteData, wordData)
 		cpu.pushWord(value)
 		extraInfo = fmt.Sprintf("%04X", value)
 	case "RET":
@@ -709,7 +735,7 @@ func (cpu *cpu) step2() {
 	}
 }
 
-func (cpu *cpu) getByteValue(ref string) byte {
+func (cpu *cpu) getByteValue(ref string, byteData byte, wordData word) byte {
 	switch ref {
 	case "A":
 		return cpu.a
@@ -732,19 +758,19 @@ func (cpu *cpu) getByteValue(ref string) byte {
 	case "(HL)":
 		return cpu.readMem(cpu.hl)
 	case "(IX+N)":
-		return cpu.readMem(cpu.ix + signExtend(cpu.fetchByte()))
+		return cpu.readMem(cpu.ix + signExtend(byteData))
 	case "(IY+N)":
-		return cpu.readMem(cpu.iy + signExtend(cpu.fetchByte()))
+		return cpu.readMem(cpu.iy + signExtend(byteData))
 	case "N":
-		return cpu.fetchByte()
+		return byteData
 	case "(NN)":
-		return cpu.readMem(cpu.fetchWord())
+		return cpu.readMem(wordData)
 	}
 
 	panic("We don't yet handle addressing mode " + ref)
 }
 
-func (cpu *cpu) getWordValue(ref string) word {
+func (cpu *cpu) getWordValue(ref string, byteData byte, wordData word) word {
 	switch ref {
 	case "BC":
 		return cpu.bc
@@ -757,10 +783,9 @@ func (cpu *cpu) getWordValue(ref string) word {
 	case "IY":
 		return cpu.iy
 	case "NN":
-		return cpu.fetchWord()
+		return wordData
 	case "(NN)":
-		addr := cpu.fetchWord()
-		return cpu.readMemWord(addr)
+		return cpu.readMemWord(wordData)
 	case "(HL)":
 		return cpu.readMemWord(cpu.hl)
 	}
@@ -768,7 +793,7 @@ func (cpu *cpu) getWordValue(ref string) word {
 	panic("We don't yet handle addressing mode " + ref)
 }
 
-func (cpu *cpu) setByte(ref string, value byte) {
+func (cpu *cpu) setByte(ref string, value byte, byteData byte, wordData word) {
 	switch ref {
 	case "A":
 		cpu.a = value
@@ -791,13 +816,13 @@ func (cpu *cpu) setByte(ref string, value byte) {
 	case "(HL)":
 		cpu.writeMem(cpu.hl, value)
 	case "(NN)":
-		cpu.writeMem(cpu.fetchWord(), value)
+		cpu.writeMem(wordData, value)
 	default:
 		panic("Can't handle destination of " + ref)
 	}
 }
 
-func (cpu *cpu) setWord(ref string, value word) {
+func (cpu *cpu) setWord(ref string, value word, byteData byte, wordData word) {
 	switch ref {
 	case "BC":
 		cpu.bc = value
@@ -812,7 +837,7 @@ func (cpu *cpu) setWord(ref string, value word) {
 	case "IY":
 		cpu.iy = value
 	case "(NN)":
-		addr := cpu.fetchWord()
+		addr := wordData
 		cpu.writeMem(addr, value.l())
 		cpu.writeMem(addr+1, value.h())
 	default:
@@ -820,25 +845,41 @@ func (cpu *cpu) setWord(ref string, value word) {
 	}
 }
 
-func (cpu *cpu) lookUpInst() *instruction {
-	imap := cpu.imap
-	var inst *instruction
-	var ok bool
+func (cpu *cpu) lookUpInst() (inst *instruction, byteData byte, wordData word) {
+	haveByteData := false
 
-	for imap != nil {
-		opcode := cpu.fetchByte()
-		/// fmt.Printf("Looking up opcode %02X\n", opcode)
+	inst = cpu.root
 
-		inst, ok = imap[opcode]
-		if !ok {
-			panic(fmt.Sprintf("Don't know how to handle opcode %02X", opcode))
+	for {
+		// Terminal node.
+		if inst.asm != "" {
+			return
 		}
 
-		// Keep fetching as long as it's an extended instruction.
-		imap = inst.imap
+		opcode := cpu.fetchByte()
+
+		// User data.
+		if inst.xx != nil {
+			if haveByteData {
+				wordData.setH(opcode)
+				wordData.setL(byteData)
+			} else {
+				byteData = opcode
+				haveByteData = true
+			}
+
+			inst = inst.xx
+		} else {
+			// Keep fetching as long as it's an extended instruction.
+			var ok bool
+			inst, ok = inst.imap[opcode]
+			if !ok {
+				panic(fmt.Sprintf("Don't know how to handle opcode %02X", opcode))
+			}
+		}
 	}
 
-	return inst
+	panic("Can't get here")
 }
 
 func (cpu *cpu) conditionSatisfied(cond string) bool {

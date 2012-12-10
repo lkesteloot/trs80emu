@@ -24,8 +24,8 @@ type cpu struct {
 	// Interrupt flag?
 	iff bool
 
-	// Map from opcodes to instructions.
-	imap instructionMap
+	// Root of instruction tree.
+	root *instruction
 }
 
 func (cpu *cpu) run() {
@@ -158,7 +158,7 @@ func (cpu *cpu) readMem(addr word) byte {
 	} else if addr >= 0x37E0 && addr <= 0x37FF {
 		return cpu.readDisk(addr)
 	} else if addr >= keyboardFirst && addr <= keyboardLast {
-		return cpu.readKeyboard(addr);
+		return cpu.readKeyboard(addr)
 	} else if addr >= 0x3C00 && addr <= 0x3FFF {
 		panic(fmt.Sprintf("Tried to read from display at %04X", addr))
 	}
