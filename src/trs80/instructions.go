@@ -143,9 +143,11 @@ INDR          21/16 2   -1  1   ED BA
 INI           16    2   -1  +   ED A2
 INIR          21/16 2   -1  1   ED B2
 JP $NN        10    3   ------  C3 XX XX
-JP (HL)       4     1   ------  E9
-JP (IX)       8     2   ------  DD E9
-JP (IY)       8     2   ------  FD E9
+# The real instructions here are "JP (HL)" etc, but this implies that it uses
+# the value pointed to by HL, so I removed the parentheses.
+JP HL         4     1   ------  E9
+JP IX         8     2   ------  DD E9
+JP IY         8     2   ------  FD E9
 JP C,$NN      10    3   ------  DA XX XX
 JP M,$NN      10    3   ------  FA XX XX
 JP NC,$NN     10    3   ------  D2 XX XX
