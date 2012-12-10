@@ -538,22 +538,19 @@ func (inst *instruction) addInstruction(asm, cycles, flags string, opcodes []str
 }
 
 func (cpu *cpu) step2() {
-	beginPc := cpu.pc
-
-	defer func () {
-		e := recover()
-		if e != nil {
-			fmt.Printf("%04X ", beginPc)
-			for i := word(0); i < 4; i++ {
-				fmt.Printf("%02X ", cpu.readMem(beginPc + i))
-			}
-			fmt.Println()
-			panic(e)
-		}
-	}()
-
 	// Look up the instruction in the tree.
+	instPc := cpu.pc
 	inst, byteData, wordData := cpu.lookUpInst()
+
+	fmt.Printf("%04X ", instPc)
+	for pc := instPc; pc < instPc + 4; pc++ {
+		if pc < cpu.pc {
+			fmt.Printf("%02X ", cpu.memory[pc])
+		} else {
+			fmt.Print("   ")
+		}
+	}
+	fmt.Printf("%-15s ", inst.asm)
 
 	fields := strings.Split(inst.asm, " ")
 	var subfields []string
@@ -565,12 +562,6 @@ func (cpu *cpu) step2() {
 	default:
 		panic(fmt.Sprintf("Unknown number of fields %d", len(fields)))
 	}
-
-	// In case the PC should jump at the end.
-	isJump := false
-	var jumpDest word
-
-	var extraInfo string
 
 	switch fields[0] {
 	case "AND", "XOR", "OR":
@@ -589,7 +580,7 @@ func (cpu *cpu) step2() {
 			symbol = "|"
 		}
 		cpu.f.updateFromByte(cpu.a, inst.flags)
-		extraInfo = fmt.Sprintf("%02X %s %02X = %02X", before, symbol, value, cpu.a)
+		fmt.Printf("%02X %s %02X = %02X", before, symbol, value, cpu.a)
 	case "CP":
 		value := cpu.getByteValue(subfields[0], byteData, wordData)
 		diff := int(cpu.a) - int(value)
@@ -597,16 +588,16 @@ func (cpu *cpu) step2() {
 		cpu.f.setZ(diff == 0)
 		cpu.f.setC(diff < 0) // Borrow.
 		cpu.f.setN(true)
-		extraInfo = fmt.Sprintf("%02X - %02X", cpu.a, value)
+		fmt.Printf("%02X - %02X", cpu.a, value)
 	case "DEC":
 		if isWordOperand(subfields[0]) {
 			value := cpu.getWordValue(subfields[0], byteData, wordData) - 1
-			extraInfo = fmt.Sprintf("%04X - 1 = %04X", value+1, value)
+			fmt.Printf("%04X - 1 = %04X", value+1, value)
 			cpu.setWord(subfields[0], value, byteData, wordData)
 			cpu.f.updateFromWord(value, inst.flags)
 		} else {
 			value := cpu.getByteValue(subfields[0], byteData, wordData) - 1
-			extraInfo = fmt.Sprintf("%02X + 1 = %02X", value+1, value)
+			fmt.Printf("%02X + 1 = %02X", value+1, value)
 			cpu.setByte(subfields[0], value, byteData, wordData)
 			cpu.f.updateFromByte(value, inst.flags)
 		}
@@ -614,41 +605,35 @@ func (cpu *cpu) step2() {
 		cpu.iff = false
 	case "DJNZ":
 		rel := signExtend(byteData)
-		jumpDest = cpu.pc + rel
 		cpu.bc.setH(cpu.bc.h() - 1)
 		if cpu.bc.h() != 0 {
-			isJump = true
-			extraInfo = fmt.Sprintf("%04X (%d), b = %02X", jumpDest, int16(rel), cpu.bc.h())
+			cpu.pc += rel
+			fmt.Printf("%04X (%d), b = %02X", cpu.pc, int16(rel), cpu.bc.h())
 		} else {
-			extraInfo = "jump skipped"
+			fmt.Print("jump skipped")
 		}
 	case "INC":
 		if isWordOperand(subfields[0]) {
 			value := cpu.getWordValue(subfields[0], byteData, wordData) + 1
-			extraInfo = fmt.Sprintf("%04X + 1 = %04X", value-1, value)
+			fmt.Printf("%04X + 1 = %04X", value-1, value)
 			cpu.setWord(subfields[0], value, byteData, wordData)
 			cpu.f.updateFromWord(value, inst.flags)
 		} else {
 			value := cpu.getByteValue(subfields[0], byteData, wordData) + 1
-			extraInfo = fmt.Sprintf("%02X + 1 = %02X", value-1, value)
+			fmt.Printf("%02X + 1 = %02X", value-1, value)
 			cpu.setByte(subfields[0], value, byteData, wordData)
 			cpu.f.updateFromByte(value, inst.flags)
 		}
 	case "JP", "CALL":
 		addr := cpu.getWordValue(subfields[len(subfields)-1], byteData, wordData)
-		jumpDest = addr
-		if len(subfields) == 2 {
-			isJump = cpu.conditionSatisfied(subfields[0])
+		if len(subfields) == 1 || cpu.conditionSatisfied(subfields[0]) {
+			if fields[0] == "CALL" {
+				cpu.pushWord(cpu.pc)
+			}
+			cpu.pc = addr
+			fmt.Printf("%04X", addr)
 		} else {
-			isJump = true
-		}
-		if isJump {
-			extraInfo = fmt.Sprintf("%04X", addr)
-		} else {
-			extraInfo = "jump skipped"
-		}
-		if fields[0] == "CALL" {
-			cpu.pushWord(cpu.pc)
+			fmt.Print("jump skipped")
 		}
 	case "JR":
 		if subfields[len(subfields)-1] != "N+2" {
@@ -656,31 +641,25 @@ func (cpu *cpu) step2() {
 		}
 		// Relative jump is signed.
 		rel := signExtend(byteData)
-		jumpDest = cpu.pc + rel
-		if len(subfields) == 2 {
-			isJump = cpu.conditionSatisfied(subfields[0])
+		if len(subfields) == 1 || cpu.conditionSatisfied(subfields[0]) {
+			cpu.pc += rel
+			fmt.Printf("%04X (%d)", cpu.pc, int16(rel))
 		} else {
-			// Unconditional.
-			isJump = true
-		}
-		if isJump {
-			extraInfo = fmt.Sprintf("%04X (%d)", jumpDest, int16(rel))
-		} else {
-			extraInfo = "jump skipped"
+			fmt.Print("jump skipped")
 		}
 	case "LD":
 		if isWordOperand(subfields[0]) || isWordOperand(subfields[1]) {
 			value := cpu.getWordValue(subfields[1], byteData, wordData)
 			cpu.setWord(subfields[0], value, byteData, wordData)
-			extraInfo = fmt.Sprintf("%04X", value)
+			fmt.Printf("%04X", value)
 		} else {
 			value := cpu.getByteValue(subfields[1], byteData, wordData)
 			cpu.setByte(subfields[0], value, byteData, wordData)
-			extraInfo = fmt.Sprintf("%02X", value)
+			fmt.Printf("%02X", value)
 		}
 	case "LDIR":
 		// Not sure if this should be while or do while.
-		extraInfo = fmt.Sprintf("copying %04X bytes from %04X to %04X", cpu.bc, cpu.hl, cpu.de)
+		fmt.Printf("copying %04X bytes from %04X to %04X", cpu.bc, cpu.hl, cpu.de)
 		for cpu.bc != 0xFFFF {
 			cpu.writeMem(cpu.de, cpu.readMem(cpu.hl))
 			cpu.hl++
@@ -689,6 +668,7 @@ func (cpu *cpu) step2() {
 		}
 	case "NOP":
 		// Nothing to do!
+		panic("Probably a bug")
 	case "OUT":
 		var port byte
 		value := cpu.getByteValue(subfields[1], byteData, wordData)
@@ -704,35 +684,28 @@ func (cpu *cpu) step2() {
 		if !ok {
 			panic(fmt.Sprintf("Unknown port %02X", port))
 		}
-		extraInfo = fmt.Sprintf("%02X (%s) <- %02X", port, portDescription, value)
+		fmt.Printf("%02X (%s) <- %02X", port, portDescription, value)
 	case "POP":
 		value := cpu.popWord()
 		cpu.setWord(subfields[0], value, byteData, wordData)
-		extraInfo = fmt.Sprintf("%04X", value)
+		fmt.Printf("%04X", value)
 	case "PUSH":
 		value := cpu.getWordValue(subfields[0], byteData, wordData)
 		cpu.pushWord(value)
-		extraInfo = fmt.Sprintf("%04X", value)
+		fmt.Printf("%04X", value)
 	case "RET":
-		if len(fields) == 1 || cpu.conditionSatisfied(fields[1]) {
-			value := cpu.popWord()
-			isJump = true
-			jumpDest = value
-			extraInfo = fmt.Sprintf("%04X", value)
+		if subfields == nil || cpu.conditionSatisfied(subfields[0]) {
+			cpu.pc = cpu.popWord()
+			fmt.Printf("%04X", cpu.pc)
 		} else {
-			extraInfo = "return skipped"
+			fmt.Print("return skipped")
 		}
 	default:
 		panic(fmt.Sprintf("Don't know how to handle %s (at %04X)",
-			inst.asm, beginPc))
+			inst.asm, instPc))
 	}
 
-	endPc := cpu.pc
-	cpu.log(beginPc, endPc, "%-15s %s", inst.asm, extraInfo)
-
-	if isJump {
-		cpu.pc = jumpDest
-	}
+	fmt.Println()
 }
 
 func (cpu *cpu) getByteValue(ref string, byteData byte, wordData word) byte {
