@@ -722,6 +722,13 @@ func (cpu *cpu) step2() {
 		} else {
 			fmt.Print("return skipped")
 		}
+	case "RST":
+		addrStr := strings.Replace(subfields[0], "H", "", -1)
+		addr, err := strconv.ParseUint(addrStr, 16, 8)
+		cpu.pushWord(cpu.pc)
+		cpu.pc.setH(0)
+		cpu.pc.setL(byte(addr))
+		fmt.Printf("%04X", cpu.pc)
 	default:
 		panic(fmt.Sprintf("Don't know how to handle %s (at %04X)",
 			inst.asm, instPc))
