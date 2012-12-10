@@ -406,7 +406,8 @@ type instructionMap map[byte]*instruction
 
 type instruction struct {
 	// Leaf of tree.
-	asm, cycles, flags, opcodes string
+	asm, flags, opcodes string
+	cycles, jumpPenalty uint64
 
 	// For XX data byte.
 	xx *instruction
@@ -460,8 +461,16 @@ func (inst *instruction) addInstruction(asm, cycles, flags string, opcodes []str
 
 		// Leaf of tree.
 		inst.asm = asm
-		inst.cycles = cycles
 		inst.flags = flags
+
+		// Split cycles into the "17/10" fields. The first (higher) number, if present,
+		// is the number of cycles if the jump is taken.
+		cyclesFields := strings.Split(cycles, "/")
+		inst.cycles, _ = strconv.ParseUint(cyclesFields[len(cyclesFields)-1], 10, 64)
+		if len(cyclesFields) == 2 {
+			cyclesWithJump, _ := strconv.ParseUint(cyclesFields[0], 10, 64)
+			inst.jumpPenalty = cyclesWithJump - inst.cycles
+		}
 	} else {
 		opcodeStr := opcodes[0]
 
@@ -541,10 +550,11 @@ func (cpu *cpu) step2() {
 	// Look up the instruction in the tree.
 	instPc := cpu.pc
 	inst, byteData, wordData := cpu.lookUpInst()
+	nextInstPc := cpu.pc
 
-	fmt.Printf("%04X ", instPc)
+	fmt.Printf("%10d %04X ", cpu.clock, instPc)
 	for pc := instPc; pc < instPc + 4; pc++ {
-		if pc < cpu.pc {
+		if pc < nextInstPc {
 			fmt.Printf("%02X ", cpu.memory[pc])
 		} else {
 			fmt.Print("   ")
@@ -597,7 +607,7 @@ func (cpu *cpu) step2() {
 			cpu.f.updateFromWord(value, inst.flags)
 		} else {
 			value := cpu.getByteValue(subfields[0], byteData, wordData) - 1
-			fmt.Printf("%02X + 1 = %02X", value+1, value)
+			fmt.Printf("%02X - 1 = %02X", value+1, value)
 			cpu.setByte(subfields[0], value, byteData, wordData)
 			cpu.f.updateFromByte(value, inst.flags)
 		}
@@ -658,14 +668,18 @@ func (cpu *cpu) step2() {
 			fmt.Printf("%02X", value)
 		}
 	case "LDIR":
-		// Not sure if this should be while or do while.
-		fmt.Printf("copying %04X bytes from %04X to %04X", cpu.bc, cpu.hl, cpu.de)
-		for cpu.bc != 0xFFFF {
-			cpu.writeMem(cpu.de, cpu.readMem(cpu.hl))
-			cpu.hl++
-			cpu.de++
-			cpu.bc--
+		b := cpu.readMem(cpu.hl)
+		fmt.Printf("copying %02X from %04X to %04X", b, cpu.hl, cpu.de)
+		cpu.writeMem(cpu.de, b)
+		cpu.hl++
+		cpu.de++
+		cpu.bc--
+		if cpu.bc != 0 {
+			cpu.pc -= 2
 		}
+		cpu.f.setH(false)
+		cpu.f.setPv(false)
+		cpu.f.setN(false)
 	case "NOP":
 		// Nothing to do!
 		panic("Probably a bug")
@@ -706,6 +720,12 @@ func (cpu *cpu) step2() {
 	}
 
 	fmt.Println()
+
+	cpu.clock += inst.cycles
+	if cpu.pc != nextInstPc {
+		// If we jumped, pay the penalty.
+		cpu.clock += inst.jumpPenalty
+	}
 }
 
 func (cpu *cpu) getByteValue(ref string, byteData byte, wordData word) byte {

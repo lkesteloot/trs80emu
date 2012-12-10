@@ -8,6 +8,9 @@ type cpu struct {
 	memory  []byte
 	romSize word
 
+	// Clock from boot, in cycles.
+	clock uint64
+
 	// Registers:
 	a, i, r    byte
 	f          flags
