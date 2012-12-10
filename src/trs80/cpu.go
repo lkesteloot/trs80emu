@@ -157,8 +157,8 @@ func (cpu *cpu) readMem(addr word) byte {
 		panic(fmt.Sprintf("Tried to read from missing memory at %04X", addr))
 	} else if addr >= 0x37E0 && addr <= 0x37FF {
 		panic(fmt.Sprintf("Tried to read from cassette/disk at %04X", addr))
-	} else if addr >= 0x3801 && addr <= 0x3880 {
-		panic(fmt.Sprintf("Tried to read from keyboard at %04X", addr))
+	} else if addr >= keyboardFirst && addr <= keyboardLast {
+		return readKeyboard(addr);
 	} else if addr >= 0x3C00 && addr <= 0x3FFF {
 		panic(fmt.Sprintf("Tried to read from display at %04X", addr))
 	}
