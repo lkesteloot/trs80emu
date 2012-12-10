@@ -5,7 +5,7 @@ const keyboardFirst = 0x3800
 const keyboardLast = keyboardFirst + 255
 
 func (cpu *cpu) readKeyboard(addr word) byte {
-	word -= keyboardFirst
+	addr -= keyboardFirst
 
 	// No keys pressed.
 	return 0
