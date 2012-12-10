@@ -140,9 +140,7 @@ func (cpu *cpu) writeMem(addr word, b byte) {
 
 	// Memory-mapped I/O.
 	// http://www.trs-80.com/trs80-zaps-internals.htm#memmapio
-	if addr >= 0x3000 && addr <= 0x37DD {
-		panic(fmt.Sprintf("Tried to write %02X to missing memory at %04X", b, addr))
-	} else if addr >= 0x37E0 && addr <= 0x37FF {
+	if addr >= 0x37E0 && addr <= 0x37FF {
 		panic(fmt.Sprintf("Tried to write %02X to cassette/disk at %04X", b, addr))
 	} else if addr >= 0x3801 && addr <= 0x3880 {
 		panic(fmt.Sprintf("Tried to write %02X to keyboard at %04X", b, addr))
@@ -165,9 +163,7 @@ func (cpu *cpu) readMem(addr word) (b byte) {
 
 	// Memory-mapped I/O.
 	// http://www.trs-80.com/trs80-zaps-internals.htm#memmapio
-	if addr >= 0x3000 && addr <= 0x37DD {
-		panic(fmt.Sprintf("Tried to read from missing memory at %04X", addr))
-	} else if addr >= 0x37E0 && addr <= 0x37FF {
+	if addr >= 0x37E0 && addr <= 0x37FF {
 		b = cpu.readDisk(addr)
 	} else if addr >= keyboardBegin && addr < keyboardEnd {
 		b = cpu.readKeyboard(addr)

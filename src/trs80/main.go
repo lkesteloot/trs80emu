@@ -12,7 +12,7 @@ func main() {
 	fmt.Printf("Memory has %d bytes.\n", len(memory))
 
 	// Load ROM into memory.
-	romFilename := "roms/level2.rom"
+	romFilename := "roms/model3.rom"
 	rom, err := ioutil.ReadFile(romFilename)
 	if err != nil {
 		panic(err)

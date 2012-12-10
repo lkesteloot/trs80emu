@@ -7,6 +7,14 @@ const keyboardEnd = keyboardBegin + 256
 func (cpu *cpu) readKeyboard(addr word) byte {
 	addr -= keyboardBegin
 
-	// No keys pressed.
-	return 0
+	var b byte
+
+	if addr == 0x40 {
+		b = 0x04 // break
+	} else {
+		// No keys pressed.
+		b = 0
+	}
+
+	return b
 }

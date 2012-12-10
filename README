@@ -1,8 +1,6 @@
 
 next:
-    In load method:
-        Statically determine whether 8-bit or 16-bit, then call arg.
-        If either arg is 16-bit register, then it's 16-bit op.
+    Replace NN and N in asm with real number.
 
 http://nemesis.lonestar.org/computers/tandy/software/apps/m4/qd/opcodes.html
 http://www.zilog.com/docs/z80/um0080.pdf

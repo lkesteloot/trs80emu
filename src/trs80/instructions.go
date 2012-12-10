@@ -489,14 +489,15 @@ func (inst *instruction) addInstruction(asm, cycles, flags string, opcodes []str
 			opcode := parseByte(opcodeStr[:2])
 
 			if strings.HasSuffix(opcodeStr, "+8*b") {
-				// Expand "+8*b" to each bit value.
+				// Expand "+8*b" to each bit value (0 to 7).
 				opcodeRest := opcodeStr[2 : len(opcodeStr)-4] // May be empty.
 
 				// Replace "b" with bit value.
-				opcodes[0] = fmt.Sprintf("%02X%s", opcode+0, opcodeRest)
-				inst.addInstruction(strings.Replace(asm, "b", "0", -1), cycles, flags, opcodes)
-				opcodes[0] = fmt.Sprintf("%02X%s", opcode+8, opcodeRest)
-				inst.addInstruction(strings.Replace(asm, "b", "1", -1), cycles, flags, opcodes)
+				for b := byte(0); b < 8; b++ {
+					opcodes[0] = fmt.Sprintf("%02X%s", opcode+8*b, opcodeRest)
+					inst.addInstruction(strings.Replace(
+						asm, "b", fmt.Sprintf("%d", b), -1), cycles, flags, opcodes)
+				}
 			} else if strings.HasSuffix(opcodeStr, "+r") || strings.HasSuffix(opcodeStr, "+r*") {
 				// Expand registers.
 				for n := byte(0); n < 8; n++ {
@@ -609,6 +610,13 @@ func (cpu *cpu) step2() {
 		}
 		cpu.f.updateFromByte(cpu.a, inst.flags)
 		fmt.Printf("%02X %s %02X = %02X", before, symbol, value, cpu.a)
+	case "BIT":
+		b, _ := strconv.ParseUint(subfields[0], 10, 8)
+		value := cpu.getByteValue(subfields[1], byteData, wordData)
+		isOn := (byte(1 << b) & value) != 0
+		cpu.f.setZ(!isOn)
+		cpu.f.setH(true)
+		cpu.f.setN(false)
 	case "CP":
 		value := cpu.getByteValue(subfields[0], byteData, wordData)
 		diff := int(cpu.a) - int(value)
@@ -640,12 +648,37 @@ func (cpu *cpu) step2() {
 		} else {
 			fmt.Print("jump skipped")
 		}
+	case "EI":
+		cpu.iff = true
 	case "EX":
 		value1 := cpu.getWordValue(subfields[0], byteData, wordData)
 		value2 := cpu.getWordValue(subfields[1], byteData, wordData)
 		cpu.setWord(subfields[0], value2, byteData, wordData)
 		cpu.setWord(subfields[1], value1, byteData, wordData)
 		fmt.Printf("%04X <--> %04X", value1, value2)
+	case "IM":
+		// Interrupt mode. Ignore until we support interrupts.
+	case "IN":
+		var port byte
+		source := subfields[len(subfields)-1]
+		switch source {
+		case "(C)":
+			port = cpu.bc.l()
+		case "(N)":
+			port = byteData
+		default:
+			panic("Unknown IN source " + source)
+		}
+		portDescription, ok := ports[port]
+		if !ok {
+			panic(fmt.Sprintf("Unknown port %02X", port))
+		}
+		value := byte(0)
+		if len(subfields) == 2 {
+			cpu.setByte(subfields[0], value, byteData, wordData)
+		}
+		cpu.f.updateFromByte(value, inst.flags)
+		fmt.Printf("%02X <- %02X (%s)", value, port, portDescription)
 	case "INC":
 		if isWordOperand(subfields[0]) {
 			value := cpu.getWordValue(subfields[0], byteData, wordData) + 1
@@ -706,7 +739,7 @@ func (cpu *cpu) step2() {
 		cpu.f.setN(false)
 	case "NOP":
 		// Nothing to do!
-		panic("Probably a bug")
+		/// panic("Probably a bug")
 	case "OUT":
 		var port byte
 		value := cpu.getByteValue(subfields[1], byteData, wordData)
@@ -731,6 +764,12 @@ func (cpu *cpu) step2() {
 		value := cpu.getWordValue(subfields[0], byteData, wordData)
 		cpu.pushWord(value)
 		fmt.Printf("%04X", value)
+	case "RES":
+		b, _ := strconv.ParseUint(subfields[0], 10, 8)
+		origValue := cpu.getByteValue(subfields[1], byteData, wordData)
+		value := origValue &^ (1 << b)
+		cpu.setByte(subfields[1], value, byteData, wordData)
+		fmt.Printf("%02X &^ %02X = %02X", origValue, 1 << b, value)
 	case "RET":
 		if subfields == nil || cpu.conditionSatisfied(subfields[0]) {
 			cpu.pc = cpu.popWord()
@@ -738,6 +777,19 @@ func (cpu *cpu) step2() {
 		} else {
 			fmt.Print("return skipped")
 		}
+	case "RLA":
+		// Left rotate A through carry.
+		origValue := cpu.a
+		leftBit := origValue >> 7
+		result := origValue << 1
+		if cpu.f.c() {
+			result |= 1
+		}
+		fmt.Printf("%02X << 1 (%v) = %02X", origValue, cpu.f.c(), result)
+		cpu.a = result
+		cpu.f.setC(leftBit != 0)
+		cpu.f.setH(false)
+		cpu.f.setN(false)
 	case "RLC":
 		// Left rotate. We can't combine this with RLCA because the resulting condition
 		// bits are different.
@@ -757,6 +809,15 @@ func (cpu *cpu) step2() {
 		cpu.f.setN(false)
 		cpu.f.setC(leftBit == 1)
 		fmt.Printf("%02X << 1 = %02X", origValue, cpu.a)
+	case "RRCA":
+		// Right rotate.
+		origValue := cpu.a
+		rightBit := origValue & 1
+		cpu.a = (origValue >> 1) | (rightBit << 7)
+		cpu.f.setH(false)
+		cpu.f.setN(false)
+		cpu.f.setC(rightBit == 1)
+		fmt.Printf("%02X >> 1 = %02X", origValue, cpu.a)
 	case "RST":
 		addrStr := strings.Replace(subfields[0], "H", "", -1)
 		addr, _ := strconv.ParseUint(addrStr, 16, 8)
@@ -764,6 +825,12 @@ func (cpu *cpu) step2() {
 		cpu.pc.setH(0)
 		cpu.pc.setL(byte(addr))
 		fmt.Printf("%04X", cpu.pc)
+	case "SET":
+		b, _ := strconv.ParseUint(subfields[0], 10, 8)
+		origValue := cpu.getByteValue(subfields[1], byteData, wordData)
+		value := origValue | (1 << b)
+		cpu.setByte(subfields[1], value, byteData, wordData)
+		fmt.Printf("%02X | %02X = %02X", origValue, 1 << b, value)
 	case "SUB":
 		// Always 8-bit, always to accumulator.
 		before := cpu.a
@@ -784,7 +851,7 @@ func (cpu *cpu) step2() {
 		cpu.clock += inst.jumpPenalty
 	}
 
-	if cpu.clock > 2000000 {
+	if cpu.clock > 2000000 && false {
 		cpu.dumpScreen()
 		panic("Done")
 	}
@@ -938,6 +1005,7 @@ func (cpu *cpu) setWord(ref string, value word, byteData byte, wordData word) {
 func (cpu *cpu) lookUpInst() (inst *instruction, byteData byte, wordData word) {
 	haveByteData := false
 
+	instPc := cpu.pc
 	inst = cpu.root
 
 	for {
@@ -964,7 +1032,12 @@ func (cpu *cpu) lookUpInst() (inst *instruction, byteData byte, wordData word) {
 			var ok bool
 			inst, ok = inst.imap[opcode]
 			if !ok {
-				panic(fmt.Sprintf("Don't know how to handle opcode %02X", opcode))
+				err := "Don't know how to handle opcode"
+				for pc := instPc; pc < cpu.pc; pc++ {
+					err += fmt.Sprintf(" %02X", cpu.memory[pc])
+				}
+
+				panic(err)
 			}
 		}
 	}
