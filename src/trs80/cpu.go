@@ -149,9 +149,16 @@ func (cpu *cpu) writeMem(addr word, b byte) {
 	} else if addr >= 0x3C00 && addr <= 0x3FFF {
 		// panic(fmt.Sprintf("Tried to write %02X to display at %04X", b, addr))
 		cpu.memory[addr] = b
+		// XXX update screen for user.
+	} else {
+		cpu.memory[addr] = b
 	}
+}
 
-	cpu.memory[addr] = b
+func (cpu *cpu) writeMemWord(addr word, w word) {
+	// Little endian.
+	cpu.writeMem(addr, w.l())
+	cpu.writeMem(addr+1, w.h())
 }
 
 func (cpu *cpu) readMem(addr word) (b byte) {
@@ -165,7 +172,6 @@ func (cpu *cpu) readMem(addr word) (b byte) {
 	} else if addr >= keyboardFirst && addr <= keyboardLast {
 		b = cpu.readKeyboard(addr)
 	} else if addr >= 0x3C00 && addr <= 0x3FFF {
-		// panic(fmt.Sprintf("Tried to read from display at %04X", addr))
 		b = cpu.memory[addr]
 	} else {
 		b = cpu.memory[addr]

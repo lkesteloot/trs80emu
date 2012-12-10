@@ -624,6 +624,12 @@ func (cpu *cpu) step2() {
 		} else {
 			fmt.Print("jump skipped")
 		}
+	case "EX":
+		value1 := cpu.getWordValue(subfields[0], byteData, wordData)
+		value2 := cpu.getWordValue(subfields[1], byteData, wordData)
+		cpu.setWord(subfields[0], value2, byteData, wordData)
+		cpu.setWord(subfields[1], value1, byteData, wordData)
+		fmt.Printf("%04X <--> %04X", value1, value2)
 	case "INC":
 		if isWordOperand(subfields[0]) {
 			value := cpu.getWordValue(subfields[0], byteData, wordData) + 1
@@ -796,7 +802,11 @@ func (cpu *cpu) getWordValue(ref string, byteData byte, wordData word) word {
 		fmt.Printf("(NN = %04X) ", wordData)
 		return cpu.readMemWord(wordData)
 	case "(HL)":
+		fmt.Printf("(HL = %04X) ", cpu.hl)
 		return cpu.readMemWord(cpu.hl)
+	case "(SP)":
+		fmt.Printf("(SP = %04X) ", cpu.sp)
+		return cpu.readMemWord(cpu.sp)
 	}
 
 	panic("We don't yet handle addressing mode " + ref)
@@ -861,10 +871,11 @@ func (cpu *cpu) setWord(ref string, value word, byteData byte, wordData word) {
 	case "IY":
 		cpu.iy = value
 	case "(NN)":
-		addr := wordData
-		cpu.writeMem(addr, value.l())
-		cpu.writeMem(addr+1, value.h())
-		fmt.Printf("(NN = %04X) ", addr)
+		cpu.writeMemWord(wordData, value)
+		fmt.Printf("(NN = %04X) ", wordData)
+	case "(SP)":
+		cpu.writeMemWord(cpu.sp, value)
+		fmt.Printf("(SP = %04X) ", cpu.sp)
 	default:
 		panic("Can't handle destination of " + ref)
 	}
