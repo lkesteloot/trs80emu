@@ -147,7 +147,8 @@ func (cpu *cpu) writeMem(addr word, b byte) {
 	} else if addr >= 0x3801 && addr <= 0x3880 {
 		panic(fmt.Sprintf("Tried to write %02X to keyboard at %04X", b, addr))
 	} else if addr >= 0x3C00 && addr <= 0x3FFF {
-		panic(fmt.Sprintf("Tried to write %02X to display at %04X", b, addr))
+		// panic(fmt.Sprintf("Tried to write %02X to display at %04X", b, addr))
+		cpu.memory[addr] = b
 	}
 
 	cpu.memory[addr] = b
