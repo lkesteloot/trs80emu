@@ -169,9 +169,9 @@ func (cpu *cpu) readMem(addr word) (b byte) {
 		panic(fmt.Sprintf("Tried to read from missing memory at %04X", addr))
 	} else if addr >= 0x37E0 && addr <= 0x37FF {
 		b = cpu.readDisk(addr)
-	} else if addr >= keyboardFirst && addr <= keyboardLast {
+	} else if addr >= keyboardBegin && addr < keyboardEnd {
 		b = cpu.readKeyboard(addr)
-	} else if addr >= 0x3C00 && addr <= 0x3FFF {
+	} else if addr >= screenBegin && addr < screenEnd {
 		b = cpu.memory[addr]
 	} else {
 		b = cpu.memory[addr]

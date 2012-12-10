@@ -576,6 +576,22 @@ func (cpu *cpu) step2() {
 	}
 
 	switch fields[0] {
+	case "ADD":
+		if isWordOperand(subfields[0]) || isWordOperand(subfields[1]) {
+			value1 := cpu.getWordValue(subfields[0], byteData, wordData)
+			value2 := cpu.getWordValue(subfields[1], byteData, wordData)
+			result := value1 + value2
+			cpu.setWord(subfields[0], result, byteData, wordData)
+			fmt.Printf("%04X + %04X = %04X", value1, value2, result)
+			cpu.f.updateFromWord(result, inst.flags)
+		} else {
+			value1 := cpu.getByteValue(subfields[0], byteData, wordData)
+			value2 := cpu.getByteValue(subfields[1], byteData, wordData)
+			result := value1 + value2
+			cpu.setByte(subfields[0], result, byteData, wordData)
+			fmt.Printf("%02X + %02X = %02X", value1, value2, result)
+			cpu.f.updateFromByte(result, inst.flags)
+		}
 	case "AND", "XOR", "OR":
 		value := cpu.getByteValue(subfields[0], byteData, wordData)
 		before := cpu.a
@@ -722,13 +738,39 @@ func (cpu *cpu) step2() {
 		} else {
 			fmt.Print("return skipped")
 		}
+	case "RLC":
+		// Left rotate. We can't combine this with RLCA because the resulting condition
+		// bits are different.
+		origValue := cpu.getByteValue(subfields[0], byteData, wordData)
+		leftBit := origValue >> 7
+		result := (origValue << 1) | leftBit
+		cpu.setByte(subfields[0], result, byteData, wordData)
+		cpu.f.updateFromByte(result, inst.flags)
+		cpu.f.setC(leftBit == 1)
+		fmt.Printf("%02X << 1 = %02X", origValue, result)
+	case "RLCA":
+		// Left rotate.
+		origValue := cpu.a
+		leftBit := origValue >> 7
+		cpu.a = (origValue << 1) | leftBit
+		cpu.f.setH(false)
+		cpu.f.setN(false)
+		cpu.f.setC(leftBit == 1)
+		fmt.Printf("%02X << 1 = %02X", origValue, cpu.a)
 	case "RST":
 		addrStr := strings.Replace(subfields[0], "H", "", -1)
-		addr, err := strconv.ParseUint(addrStr, 16, 8)
+		addr, _ := strconv.ParseUint(addrStr, 16, 8)
 		cpu.pushWord(cpu.pc)
 		cpu.pc.setH(0)
 		cpu.pc.setL(byte(addr))
 		fmt.Printf("%04X", cpu.pc)
+	case "SUB":
+		// Always 8-bit, always to accumulator.
+		before := cpu.a
+		value := cpu.getByteValue(subfields[0], byteData, wordData)
+		cpu.a -= value
+		fmt.Printf("%02X - %02X = %02X", before, value, cpu.a)
+		cpu.f.updateFromByte(cpu.a, inst.flags)
 	default:
 		panic(fmt.Sprintf("Don't know how to handle %s (at %04X)",
 			inst.asm, instPc))
@@ -740,6 +782,11 @@ func (cpu *cpu) step2() {
 	if cpu.pc != nextInstPc {
 		// If we jumped, pay the penalty.
 		cpu.clock += inst.jumpPenalty
+	}
+
+	if cpu.clock > 2000000 {
+		cpu.dumpScreen()
+		panic("Done")
 	}
 }
 
@@ -935,10 +982,10 @@ func (cpu *cpu) conditionSatisfied(cond string) bool {
 		return cpu.f.z()
 	case "NZ":
 		return !cpu.f.z()
-	case "P":
-		return cpu.f.s()
-	case "M": // Negative.
+	case "P": // Positive.
 		return !cpu.f.s()
+	case "M": // Negative.
+		return cpu.f.s()
 	case "PE":
 		return cpu.f.pv()
 	case "PO":
