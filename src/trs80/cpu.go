@@ -216,3 +216,8 @@ func (cpu *cpu) popWord() word {
 
 	return w
 }
+
+func (cpu *cpu) Write(b []byte) (n int, err error) {
+	// Ignore.
+	return 0, nil
+}

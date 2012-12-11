@@ -37,8 +37,8 @@ func startComputer() <-chan cpuUpdate {
 	cpu.root.loadInstructions(instructionList)
 
 	// Make it go.
-	// fmt.Println("Booting")
-	// cpu.run()
+	fmt.Println("Booting")
+	go cpu.run()
 
 	return cpu.ch
 }
