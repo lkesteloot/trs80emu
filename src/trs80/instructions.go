@@ -4,10 +4,15 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
+
+const cpuHz = 2000000
 
 // XXX tmp
 var nextScreenDump uint64 = 0
+var previousDumpTime time.Time
+var previousDumpClock uint64
 
 // Copy and pasted from z80.txt (http://guide.ticalc.org/download/z80.txt)
 var instructionList string = `
@@ -879,6 +884,17 @@ func (cpu *cpu) step2() {
 	}
 
 	if cpu.clock > nextScreenDump {
+		now := time.Now()
+		if previousDumpClock > 0 {
+			elapsed := now.Sub(previousDumpTime)
+			computerTime := float64(cpu.clock - previousDumpClock)/float64(cpuHz)
+			fmt.Printf("Computer time: %.1fs, elapsed: %.1fs, mult: %.1f\n",
+				computerTime, elapsed.Seconds(), elapsed.Seconds()/computerTime)
+
+		}
+		previousDumpTime = now
+		previousDumpClock = cpu.clock
+
 		cpu.dumpScreen()
 		nextScreenDump += 1000000
 	}

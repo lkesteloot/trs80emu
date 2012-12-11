@@ -131,18 +131,6 @@ func (cpu *cpu) fetchWord() (w word) {
 	return
 }
 
-func (cpu *cpu) log(beginPc, endPc word, instFormat string, a ...interface{}) {
-	fmt.Printf("%04X ", beginPc)
-	for pc := beginPc; pc < endPc; pc++ {
-		fmt.Printf("%02X ", cpu.memory[pc])
-	}
-	for pc := endPc; pc < beginPc+4; pc++ {
-		fmt.Print("   ")
-	}
-	fmt.Printf(instFormat, a...)
-	fmt.Println()
-}
-
 func (cpu *cpu) writeMem(addr word, b byte) {
 	// Check ROM writing. Harmless in real life, but may indicate a bug here.
 	if addr < cpu.romSize {

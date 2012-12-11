@@ -40,5 +40,12 @@ func startComputer() <-chan cpuUpdate {
 	fmt.Println("Booting")
 	go cpu.run()
 
+	// Pull out updates.
+	go func () {
+		for _ = range cpu.ch {
+			// Nothing.
+		}
+	}()
+
 	return cpu.ch
 }
