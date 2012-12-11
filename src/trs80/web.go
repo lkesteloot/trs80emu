@@ -7,6 +7,7 @@ import (
 	"log"
 	"fmt"
 	"headcode.com/webutil"
+	"code.google.com/p/go.net/websocket"
 )
 
 func generateIndex(w http.ResponseWriter, r *http.Request) {
@@ -34,12 +35,23 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func serveWebsite() {
+func wsHandler(ws *websocket.Conn, ch <-chan cpuUpdate) {
+	log.Printf("wsHandler")
+
+	for update := range ch {
+		websocket.JSON.Send(ws, update)
+	}
+}
+
+func serveWebsite(ch <-chan cpuUpdate) {
 	port := 8080
 
 	// Create handlers.
 	handlers := http.NewServeMux()
 	handlers.Handle("/", webutil.GetHandler(http.HandlerFunc(homeHandler)))
+	handlers.Handle("/ws", websocket.Handler(func (ws *websocket.Conn) {
+		wsHandler(ws, ch)
+	}))
 	handlers.Handle("/static/", http.StripPrefix("/static/",
 		http.FileServer(http.Dir("static"))))
 

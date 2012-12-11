@@ -6,10 +6,11 @@ import (
 )
 
 func main() {
-	serveWebsite()
+	ch := startComputer()
+	serveWebsite(ch)
 }
 
-func startComputer() {
+func startComputer() <-chan cpuUpdate {
 	// Allocate memory.
 	memorySize := 1024 * 64
 	memory := make([]byte, memorySize)
@@ -30,11 +31,14 @@ func startComputer() {
 	cpu := &cpu{
 		memory: memory,
 		romSize: word(len(rom)),
-		cpu.root = &instruction{},
+		root: &instruction{},
+		ch: make(chan cpuUpdate),
 	}
 	cpu.root.loadInstructions(instructionList)
 
 	// Make it go.
-	fmt.Println("Booting")
-	cpu.run()
+	// fmt.Println("Booting")
+	// cpu.run()
+
+	return cpu.ch
 }
