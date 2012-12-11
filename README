@@ -1,5 +1,42 @@
 
 next:
+    Web interface:
+        in main thread serve http
+        in separate thread (?) serve web sockets
+        in separate thread start machine
+        protocol:
+            format:
+                binary
+                    little endian
+                    not sure if supported by browsers
+                ascii
+                    requires a bunch of parsing.
+                json
+                    requires more parsing, but not mine.
+            server to client:
+                00 AAAA DD    -- byte DD was written to address AAAA
+                01 TEXT       -- instruction was executed (show to user)
+                02 R AA       -- 8-bit register R has value AA
+                03 R AAAA     -- 16-bit register R has value AAAA
+                04 AAAA       -- stopped at breakpoint at AAAA
+            client to server:
+                00 AAAA DD    -- write byte DD to address AAAA
+                01 R AA       -- set 8-bit register R to AA
+                02 R AAAA     -- set 16-bit register R to AAAA
+                03            -- run
+                04            -- single step
+                05            -- stop
+                06 AAAA       -- set breakpoint at AAAA
+                07 AAAA       -- clear breakpoint at AAAA
+                08 DD         -- key DD was pressed
+                09 DD         -- key DD was released
+        keys (for 08 and 09 above):
+            // http://www.trs-80.com/trs80-zaps-internals.htm#keyboard13
+            0 = @
+            1 = A
+            8 = H
+            48 = enter
+            56 = shift
     Replace NN and N in asm with real number.
 
 http://nemesis.lonestar.org/computers/tandy/software/apps/m4/qd/opcodes.html

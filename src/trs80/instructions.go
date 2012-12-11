@@ -430,17 +430,15 @@ func parseByte(s string) byte {
 	return byte(v)
 }
 
-func (cpu *cpu) loadInstructions(instructionList string) {
-	cpu.root = &instruction{}
-
+func (inst *instruction) loadInstructions(instructionList string) {
 	lines := strings.Split(instructionList, "\n")
 
 	for _, line := range lines {
-		cpu.parseInstructionLine(line)
+		inst.parseInstructionLine(line)
 	}
 }
 
-func (cpu *cpu) parseInstructionLine(line string) {
+func (inst *instruction) parseInstructionLine(line string) {
 	line = strings.TrimSpace(line)
 	if line == "" || strings.HasPrefix(line, "#") {
 		return
@@ -454,7 +452,7 @@ func (cpu *cpu) parseInstructionLine(line string) {
 	// Remove "$" from asm, not sure it means anything.
 	asm = strings.Replace(asm, "$", "", -1)
 
-	cpu.root.addInstruction(asm, cycles, flags, opcodes)
+	inst.addInstruction(asm, cycles, flags, opcodes)
 }
 
 func (inst *instruction) addInstruction(asm, cycles, flags string, opcodes []string) {

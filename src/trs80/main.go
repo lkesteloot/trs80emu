@@ -6,6 +6,10 @@ import (
 )
 
 func main() {
+	serveWebsite()
+}
+
+func startComputer() {
 	// Allocate memory.
 	memorySize := 1024 * 64
 	memory := make([]byte, memorySize)
@@ -23,8 +27,12 @@ func main() {
 	copy(memory, rom)
 
 	// Make a CPU.
-	cpu := &cpu{memory: memory, romSize: word(len(rom))}
-	cpu.loadInstructions(instructionList)
+	cpu := &cpu{
+		memory: memory,
+		romSize: word(len(rom)),
+		cpu.root = &instruction{},
+	}
+	cpu.root.loadInstructions(instructionList)
 
 	// Make it go.
 	fmt.Println("Booting")
