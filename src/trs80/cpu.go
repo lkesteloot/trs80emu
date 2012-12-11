@@ -158,7 +158,6 @@ func (cpu *cpu) writeMemWord(addr word, w word) {
 }
 
 func (cpu *cpu) readMem(addr word) (b byte) {
-
 	// Memory-mapped I/O.
 	// http://www.trs-80.com/trs80-zaps-internals.htm#memmapio
 	if addr >= 0x37E0 && addr <= 0x37FF {

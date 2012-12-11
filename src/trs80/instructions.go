@@ -10,7 +10,6 @@ import (
 const cpuHz = 2000000
 
 // XXX tmp
-var nextScreenDump uint64 = 0
 var previousDumpTime time.Time
 var previousDumpClock uint64
 
@@ -418,6 +417,8 @@ type instruction struct {
 	// Leaf of tree.
 	asm, flags, opcodes string
 	cycles, jumpPenalty uint64
+	fields []string
+	subfields []string
 
 	// For XX data byte.
 	xx *instruction
@@ -479,6 +480,17 @@ func (inst *instruction) addInstruction(asm, cycles, flags string, opcodes []str
 			cyclesWithJump, _ := strconv.ParseUint(cyclesFields[0], 10, 64)
 			inst.jumpPenalty = cyclesWithJump - inst.cycles
 		}
+
+		// Pre-process asm
+		inst.fields = strings.Split(inst.asm, " ")
+		switch len(inst.fields) {
+		case 1:
+			inst.subfields = nil
+		case 2:
+			inst.subfields = strings.Split(inst.fields[1], ",")
+		default:
+			panic(fmt.Sprintf("Unknown number of fields %d", len(inst.fields)))
+		}
 	} else {
 		opcodeStr := opcodes[0]
 
@@ -538,6 +550,7 @@ func (inst *instruction) addInstruction(asm, cycles, flags string, opcodes []str
 		}
 	}
 
+	// Sanity check.
 	var hasiMap, hasXx, isLeaf int
 	if inst.imap != nil {
 		hasiMap = 1
@@ -561,6 +574,8 @@ func (cpu *cpu) step2() {
 	inst, byteData, wordData := cpu.lookUpInst()
 	nextInstPc := cpu.pc
 
+	// Extremely slow.
+	/*
 	fmt.Fprintf(cpu, "%10d %04X ", cpu.clock, instPc)
 	for pc := instPc; pc < instPc + 4; pc++ {
 		if pc < nextInstPc {
@@ -570,19 +585,10 @@ func (cpu *cpu) step2() {
 		}
 	}
 	fmt.Fprintf(cpu, "%-15s ", inst.asm)
+	*/
 
-	fields := strings.Split(inst.asm, " ")
-	var subfields []string
-	switch len(fields) {
-	case 1:
-		subfields = nil
-	case 2:
-		subfields = strings.Split(fields[1], ",")
-	default:
-		panic(fmt.Sprintf("Unknown number of fields %d", len(fields)))
-	}
-
-	switch fields[0] {
+	subfields := inst.subfields
+	switch inst.fields[0] {
 	case "ADD":
 		if isWordOperand(subfields[0]) || isWordOperand(subfields[1]) {
 			value1 := cpu.getWordValue(subfields[0], byteData, wordData)
@@ -603,7 +609,7 @@ func (cpu *cpu) step2() {
 		value := cpu.getByteValue(subfields[0], byteData, wordData)
 		before := cpu.a
 		var symbol string
-		switch fields[0] {
+		switch inst.fields[0] {
 		case "AND":
 			cpu.a &= value
 			symbol = "&"
@@ -700,7 +706,7 @@ func (cpu *cpu) step2() {
 	case "JP", "CALL":
 		addr := cpu.getWordValue(subfields[len(subfields)-1], byteData, wordData)
 		if len(subfields) == 1 || cpu.conditionSatisfied(subfields[0]) {
-			if fields[0] == "CALL" {
+			if inst.fields[0] == "CALL" {
 				cpu.pushWord(cpu.pc)
 			}
 			cpu.pc = addr
@@ -883,20 +889,18 @@ func (cpu *cpu) step2() {
 		cpu.clock += inst.jumpPenalty
 	}
 
-	if cpu.clock > nextScreenDump {
+	if cpu.clock > previousDumpClock + 1000000 {
 		now := time.Now()
 		if previousDumpClock > 0 {
 			elapsed := now.Sub(previousDumpTime)
 			computerTime := float64(cpu.clock - previousDumpClock)/float64(cpuHz)
 			fmt.Printf("Computer time: %.1fs, elapsed: %.1fs, mult: %.1f\n",
-				computerTime, elapsed.Seconds(), elapsed.Seconds()/computerTime)
-
+				computerTime, elapsed.Seconds(), computerTime/elapsed.Seconds())
 		}
 		previousDumpTime = now
 		previousDumpClock = cpu.clock
 
 		cpu.dumpScreen()
-		nextScreenDump += 1000000
 	}
 }
 
