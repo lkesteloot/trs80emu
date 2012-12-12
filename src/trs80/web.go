@@ -29,6 +29,14 @@ func generateIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func generateFontCss(w http.ResponseWriter, r *http.Request) {
+    // Image is 512x480
+    // 10 rows of glyphs, but last two are different page.
+    // Use first 8 rows.
+    // 32 chars across (32*8 = 256)
+    // For thin font:
+    //     256px wide.
+    //     Chars are 8px wide (256/32 = 8)
+    //     Chars are 24px high (480/2/10 = 24), with doubled rows.
 	w.Header().Set("Content-Type", "text/css")
 	bw := bufio.NewWriter(w)
 	fmt.Fprint(bw, `.char {
@@ -36,7 +44,7 @@ func generateFontCss(w http.ResponseWriter, r *http.Request) {
 		width: 8px;
 		height: 24px;
 		background-image: url("static/TRS80CharacterGen.png");
-		background-position: -8px -24px;
+		background-position: -248px -24px; /* ? = 31*8, 1*24 */
 		background-repeat: no-repeat;
 }
 `)
@@ -57,26 +65,55 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func wsHandler(ws *websocket.Conn, cmdCh chan<- interface{}) {
-	log.Printf("wsHandler")
+func updatesWsHandler(ws *websocket.Conn, updateCmdCh chan<- interface{}) {
+	log.Printf("updatesWsHandler")
 	updateCh := make(chan cpuUpdate)
-	cmdCh <- startUpdates{updateCh}
+	updateCmdCh <- startUpdates{updateCh}
 
 	for update := range updateCh {
-		websocket.JSON.Send(ws, update)
+		err := websocket.JSON.Send(ws, update)
+		if err != nil {
+			log.Printf("websocket.JSON.Send: %s", err)
+			break
+		}
 	}
 
-	cmdCh <- stopUpdates{}
+	updateCmdCh <- stopUpdates{}
 }
 
-func serveWebsite(cmdCh chan<- interface{}) {
+type Timeouter interface {
+	Timeout() bool
+}
+
+func commandsWsHandler(ws *websocket.Conn, cpuCmdCh chan<- cpuCommand) {
+	log.Printf("commandsWsHandler")
+
+	for {
+		var message cpuCommand
+		err := websocket.JSON.Receive(ws, &message)
+		if err != nil {
+			timeoutErr, ok := err.(Timeouter)
+			if ok && timeoutErr.Timeout() {
+				continue
+			}
+			log.Printf("websocket.JSON.Receive: %s", err)
+			break
+		}
+		cpuCmdCh <- message
+	}
+}
+
+func serveWebsite(updateCmdCh chan<- interface{}, cpuCmdCh chan<- cpuCommand) {
 	port := 8080
 
 	// Create handlers.
 	handlers := http.NewServeMux()
 	handlers.Handle("/", webutil.GetHandler(http.HandlerFunc(homeHandler)))
-	handlers.Handle("/ws", websocket.Handler(func(ws *websocket.Conn) {
-		wsHandler(ws, cmdCh)
+	handlers.Handle("/updates.ws", websocket.Handler(func(ws *websocket.Conn) {
+		updatesWsHandler(ws, updateCmdCh)
+	}))
+	handlers.Handle("/commands.ws", websocket.Handler(func(ws *websocket.Conn) {
+		commandsWsHandler(ws, cpuCmdCh)
 	}))
 	handlers.Handle("/static/", http.StripPrefix("/static/",
 		http.FileServer(http.Dir("static"))))

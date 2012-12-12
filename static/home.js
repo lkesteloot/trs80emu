@@ -2,6 +2,7 @@
 (function () {
 
     var msgCount = 0;
+    var commandWs = null;
 
     var createScreen = function () {
         var $screen = $("<div>").addClass("screen").appendTo($("body"));
@@ -15,6 +16,20 @@
             }
             $screen.append($("<br>"));
         }
+    };
+
+    var createButtons = function () {
+        var $buttons = $("<div>").addClass("buttons").appendTo($("body"));
+
+        $("<button>").
+            attr("type", "button").
+            text("Boot").
+            click(function () {
+                if (commandWs) {
+                    commandWs.send(JSON.stringify({Cmd: "boot"}));
+                }
+            }).
+            appendTo($buttons);
     };
 
     var handleMsg = function (msg) {
@@ -38,12 +53,10 @@
         }
     };
 
-    var configureConnection = function () {
-        console.log("Creating web socket");
-        var ws = new WebSocket("ws://" + window.location.host + "/ws");
+    var configureUpdates = function () {
+        var ws = new WebSocket("ws://" + window.location.host + "/updates.ws");
         ws.onopen = function (event) {
-            console.log("On open");
-            ws.send("Hello!");
+            // Nothing.
         };
         ws.onmessage = function (event) {
             // https://developer.mozilla.org/en-US/docs/WebSockets/WebSockets_reference/MessageEvent
@@ -52,12 +65,30 @@
         };
         ws.onclose = function (event) {
             // https://developer.mozilla.org/en-US/docs/WebSockets/WebSockets_reference/CloseEvent
-            console.log("On close (" + event.code + ")");
+            console.log("On update close (" + event.code + ")");
+            commandWs = null;
         };
+    };
+
+    var configureCommands = function () {
+        var ws = new WebSocket("ws://" + window.location.host + "/commands.ws");
+        ws.onopen = function (event) {
+            // Nothing.
+        };
+        ws.onmessage = function (event) {
+            // Nothing.
+        };
+        ws.onclose = function (event) {
+            // https://developer.mozilla.org/en-US/docs/WebSockets/WebSockets_reference/CloseEvent
+            console.log("On command close (" + event.code + ")");
+        };
+        return ws;
     };
 
     $(function () {
         createScreen();
-        configureConnection();
+        createButtons();
+        configureUpdates();
+        commandWs = configureCommands();
     });
 })();

@@ -1,5 +1,9 @@
 package main
 
+import (
+	"fmt"
+)
+
 // http://www.trs-80.com/trs80-zaps-internals.htm#keyboard13
 const keyboardBegin = 0x3800
 const keyboardEnd = keyboardBegin + 256
@@ -17,4 +21,8 @@ func (cpu *cpu) readKeyboard(addr word) byte {
 	}
 
 	return b
+}
+
+func keyEvent(key int, isPressed bool) {
+	fmt.Printf("Key %d is %s\n", key, isPressed)
 }

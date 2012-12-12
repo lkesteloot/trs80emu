@@ -36,9 +36,37 @@ type cpu struct {
 	updateCh chan cpuUpdate
 }
 
-func (cpu *cpu) run() {
+// Command to the CPU from the UI.
+type cpuCommand struct {
+	Cmd string
+	Data int
+}
+
+func (cpu *cpu) run(cpuCmdCh <-chan cpuCommand) {
+	running := false
+
+	handleCmd := func (msg cpuCommand) {
+		switch msg.Cmd {
+		case "boot":
+			running = true
+		case "press", "release":
+			keyEvent(msg.Data, msg.Cmd == "press")
+		default:
+			panic("Unknown CPU command " + msg.Cmd)
+		}
+	}
+
 	for {
-		cpu.step2()
+		if (running) {
+			select {
+			case msg := <-cpuCmdCh:
+				handleCmd(msg)
+			default:
+				cpu.step2()
+			}
+		} else {
+			handleCmd(<-cpuCmdCh)
+		}
 	}
 }
 

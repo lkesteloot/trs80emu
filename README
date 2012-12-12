@@ -1,14 +1,5 @@
 
 next:
-    Use correct font.
-        Image is 512x480
-        10 rows of glyphs, but last two are different page.
-        Use first 8 rows.
-        32 chars across (32*8 = 256)
-        For thin font:
-            256px wide.
-            Chars are 8px wide (256/32 = 8)
-            Chars are 24px high (480/2/10 = 24), with doubled rows.
     Make other-way web connection:
         Keyboard events.
         Start/stop CPU.

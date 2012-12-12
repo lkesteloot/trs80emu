@@ -1,14 +1,13 @@
 
 body {
     margin: 0;
-    padding: 0;
+    padding: 10px;
     font-size: 18pt;
 }
 
 .screen {
     display: inline-block;
     padding: 10px;
-    margin: 10px;
     background-color: black;
     color: white;
     font-family: monospace;

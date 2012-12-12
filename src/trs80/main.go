@@ -3,15 +3,14 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"time"
 )
 
 func main() {
-	cmdCh := startComputer()
-	serveWebsite(cmdCh)
+	updateCmdCh, cpuCmdCh := startComputer()
+	serveWebsite(updateCmdCh, cpuCmdCh)
 }
 
-func startComputer() chan<- interface{} {
+func startComputer() (chan<- interface{}, chan<- cpuCommand) {
 	// Allocate memory.
 	memorySize := 1024 * 64
 	memory := make([]byte, memorySize)
@@ -39,16 +38,12 @@ func startComputer() chan<- interface{} {
 
 	// Make it go.
 	fmt.Println("Booting")
-	go func() {
-		if (true) {
-			time.Sleep(3 * time.Second)
-		}
-		cpu.run()
-	}()
+	cpuCmdCh := make(chan cpuCommand)
+	go cpu.run(cpuCmdCh)
 
 	// Pull out updates.
-	cmdCh := make(chan interface{})
-	go dispatchUpdates(cpu.updateCh, cmdCh)
+	updateCmdCh := make(chan interface{})
+	go dispatchUpdates(cpu.updateCh, updateCmdCh)
 
-	return cmdCh
+	return updateCmdCh, cpuCmdCh
 }

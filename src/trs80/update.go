@@ -15,7 +15,7 @@ type startUpdates struct {
 type stopUpdates struct {
 }
 
-func dispatchUpdates(updateCh <-chan cpuUpdate, cmdCh <-chan interface{}) {
+func dispatchUpdates(updateCh <-chan cpuUpdate, updateCmdCh <-chan interface{}) {
 	var dispatchedUpdateCh chan<- cpuUpdate
 	var data cpuUpdate
 	var cmd interface{}
@@ -26,7 +26,7 @@ func dispatchUpdates(updateCh <-chan cpuUpdate, cmdCh <-chan interface{}) {
 			if dispatchedUpdateCh != nil {
 				dispatchedUpdateCh <- data
 			}
-		case cmd = <-cmdCh:
+		case cmd = <-updateCmdCh:
 			start, ok := cmd.(startUpdates)
 			if ok {
 				dispatchedUpdateCh = start.updateCh
