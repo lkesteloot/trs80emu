@@ -89,12 +89,25 @@
         var keyEvent = function (event, isPressed) {
             var ch = event.which;
 
+            console.log(ch);
             if (ch === 13) {
                 // Enter.
                 ch = 48;
+            } else if (ch === 32) {
+                // Space.
+                ch = 55;
+            } else if (ch === 8) {
+                // Backspace.
+                ch = 53; // Left.
+
+                // Don't go back to previous page.
+                event.preventDefault();
             } else if (ch >= 65 && ch <= 90) {
                 // Letters, convert to 1-26.
                 ch -= 64;
+            } else if (ch >= 48 && ch <= 57) {
+                // Letters, convert to 32-41.
+                ch -= 16;
             } else {
                 // Ignore.
                 ch = -1;

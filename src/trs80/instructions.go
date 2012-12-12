@@ -627,6 +627,13 @@ func (cpu *cpu) step2() {
 		cpu.f.setZ(!isOn)
 		cpu.f.setH(true)
 		cpu.f.setN(false)
+	case "CCF":
+		// Complement carry.
+		carry := cpu.f.c()
+		cpu.f.setH(carry)
+		cpu.f.setN(false)
+		cpu.f.setC(!carry)
+		cpu.logf("Carry flipped from %s to %s", carry, !carry)
 	case "CP":
 		value := cpu.getByteValue(subfields[0], byteData, wordData)
 		diff := int(cpu.a) - int(value)
@@ -635,6 +642,13 @@ func (cpu *cpu) step2() {
 		cpu.f.setC(diff < 0) // Borrow.
 		cpu.f.setN(true)
 		cpu.logf("%02X - %02X", cpu.a, value)
+	case "CPL":
+		// Complement A.
+		a := cpu.a
+		cpu.f.setH(true)
+		cpu.f.setN(true)
+		cpu.a = ^a
+		cpu.logf("A complemented from %02X to %02X", a, cpu.a)
 	case "DEC":
 		if isWordOperand(subfields[0]) {
 			value := cpu.getWordValue(subfields[0], byteData, wordData) - 1
@@ -835,6 +849,12 @@ func (cpu *cpu) step2() {
 		cpu.pc.setH(0)
 		cpu.pc.setL(byte(addr))
 		cpu.logf("%04X", cpu.pc)
+	case "SCF":
+		// Set carry.
+		cpu.f.setH(false)
+		cpu.f.setN(false)
+		cpu.f.setC(true)
+		cpu.logf("Carry set")
 	case "SET":
 		b, _ := strconv.ParseUint(subfields[0], 10, 8)
 		origValue := cpu.getByteValue(subfields[1], byteData, wordData)
@@ -962,6 +982,8 @@ func (cpu *cpu) getWordValue(ref string, byteData byte, wordData word) word {
 		return cpu.ix
 	case "IY":
 		return cpu.iy
+	case "SP":
+		return cpu.sp
 	case "NN":
 		return wordData
 	case "(NN)":
@@ -1115,7 +1137,7 @@ func (cpu *cpu) conditionSatisfied(cond string) bool {
 
 func isWordOperand(op string) bool {
 	switch op {
-	case "BC", "DE", "HL", "NN":
+	case "BC", "DE", "HL", "NN", "SP":
 		return true
 	}
 

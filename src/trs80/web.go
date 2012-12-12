@@ -99,6 +99,7 @@ func commandsWsHandler(ws *websocket.Conn, cpuCmdCh chan<- cpuCommand) {
 			log.Printf("websocket.JSON.Receive: %s", err)
 			break
 		}
+		log.Printf("Got command %s", message)
 		cpuCmdCh <- message
 	}
 }
