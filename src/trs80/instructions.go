@@ -5,13 +5,15 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"runtime"
 )
 
-const cpuHz = 2000000
+const cpuHz = 2027520
 
 // XXX tmp
 var previousDumpTime time.Time
 var previousDumpClock uint64
+var previousYieldClock uint64
 
 // Copy and pasted from z80.txt (http://guide.ticalc.org/download/z80.txt)
 var instructionList string = `
@@ -568,7 +570,7 @@ func (inst *instruction) addInstruction(asm, cycles, flags string, opcodes []str
 	}
 }
 
-func (cpu *cpu) step2() {
+func (cpu *cpu) step() {
 	// Look up the instruction in the tree.
 	instPc := cpu.pc
 	inst, byteData, wordData := cpu.lookUpInst()
@@ -907,7 +909,7 @@ func (cpu *cpu) step2() {
 		cpu.clock += inst.jumpPenalty
 	}
 
-	if cpu.clock > previousDumpClock+1000000 {
+	if cpu.clock > previousDumpClock+cpuHz {
 		now := time.Now()
 		if previousDumpClock > 0 {
 			elapsed := now.Sub(previousDumpTime)
@@ -919,6 +921,13 @@ func (cpu *cpu) step2() {
 		previousDumpClock = cpu.clock
 
 		// cpu.dumpScreen()
+	}
+
+	// Yield pediodically so that we can get messages from other goroutines like
+	// the one sending us commands.
+	if cpu.clock > previousYieldClock+1000 {
+		runtime.Gosched()
+		previousYieldClock = cpu.clock
 	}
 }
 

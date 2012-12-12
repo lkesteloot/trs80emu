@@ -15,6 +15,10 @@ next:
     Keep the last few instructions (from log()) as unformatted lines, and print them
         after a panic.
     Replace NN and N in asm with real number.
+    If going too fast, sleep for a bit.
+        Make this cumulative so it corrects itself.
+    Add Shift and Ctrl.
+        Test Ctrl-0 (?) to use lower case input.
 
 http://nemesis.lonestar.org/computers/tandy/software/apps/m4/qd/opcodes.html
 http://www.zilog.com/docs/z80/um0080.pdf

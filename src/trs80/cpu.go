@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"time"
 )
 
 const printDebug = false
+const ramBegin = 0x4000
 
 type cpu struct {
 	memory  []byte
@@ -50,6 +52,7 @@ func (cpu *cpu) run(cpuCmdCh <-chan cpuCommand) {
 		case "boot":
 			running = true
 		case "press", "release":
+			fmt.Printf("%d", time.Now().UnixNano()/10000000)
 			keyEvent(msg.Data, msg.Cmd == "press")
 		default:
 			panic("Unknown CPU command " + msg.Cmd)
@@ -62,81 +65,12 @@ func (cpu *cpu) run(cpuCmdCh <-chan cpuCommand) {
 			case msg := <-cpuCmdCh:
 				handleCmd(msg)
 			default:
-				cpu.step2()
+				cpu.step()
 			}
 		} else {
 			handleCmd(<-cpuCmdCh)
 		}
 	}
-}
-
-func (cpu *cpu) step() {
-	/*
-		beginPc := cpu.pc
-		endPc := beginPc
-		opcode := cpu.fetchByte()
-
-		switch opcode {
-		case 0x00:
-			cpu.log(beginPc, endPc, "NOP")
-		case 0x01:
-			word := cpu.fetchWord()
-			cpu.log(beginPc, endPc, "LD BC,%04X", word)
-			cpu.setBc(word)
-		case 0x11:
-			word := cpu.fetchWord()
-			cpu.log(beginPc, endPc, "LD DE,%04X", word)
-			cpu.setDe(word)
-		case 0x20:
-			index := cpu.fetchByte()
-			cpu.log(beginPc, endPc, "JR NZ,%02X", index)
-			if cpu.z == 0 {
-				cpu.pc += index
-			}
-		case 0x21:
-			word := cpu.fetchWord()
-			cpu.log(beginPc, endPc, "LD HL,%04X", word)
-			cpu.setHl(word)
-		case 0x31:
-			word := cpu.fetchWord()
-			cpu.log(beginPc, endPc, "LD SP,%04X", word)
-			cpu.sp = word
-		case 0x3D:
-			cpu.log(beginPc, endPc, "DEC A")
-			cpu.a--
-		case 0xF3:
-			cpu.log(beginPc, endPc, "DI")
-			cpu.iff = 0
-		case 0xAF:
-			cpu.log(beginPc, endPc, "XOR A")
-			cpu.a = cpu.a ^ cpu.a
-		case 0xC3:
-			addr := cpu.fetchWord()
-			cpu.log(beginPc, endPc, "JP %04X", addr)
-			cpu.pc = addr
-		case 0xD3:
-			port := cpu.fetchByte()
-			cpu.log(beginPc, endPc, "OUT (%02X),A", port)
-			// XXX port
-		case 0xED:
-			opcode16 := word(opcode) << 8 | word(cpu.fetchByte())
-			switch opcode16 {
-			case 0xEDB0:
-				cpu.log(beginPc, endPc, "LDIR (copy HL to DE for BC bytes)")
-				// Not sure if this should be while or do while.
-				for cpu.bc() != 0xFFFF {
-					cpu.writeMem(cpu.de(), cpu.readMem(cpu.hl()))
-					cpu.setHl(cpu.hl() + 1)
-					cpu.setDe(cpu.de() + 1)
-					cpu.setBc(cpu.bc() - 1)
-				}
-			default:
-				panic(fmt.Sprintf("Don't know how to handle opcode %04X at %04X", opcode16, beginPc))
-			}
-		default:
-			panic(fmt.Sprintf("Don't know how to handle opcode %02X at %04X", opcode, beginPc))
-		}
-	*/
 }
 
 func (cpu *cpu) fetchByte() byte {
@@ -154,22 +88,22 @@ func (cpu *cpu) fetchWord() (w word) {
 }
 
 func (cpu *cpu) writeMem(addr word, b byte) {
+	// xtrs:trs_memory.c
 	// Check ROM writing. Harmless in real life, but may indicate a bug here.
 	if addr < cpu.romSize {
+		// ROM.
 		panic(fmt.Sprintf("Tried to write %02X to ROM at %04X", b, addr))
-	}
-
-	// Memory-mapped I/O.
-	// http://www.trs-80.com/trs80-zaps-internals.htm#memmapio
-	if addr >= 0x37E0 && addr <= 0x37FF {
-		panic(fmt.Sprintf("Tried to write %02X to cassette/disk at %04X", b, addr))
-	} else if addr >= 0x3801 && addr <= 0x3880 {
-		panic(fmt.Sprintf("Tried to write %02X to keyboard at %04X", b, addr))
-	} else if addr >= 0x3C00 && addr <= 0x3FFF {
+	} else if addr >= ramBegin {
+		// RAM.
+		cpu.memory[addr] = b
+	} else if addr >= screenBegin && addr < screenEnd {
+		// Screen.
 		cpu.memory[addr] = b
 		cpu.updateCh <- cpuUpdate{Cmd: "poke", Addr: int(addr), Data: int(b)}
+	} else if addr == 0x37E8 {
+		// Printer. Ignore, but could print ASCII byte to display.
 	} else {
-		cpu.memory[addr] = b
+		// Ignore write.
 	}
 }
 
@@ -183,7 +117,7 @@ func (cpu *cpu) readMem(addr word) (b byte) {
 	// Memory-mapped I/O.
 	// http://www.trs-80.com/trs80-zaps-internals.htm#memmapio
 	// xtrs:trs_memory.c
-	if addr >= 0x4000 {
+	if addr >= ramBegin {
 		// RAM.
 		b = cpu.memory[addr]
 	} else if addr == 0x37E8 {
@@ -203,6 +137,7 @@ func (cpu *cpu) readMem(addr word) (b byte) {
 		b = 0xFF
 	}
 
+	// XXX delete.
 	// } else if addr >= 0x37E0 && addr <= 0x37FF {
 		// b = cpu.readDisk(addr)
 	// }
