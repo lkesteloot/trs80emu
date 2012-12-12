@@ -6,6 +6,8 @@ import (
 
 // http://www.trs-80.com/trs80-zaps-internals.htm#memmapio
 
+// XXX This is never called. I don't know why that web page has memory-mapped I/O
+// here while xtrs has no memory-mapped I/O at all except for printer and screen.
 func (cpu *cpu) readDisk(addr word) byte {
 	switch addr {
 		/*

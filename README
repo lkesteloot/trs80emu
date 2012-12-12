@@ -1,10 +1,16 @@
 
 next:
-    Fail when reading/writing to cass/disk and see what xtrs does for those.
-        LD A,(HL)
-        Read from 0x37F6
-    Re-enable dump of instructions, analyze by hand.
+    Use correct font.
+        Image is 512x480
+        10 rows of glyphs, but last two are different page.
+        Use first 8 rows.
+        32 chars across (32*8 = 256)
+        For thin font:
+            256px wide.
+            Chars are 8px wide (256/32 = 8)
+            Chars are 24px high (480/2/10 = 24), with doubled rows.
     Make other-way web connection:
+        Keyboard events.
         Start/stop CPU.
         Step, etc.
     Web interface:
@@ -15,6 +21,8 @@ next:
             8 = H
             48 = enter
             56 = shift
+    Keep the last few instructions (from log()) as unformatted lines, and print them
+        after a panic.
     Replace NN and N in asm with real number.
 
 http://nemesis.lonestar.org/computers/tandy/software/apps/m4/qd/opcodes.html

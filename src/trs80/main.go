@@ -33,7 +33,7 @@ func startComputer() chan<- interface{} {
 		memory:   memory,
 		romSize:  word(len(rom)),
 		root:     &instruction{},
-		updateCh: make(chan cpuUpdate, 128),
+		updateCh: make(chan cpuUpdate),
 	}
 	cpu.root.loadInstructions(instructionList)
 

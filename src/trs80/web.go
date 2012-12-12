@@ -20,6 +20,7 @@ func generateIndex(w http.ResponseWriter, r *http.Request) {
         <script src="static/jquery-1.8.2.min.js"></script>
         <script src="static/home.js"></script>
         <link rel="stylesheet" href="static/home.css"/>
+        <link rel="stylesheet" href="font.css"/>
 	</head>
 	<body>
 	</body>
@@ -27,9 +28,30 @@ func generateIndex(w http.ResponseWriter, r *http.Request) {
 	bw.Flush()
 }
 
+func generateFontCss(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/css")
+	bw := bufio.NewWriter(w)
+	fmt.Fprint(bw, `.char {
+		display: inline-block;
+		width: 8px;
+		height: 24px;
+		background-image: url("static/TRS80CharacterGen.png");
+		background-position: -8px -24px;
+		background-repeat: no-repeat;
+}
+`)
+	for ch := 0; ch < 256; ch++ {
+		fmt.Fprintf(bw, ".char-%d { background-position: %dpx %dpx; }\n",
+			ch, -(ch % 32)*8, -(ch / 32)*24)
+	}
+	bw.Flush()
+}
+
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/" {
 		generateIndex(w, r)
+	} else if r.URL.Path == "/font.css" {
+		generateFontCss(w, r)
 	} else {
 		http.NotFound(w, r)
 	}

@@ -9,7 +9,7 @@
         var addr = 15360;
         for (var y = 0; y < 16; y++) {
             for (var x = 0; x < 64; x++) {
-                var $ch = $("<span>").attr("id", "s" + addr).text("?");
+                var $ch = $("<span>").attr("id", "s" + addr).addClass("char");
                 $screen.append($ch);
                 addr++;
             }
@@ -26,7 +26,7 @@
 
             if (addr >= 15360 && addr < 16384) {
                 // Screen.
-                $("#s" + addr).text(String.fromCharCode(data));
+                $("#s" + addr).attr("class", "char char-" + data);
             }
         } else {
             console.log("Unknown command \"" + cmd + "\"");
