@@ -30,17 +30,17 @@ func startComputer() chan<- interface{} {
 
 	// Make a CPU.
 	cpu := &cpu{
-		memory: memory,
-		romSize: word(len(rom)),
-		root: &instruction{},
-		updateCh: make(chan cpuUpdate),
+		memory:   memory,
+		romSize:  word(len(rom)),
+		root:     &instruction{},
+		updateCh: make(chan cpuUpdate, 128),
 	}
 	cpu.root.loadInstructions(instructionList)
 
 	// Make it go.
 	fmt.Println("Booting")
 	go func() {
-		time.Sleep(3*time.Second)
+		time.Sleep(3 * time.Second)
 		cpu.run()
 	}()
 

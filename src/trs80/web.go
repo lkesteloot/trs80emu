@@ -2,12 +2,12 @@ package main
 
 import (
 	"bufio"
-	"net/http"
-	"time"
-	"log"
+	"code.google.com/p/go.net/websocket"
 	"fmt"
 	"headcode.com/webutil"
-	"code.google.com/p/go.net/websocket"
+	"log"
+	"net/http"
+	"time"
 )
 
 func generateIndex(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +51,7 @@ func serveWebsite(cmdCh chan<- interface{}) {
 	// Create handlers.
 	handlers := http.NewServeMux()
 	handlers.Handle("/", webutil.GetHandler(http.HandlerFunc(homeHandler)))
-	handlers.Handle("/ws", websocket.Handler(func (ws *websocket.Conn) {
+	handlers.Handle("/ws", websocket.Handler(func(ws *websocket.Conn) {
 		wsHandler(ws, cmdCh)
 	}))
 	handlers.Handle("/static/", http.StripPrefix("/static/",

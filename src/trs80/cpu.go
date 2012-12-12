@@ -137,7 +137,7 @@ func (cpu *cpu) writeMem(addr word, b byte) {
 		panic(fmt.Sprintf("Tried to write %02X to keyboard at %04X", b, addr))
 	} else if addr >= 0x3C00 && addr <= 0x3FFF {
 		cpu.memory[addr] = b
-		cpu.updateCh <- cpuUpdate{Cmd:"poke", Addr:int(addr), Data:int(b)}
+		cpu.updateCh <- cpuUpdate{Cmd: "poke", Addr: int(addr), Data: int(b)}
 	} else {
 		cpu.memory[addr] = b
 	}
@@ -167,7 +167,7 @@ func (cpu *cpu) readMem(addr word) (b byte) {
 
 func (cpu *cpu) readMemWord(addr word) (w word) {
 	w.setL(cpu.readMem(addr))
-	w.setH(cpu.readMem(addr+1))
+	w.setH(cpu.readMem(addr + 1))
 
 	return
 }
@@ -184,7 +184,7 @@ func (cpu *cpu) pushWord(w word) {
 
 func (cpu *cpu) popByte() byte {
 	cpu.sp++
-	return cpu.readMem(cpu.sp-1)
+	return cpu.readMem(cpu.sp - 1)
 }
 
 func (cpu *cpu) popWord() word {

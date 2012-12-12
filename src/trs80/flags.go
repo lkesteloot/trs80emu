@@ -9,25 +9,25 @@ type flags byte
 
 // Whether the nybble (0-15) has even parity.
 var nybbleParity []bool = []bool{
-	true,	// 0000
-	false,	// 0001
-	false,	// 0010
-	true,	// 0011
+	true,  // 0000
+	false, // 0001
+	false, // 0010
+	true,  // 0011
 
-	false,	// 0100
-	true,	// 0101
-	true,	// 0110
-	false,	// 0111
+	false, // 0100
+	true,  // 0101
+	true,  // 0110
+	false, // 0111
 
-	false,	// 1000
-	true,	// 1001
-	true,	// 1010
-	false,	// 1011
+	false, // 1000
+	true,  // 1001
+	true,  // 1010
+	false, // 1011
 
-	true,	// 1100
-	false,	// 1101
-	false,	// 1110
-	true,	// 1111
+	true,  // 1100
+	false, // 1101
+	false, // 1110
+	true,  // 1111
 }
 
 // Get carry flag.
@@ -197,7 +197,7 @@ func (f *flags) updateFromByte(value byte, hints string) {
 	case '-':
 		// Nothing.
 	case '+':
-		f.setS(value & 0x80 != 0)
+		f.setS(value&0x80 != 0)
 	case '0':
 		f.setS(false)
 	case '1':
@@ -223,7 +223,7 @@ func (f *flags) updateFromWord(value word, hints string) {
 	// S, set if negative.
 	switch hints[5] {
 	case '+':
-		f.setS(value & 0x8000 != 0)
+		f.setS(value&0x8000 != 0)
 	case '0':
 		f.setS(false)
 	case '1':
@@ -233,5 +233,5 @@ func (f *flags) updateFromWord(value word, hints string) {
 
 func isEvenParity(b byte) bool {
 	// Byte is even parity if both nybbles have same parity.
-	return nybbleParity[b & 0xF] == nybbleParity[b >> 4]
+	return nybbleParity[b&0xF] == nybbleParity[b>>4]
 }

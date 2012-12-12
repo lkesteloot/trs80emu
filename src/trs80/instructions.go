@@ -408,7 +408,7 @@ XOR N         7     2   00P0++  EE XX
 `
 
 // See explanation of +r in z80.txt
-var registerNybble []string = []string{"B", "C", "D", "E", "H", "L", /*"(HL)"*/"", "A"}
+var registerNybble []string = []string{"B", "C", "D", "E", "H", "L" /*"(HL)"*/, "", "A"}
 var registerStarNybble []string = []string{"B", "C", "D", "E", "HX", "LX", "", "A"}
 
 type instructionMap map[byte]*instruction
@@ -417,8 +417,8 @@ type instruction struct {
 	// Leaf of tree.
 	asm, flags, opcodes string
 	cycles, jumpPenalty uint64
-	fields []string
-	subfields []string
+	fields              []string
+	subfields           []string
 
 	// For XX data byte.
 	xx *instruction
@@ -562,7 +562,7 @@ func (inst *instruction) addInstruction(asm, cycles, flags string, opcodes []str
 		isLeaf = 1
 	}
 
-	if hasiMap + hasXx + isLeaf != 1 {
+	if hasiMap+hasXx+isLeaf != 1 {
 		panic(fmt.Sprintf("Instruction %s has wrong number of children (%d, %d, %d)",
 			asm, hasiMap, hasXx, isLeaf))
 	}
@@ -576,15 +576,15 @@ func (cpu *cpu) step2() {
 
 	// Extremely slow.
 	/*
-	fmt.Fprintf(cpu, "%10d %04X ", cpu.clock, instPc)
-	for pc := instPc; pc < instPc + 4; pc++ {
-		if pc < nextInstPc {
-			fmt.Fprintf(cpu, "%02X ", cpu.memory[pc])
-		} else {
-			fmt.Fprint(cpu, "   ")
+		fmt.Fprintf(cpu, "%10d %04X ", cpu.clock, instPc)
+		for pc := instPc; pc < instPc + 4; pc++ {
+			if pc < nextInstPc {
+				fmt.Fprintf(cpu, "%02X ", cpu.memory[pc])
+			} else {
+				fmt.Fprint(cpu, "   ")
+			}
 		}
-	}
-	fmt.Fprintf(cpu, "%-15s ", inst.asm)
+		fmt.Fprintf(cpu, "%-15s ", inst.asm)
 	*/
 
 	subfields := inst.subfields
@@ -625,7 +625,7 @@ func (cpu *cpu) step2() {
 	case "BIT":
 		b, _ := strconv.ParseUint(subfields[0], 10, 8)
 		value := cpu.getByteValue(subfields[1], byteData, wordData)
-		isOn := (byte(1 << b) & value) != 0
+		isOn := (byte(1<<b) & value) != 0
 		cpu.f.setZ(!isOn)
 		cpu.f.setH(true)
 		cpu.f.setN(false)
@@ -781,7 +781,7 @@ func (cpu *cpu) step2() {
 		origValue := cpu.getByteValue(subfields[1], byteData, wordData)
 		value := origValue &^ (1 << b)
 		cpu.setByte(subfields[1], value, byteData, wordData)
-		fmt.Fprintf(cpu, "%02X &^ %02X = %02X", origValue, 1 << b, value)
+		fmt.Fprintf(cpu, "%02X &^ %02X = %02X", origValue, 1<<b, value)
 	case "RET":
 		if subfields == nil || cpu.conditionSatisfied(subfields[0]) {
 			cpu.pc = cpu.popWord()
@@ -842,13 +842,13 @@ func (cpu *cpu) step2() {
 		origValue := cpu.getByteValue(subfields[1], byteData, wordData)
 		value := origValue | (1 << b)
 		cpu.setByte(subfields[1], value, byteData, wordData)
-		fmt.Fprintf(cpu, "%02X | %02X = %02X", origValue, 1 << b, value)
+		fmt.Fprintf(cpu, "%02X | %02X = %02X", origValue, 1<<b, value)
 	case "SBC":
 		// Subtract with carry.
 		if len(subfields) == 1 {
 			panic("Can't handle SBC with one parameter")
 		}
-		if (isWordOperand(subfields[0])) {
+		if isWordOperand(subfields[0]) {
 			before := cpu.getWordValue(subfields[0], byteData, wordData)
 			value := cpu.getWordValue(subfields[1], byteData, wordData)
 			result := before - value
@@ -889,11 +889,11 @@ func (cpu *cpu) step2() {
 		cpu.clock += inst.jumpPenalty
 	}
 
-	if cpu.clock > previousDumpClock + 1000000 {
+	if cpu.clock > previousDumpClock+1000000 {
 		now := time.Now()
 		if previousDumpClock > 0 {
 			elapsed := now.Sub(previousDumpTime)
-			computerTime := float64(cpu.clock - previousDumpClock)/float64(cpuHz)
+			computerTime := float64(cpu.clock-previousDumpClock) / float64(cpuHz)
 			fmt.Printf("Computer time: %.1fs, elapsed: %.1fs, mult: %.1f\n",
 				computerTime, elapsed.Seconds(), computerTime/elapsed.Seconds())
 		}

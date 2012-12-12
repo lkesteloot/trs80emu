@@ -2,8 +2,8 @@ package main
 
 // Information about changes to the CPU or computer.
 type cpuUpdate struct {
-	Cmd string
-	Reg string
+	Cmd  string
+	Reg  string
 	Addr int
 	Data int
 }
