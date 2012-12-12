@@ -85,10 +85,41 @@
         return ws;
     };
 
+    var configureKeyboard = function () {
+        var keyEvent = function (event, isPressed) {
+            var ch = event.which;
+
+            if (ch === 13) {
+                // Enter.
+                ch = 48;
+            } else if (ch >= 65 && ch <= 90) {
+                // Letters, convert to 1-26.
+                ch -= 64;
+            } else {
+                // Ignore.
+                ch = -1;
+            }
+
+            if (ch !== -1 && commandWs) {
+                commandWs.send(JSON.stringify({
+                    Cmd: isPressed ? "press" : "release",
+                    Data: ch
+                }));
+            }
+        };
+
+        $("body").keydown(function (event) {
+            keyEvent(event, true);
+        }).keyup(function (event) {
+            keyEvent(event, false);
+        });
+    };
+
     $(function () {
         createScreen();
         createButtons();
         configureUpdates();
         commandWs = configureCommands();
+        configureKeyboard();
     });
 })();
