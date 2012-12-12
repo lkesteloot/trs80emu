@@ -43,6 +43,8 @@ func wsHandler(ws *websocket.Conn, cmdCh chan<- interface{}) {
 	for update := range updateCh {
 		websocket.JSON.Send(ws, update)
 	}
+
+	cmdCh <- stopUpdates{}
 }
 
 func serveWebsite(cmdCh chan<- interface{}) {

@@ -575,17 +575,15 @@ func (cpu *cpu) step2() {
 	nextInstPc := cpu.pc
 
 	// Extremely slow.
-	/*
-		fmt.Fprintf(cpu, "%10d %04X ", cpu.clock, instPc)
-		for pc := instPc; pc < instPc + 4; pc++ {
-			if pc < nextInstPc {
-				fmt.Fprintf(cpu, "%02X ", cpu.memory[pc])
-			} else {
-				fmt.Fprint(cpu, "   ")
-			}
+	cpu.logf("%10d %04X ", cpu.clock, instPc)
+	for pc := instPc; pc < instPc + 4; pc++ {
+		if pc < nextInstPc {
+			cpu.logf("%02X ", cpu.memory[pc])
+		} else {
+			cpu.log("   ")
 		}
-		fmt.Fprintf(cpu, "%-15s ", inst.asm)
-	*/
+	}
+	cpu.logf("%-15s ", inst.asm)
 
 	subfields := inst.subfields
 	switch inst.fields[0] {
@@ -595,14 +593,14 @@ func (cpu *cpu) step2() {
 			value2 := cpu.getWordValue(subfields[1], byteData, wordData)
 			result := value1 + value2
 			cpu.setWord(subfields[0], result, byteData, wordData)
-			fmt.Fprintf(cpu, "%04X + %04X = %04X", value1, value2, result)
+			cpu.logf("%04X + %04X = %04X", value1, value2, result)
 			cpu.f.updateFromWord(result, inst.flags)
 		} else {
 			value1 := cpu.getByteValue(subfields[0], byteData, wordData)
 			value2 := cpu.getByteValue(subfields[1], byteData, wordData)
 			result := value1 + value2
 			cpu.setByte(subfields[0], result, byteData, wordData)
-			fmt.Fprintf(cpu, "%02X + %02X = %02X", value1, value2, result)
+			cpu.logf("%02X + %02X = %02X", value1, value2, result)
 			cpu.f.updateFromByte(result, inst.flags)
 		}
 	case "AND", "XOR", "OR":
@@ -621,7 +619,7 @@ func (cpu *cpu) step2() {
 			symbol = "|"
 		}
 		cpu.f.updateFromByte(cpu.a, inst.flags)
-		fmt.Fprintf(cpu, "%02X %s %02X = %02X", before, symbol, value, cpu.a)
+		cpu.logf("%02X %s %02X = %02X", before, symbol, value, cpu.a)
 	case "BIT":
 		b, _ := strconv.ParseUint(subfields[0], 10, 8)
 		value := cpu.getByteValue(subfields[1], byteData, wordData)
@@ -636,16 +634,16 @@ func (cpu *cpu) step2() {
 		cpu.f.setZ(diff == 0)
 		cpu.f.setC(diff < 0) // Borrow.
 		cpu.f.setN(true)
-		fmt.Fprintf(cpu, "%02X - %02X", cpu.a, value)
+		cpu.logf("%02X - %02X", cpu.a, value)
 	case "DEC":
 		if isWordOperand(subfields[0]) {
 			value := cpu.getWordValue(subfields[0], byteData, wordData) - 1
-			fmt.Fprintf(cpu, "%04X - 1 = %04X", value+1, value)
+			cpu.logf("%04X - 1 = %04X", value+1, value)
 			cpu.setWord(subfields[0], value, byteData, wordData)
 			cpu.f.updateFromWord(value, inst.flags)
 		} else {
 			value := cpu.getByteValue(subfields[0], byteData, wordData) - 1
-			fmt.Fprintf(cpu, "%02X - 1 = %02X", value+1, value)
+			cpu.logf("%02X - 1 = %02X", value+1, value)
 			cpu.setByte(subfields[0], value, byteData, wordData)
 			cpu.f.updateFromByte(value, inst.flags)
 		}
@@ -656,9 +654,9 @@ func (cpu *cpu) step2() {
 		cpu.bc.setH(cpu.bc.h() - 1)
 		if cpu.bc.h() != 0 {
 			cpu.pc += rel
-			fmt.Fprintf(cpu, "%04X (%d), b = %02X", cpu.pc, int16(rel), cpu.bc.h())
+			cpu.logf("%04X (%d), b = %02X", cpu.pc, int16(rel), cpu.bc.h())
 		} else {
-			fmt.Fprint(cpu, "jump skipped")
+			cpu.log("jump skipped")
 		}
 	case "EI":
 		cpu.iff = true
@@ -667,7 +665,7 @@ func (cpu *cpu) step2() {
 		value2 := cpu.getWordValue(subfields[1], byteData, wordData)
 		cpu.setWord(subfields[0], value2, byteData, wordData)
 		cpu.setWord(subfields[1], value1, byteData, wordData)
-		fmt.Fprintf(cpu, "%04X <--> %04X", value1, value2)
+		cpu.logf("%04X <--> %04X", value1, value2)
 	case "IM":
 		// Interrupt mode. Ignore until we support interrupts.
 	case "IN":
@@ -690,16 +688,16 @@ func (cpu *cpu) step2() {
 			cpu.setByte(subfields[0], value, byteData, wordData)
 		}
 		cpu.f.updateFromByte(value, inst.flags)
-		fmt.Fprintf(cpu, "%02X <- %02X (%s)", value, port, portDescription)
+		cpu.logf("%02X <- %02X (%s)", value, port, portDescription)
 	case "INC":
 		if isWordOperand(subfields[0]) {
 			value := cpu.getWordValue(subfields[0], byteData, wordData) + 1
-			fmt.Fprintf(cpu, "%04X + 1 = %04X", value-1, value)
+			cpu.logf("%04X + 1 = %04X", value-1, value)
 			cpu.setWord(subfields[0], value, byteData, wordData)
 			cpu.f.updateFromWord(value, inst.flags)
 		} else {
 			value := cpu.getByteValue(subfields[0], byteData, wordData) + 1
-			fmt.Fprintf(cpu, "%02X + 1 = %02X", value-1, value)
+			cpu.logf("%02X + 1 = %02X", value-1, value)
 			cpu.setByte(subfields[0], value, byteData, wordData)
 			cpu.f.updateFromByte(value, inst.flags)
 		}
@@ -710,9 +708,9 @@ func (cpu *cpu) step2() {
 				cpu.pushWord(cpu.pc)
 			}
 			cpu.pc = addr
-			fmt.Fprintf(cpu, "%04X", addr)
+			cpu.logf("%04X", addr)
 		} else {
-			fmt.Fprint(cpu, "jump skipped")
+			cpu.log("jump skipped")
 		}
 	case "JR":
 		if subfields[len(subfields)-1] != "N+2" {
@@ -722,23 +720,23 @@ func (cpu *cpu) step2() {
 		rel := signExtend(byteData)
 		if len(subfields) == 1 || cpu.conditionSatisfied(subfields[0]) {
 			cpu.pc += rel
-			fmt.Fprintf(cpu, "%04X (%d)", cpu.pc, int16(rel))
+			cpu.logf("%04X (%d)", cpu.pc, int16(rel))
 		} else {
-			fmt.Fprint(cpu, "jump skipped")
+			cpu.log("jump skipped")
 		}
 	case "LD":
 		if isWordOperand(subfields[0]) || isWordOperand(subfields[1]) {
 			value := cpu.getWordValue(subfields[1], byteData, wordData)
 			cpu.setWord(subfields[0], value, byteData, wordData)
-			fmt.Fprintf(cpu, "%04X", value)
+			cpu.logf("%04X", value)
 		} else {
 			value := cpu.getByteValue(subfields[1], byteData, wordData)
 			cpu.setByte(subfields[0], value, byteData, wordData)
-			fmt.Fprintf(cpu, "%02X", value)
+			cpu.logf("%02X", value)
 		}
 	case "LDIR":
 		b := cpu.readMem(cpu.hl)
-		fmt.Fprintf(cpu, "copying %02X from %04X to %04X", b, cpu.hl, cpu.de)
+		cpu.logf("copying %02X from %04X to %04X", b, cpu.hl, cpu.de)
 		cpu.writeMem(cpu.de, b)
 		cpu.hl++
 		cpu.de++
@@ -767,27 +765,27 @@ func (cpu *cpu) step2() {
 		if !ok {
 			panic(fmt.Sprintf("Unknown port %02X", port))
 		}
-		fmt.Fprintf(cpu, "%02X (%s) <- %02X", port, portDescription, value)
+		cpu.logf("%02X (%s) <- %02X", port, portDescription, value)
 	case "POP":
 		value := cpu.popWord()
 		cpu.setWord(subfields[0], value, byteData, wordData)
-		fmt.Fprintf(cpu, "%04X", value)
+		cpu.logf("%04X", value)
 	case "PUSH":
 		value := cpu.getWordValue(subfields[0], byteData, wordData)
 		cpu.pushWord(value)
-		fmt.Fprintf(cpu, "%04X", value)
+		cpu.logf("%04X", value)
 	case "RES":
 		b, _ := strconv.ParseUint(subfields[0], 10, 8)
 		origValue := cpu.getByteValue(subfields[1], byteData, wordData)
 		value := origValue &^ (1 << b)
 		cpu.setByte(subfields[1], value, byteData, wordData)
-		fmt.Fprintf(cpu, "%02X &^ %02X = %02X", origValue, 1<<b, value)
+		cpu.logf("%02X &^ %02X = %02X", origValue, 1<<b, value)
 	case "RET":
 		if subfields == nil || cpu.conditionSatisfied(subfields[0]) {
 			cpu.pc = cpu.popWord()
-			fmt.Fprintf(cpu, "%04X", cpu.pc)
+			cpu.logf("%04X", cpu.pc)
 		} else {
-			fmt.Fprint(cpu, "return skipped")
+			cpu.log("return skipped")
 		}
 	case "RLA":
 		// Left rotate A through carry.
@@ -797,7 +795,7 @@ func (cpu *cpu) step2() {
 		if cpu.f.c() {
 			result |= 1
 		}
-		fmt.Fprintf(cpu, "%02X << 1 (%v) = %02X", origValue, cpu.f.c(), result)
+		cpu.logf("%02X << 1 (%v) = %02X", origValue, cpu.f.c(), result)
 		cpu.a = result
 		cpu.f.setC(leftBit != 0)
 		cpu.f.setH(false)
@@ -811,7 +809,7 @@ func (cpu *cpu) step2() {
 		cpu.setByte(subfields[0], result, byteData, wordData)
 		cpu.f.updateFromByte(result, inst.flags)
 		cpu.f.setC(leftBit == 1)
-		fmt.Fprintf(cpu, "%02X << 1 = %02X", origValue, result)
+		cpu.logf("%02X << 1 = %02X", origValue, result)
 	case "RLCA":
 		// Left rotate.
 		origValue := cpu.a
@@ -820,7 +818,7 @@ func (cpu *cpu) step2() {
 		cpu.f.setH(false)
 		cpu.f.setN(false)
 		cpu.f.setC(leftBit == 1)
-		fmt.Fprintf(cpu, "%02X << 1 = %02X", origValue, cpu.a)
+		cpu.logf("%02X << 1 = %02X", origValue, cpu.a)
 	case "RRCA":
 		// Right rotate.
 		origValue := cpu.a
@@ -829,20 +827,20 @@ func (cpu *cpu) step2() {
 		cpu.f.setH(false)
 		cpu.f.setN(false)
 		cpu.f.setC(rightBit == 1)
-		fmt.Fprintf(cpu, "%02X >> 1 = %02X", origValue, cpu.a)
+		cpu.logf("%02X >> 1 = %02X", origValue, cpu.a)
 	case "RST":
 		addrStr := strings.Replace(subfields[0], "H", "", -1)
 		addr, _ := strconv.ParseUint(addrStr, 16, 8)
 		cpu.pushWord(cpu.pc)
 		cpu.pc.setH(0)
 		cpu.pc.setL(byte(addr))
-		fmt.Fprintf(cpu, "%04X", cpu.pc)
+		cpu.logf("%04X", cpu.pc)
 	case "SET":
 		b, _ := strconv.ParseUint(subfields[0], 10, 8)
 		origValue := cpu.getByteValue(subfields[1], byteData, wordData)
 		value := origValue | (1 << b)
 		cpu.setByte(subfields[1], value, byteData, wordData)
-		fmt.Fprintf(cpu, "%02X | %02X = %02X", origValue, 1<<b, value)
+		cpu.logf("%02X | %02X = %02X", origValue, 1<<b, value)
 	case "SBC":
 		// Subtract with carry.
 		if len(subfields) == 1 {
@@ -855,7 +853,7 @@ func (cpu *cpu) step2() {
 			if cpu.f.c() {
 				result--
 			}
-			fmt.Fprintf(cpu, "%04X - %04X - %v = %04X", before, value, cpu.f.c(), result)
+			cpu.logf("%04X - %04X - %v = %04X", before, value, cpu.f.c(), result)
 			cpu.f.updateFromWord(result, inst.flags)
 			cpu.setWord(subfields[0], result, byteData, wordData)
 		} else {
@@ -865,7 +863,7 @@ func (cpu *cpu) step2() {
 			if cpu.f.c() {
 				result--
 			}
-			fmt.Fprintf(cpu, "%02X - %02X - %v = %02X", before, value, cpu.f.c(), result)
+			cpu.logf("%02X - %02X - %v = %02X", before, value, cpu.f.c(), result)
 			cpu.f.updateFromByte(result, inst.flags)
 			cpu.setByte(subfields[0], result, byteData, wordData)
 		}
@@ -874,14 +872,14 @@ func (cpu *cpu) step2() {
 		before := cpu.a
 		value := cpu.getByteValue(subfields[0], byteData, wordData)
 		cpu.a -= value
-		fmt.Fprintf(cpu, "%02X - %02X = %02X", before, value, cpu.a)
+		cpu.logf("%02X - %02X = %02X", before, value, cpu.a)
 		cpu.f.updateFromByte(cpu.a, inst.flags)
 	default:
 		panic(fmt.Sprintf("Don't know how to handle %s (at %04X)",
 			inst.asm, instPc))
 	}
 
-	fmt.Fprintln(cpu)
+	cpu.logln()
 
 	cpu.clock += inst.cycles
 	if cpu.pc != nextInstPc {
@@ -921,26 +919,26 @@ func (cpu *cpu) getByteValue(ref string, byteData byte, wordData word) byte {
 	case "L":
 		return cpu.hl.l()
 	case "(BC)":
-		fmt.Fprintf(cpu, "(BC = %04X) ", cpu.bc)
+		cpu.logf("(BC = %04X) ", cpu.bc)
 		return cpu.readMem(cpu.bc)
 	case "(DE)":
-		fmt.Fprintf(cpu, "(DE = %04X) ", cpu.de)
+		cpu.logf("(DE = %04X) ", cpu.de)
 		return cpu.readMem(cpu.de)
 	case "(HL)":
-		fmt.Fprintf(cpu, "(HL = %04X) ", cpu.hl)
+		cpu.logf("(HL = %04X) ", cpu.hl)
 		return cpu.readMem(cpu.hl)
 	case "(IX+N)":
 		addr := cpu.ix + signExtend(byteData)
-		fmt.Fprintf(cpu, "(IX = %04X + %02X = %04X) ", cpu.ix, byteData, addr)
+		cpu.logf("(IX = %04X + %02X = %04X) ", cpu.ix, byteData, addr)
 		return cpu.readMem(addr)
 	case "(IY+N)":
 		addr := cpu.iy + signExtend(byteData)
-		fmt.Fprintf(cpu, "(IY = %04X + %02X = %04X) ", cpu.iy, byteData, addr)
+		cpu.logf("(IY = %04X + %02X = %04X) ", cpu.iy, byteData, addr)
 		return cpu.readMem(addr)
 	case "N":
 		return byteData
 	case "(NN)":
-		fmt.Fprintf(cpu, "(NN = %04X) ", wordData)
+		cpu.logf("(NN = %04X) ", wordData)
 		return cpu.readMem(wordData)
 	}
 
@@ -967,13 +965,13 @@ func (cpu *cpu) getWordValue(ref string, byteData byte, wordData word) word {
 	case "NN":
 		return wordData
 	case "(NN)":
-		fmt.Fprintf(cpu, "(NN = %04X) ", wordData)
+		cpu.logf("(NN = %04X) ", wordData)
 		return cpu.readMemWord(wordData)
 	case "(HL)":
-		fmt.Fprintf(cpu, "(HL = %04X) ", cpu.hl)
+		cpu.logf("(HL = %04X) ", cpu.hl)
 		return cpu.readMemWord(cpu.hl)
 	case "(SP)":
-		fmt.Fprintf(cpu, "(SP = %04X) ", cpu.sp)
+		cpu.logf("(SP = %04X) ", cpu.sp)
 		return cpu.readMemWord(cpu.sp)
 	}
 
@@ -998,24 +996,24 @@ func (cpu *cpu) setByte(ref string, value byte, byteData byte, wordData word) {
 		cpu.hl.setL(value)
 	case "(BC)":
 		cpu.writeMem(cpu.bc, value)
-		fmt.Fprintf(cpu, "(BC = %04X) ", cpu.bc)
+		cpu.logf("(BC = %04X) ", cpu.bc)
 	case "(DE)":
 		cpu.writeMem(cpu.de, value)
-		fmt.Fprintf(cpu, "(DE = %04X) ", cpu.de)
+		cpu.logf("(DE = %04X) ", cpu.de)
 	case "(HL)":
 		cpu.writeMem(cpu.hl, value)
-		fmt.Fprintf(cpu, "(HL = %04X) ", cpu.hl)
+		cpu.logf("(HL = %04X) ", cpu.hl)
 	case "(IX+N)":
 		addr := cpu.ix + signExtend(byteData)
 		cpu.writeMem(addr, value)
-		fmt.Fprintf(cpu, "(IX = %04X + %02X = %04X) ", cpu.ix, byteData, addr)
+		cpu.logf("(IX = %04X + %02X = %04X) ", cpu.ix, byteData, addr)
 	case "(IY+N)":
 		addr := cpu.iy + signExtend(byteData)
 		cpu.writeMem(addr, value)
-		fmt.Fprintf(cpu, "(IY = %04X + %02X = %04X) ", cpu.iy, byteData, addr)
+		cpu.logf("(IY = %04X + %02X = %04X) ", cpu.iy, byteData, addr)
 	case "(NN)":
 		cpu.writeMem(wordData, value)
-		fmt.Fprintf(cpu, "(NN = %04X) ", wordData)
+		cpu.logf("(NN = %04X) ", wordData)
 	default:
 		panic("Can't handle destination of " + ref)
 	}
@@ -1040,10 +1038,10 @@ func (cpu *cpu) setWord(ref string, value word, byteData byte, wordData word) {
 		cpu.iy = value
 	case "(NN)":
 		cpu.writeMemWord(wordData, value)
-		fmt.Fprintf(cpu, "(NN = %04X) ", wordData)
+		cpu.logf("(NN = %04X) ", wordData)
 	case "(SP)":
 		cpu.writeMemWord(cpu.sp, value)
-		fmt.Fprintf(cpu, "(SP = %04X) ", cpu.sp)
+		cpu.logf("(SP = %04X) ", cpu.sp)
 	default:
 		panic("Can't handle destination of " + ref)
 	}

@@ -40,7 +40,9 @@ func startComputer() chan<- interface{} {
 	// Make it go.
 	fmt.Println("Booting")
 	go func() {
-		time.Sleep(3 * time.Second)
+		if (false) {
+			time.Sleep(3 * time.Second)
+		}
 		cpu.run()
 	}()
 

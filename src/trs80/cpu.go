@@ -4,6 +4,8 @@ import (
 	"fmt"
 )
 
+const printDebug = true
+
 type cpu struct {
 	memory  []byte
 	romSize word
@@ -196,7 +198,20 @@ func (cpu *cpu) popWord() word {
 	return w
 }
 
-func (cpu *cpu) Write(b []byte) (n int, err error) {
-	// Ignore.
-	return 0, nil
+func (cpu *cpu) log(s string) {
+	if (printDebug) {
+		fmt.Print(s)
+	}
+}
+
+func (cpu *cpu) logf(format string, arg ...interface{}) {
+	if (printDebug) {
+		fmt.Printf(format, arg...)
+	}
+}
+
+func (cpu *cpu) logln() {
+	if (printDebug) {
+		fmt.Println()
+	}
 }

@@ -1,6 +1,8 @@
 
 (function () {
 
+    var msgCount = 0;
+
     var createScreen = function () {
         var $screen = $("<div>").addClass("screen").appendTo($("body"));
 
@@ -28,6 +30,11 @@
             }
         } else {
             console.log("Unknown command \"" + cmd + "\"");
+        }
+
+        msgCount++;
+        if (msgCount % 1000 === 0) {
+            console.log("Got " + msgCount + " messages")
         }
     };
 
