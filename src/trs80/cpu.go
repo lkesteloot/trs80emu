@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-const printDebug = true
+const printDebug = false
 
 type cpu struct {
 	memory  []byte
@@ -154,15 +154,30 @@ func (cpu *cpu) writeMemWord(addr word, w word) {
 func (cpu *cpu) readMem(addr word) (b byte) {
 	// Memory-mapped I/O.
 	// http://www.trs-80.com/trs80-zaps-internals.htm#memmapio
-	if addr >= 0x37E0 && addr <= 0x37FF {
-		b = cpu.readDisk(addr)
-	} else if addr >= keyboardBegin && addr < keyboardEnd {
-		b = cpu.readKeyboard(addr)
+	// xtrs:trs_memory.c
+	if addr >= 0x4000 {
+		// RAM.
+		b = cpu.memory[addr]
+	} else if addr == 0x37E8 {
+		// Printer. 0x30 = Printer selected, ready, with paper, not busy.
+		b = 0x30
+	} else if addr < cpu.romSize {
+		// ROM.
+		b = cpu.memory[addr]
 	} else if addr >= screenBegin && addr < screenEnd {
+		// Screen.
 		b = cpu.memory[addr]
+	} else if addr >= keyboardBegin && addr < keyboardEnd {
+		// Keyboard.
+		b = cpu.readKeyboard(addr)
 	} else {
-		b = cpu.memory[addr]
+		// ?? From trs_memory.c. What about all the memory-mapped I/O?
+		b = 0xFF
 	}
+
+	// } else if addr >= 0x37E0 && addr <= 0x37FF {
+		// b = cpu.readDisk(addr)
+	// }
 
 	return
 }

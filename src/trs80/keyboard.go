@@ -9,7 +9,7 @@ func (cpu *cpu) readKeyboard(addr word) byte {
 
 	var b byte
 
-	if addr == 0x40 {
+	if addr == 0x40 && false {
 		b = 0x04 // break
 	} else {
 		// No keys pressed.
