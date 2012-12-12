@@ -900,7 +900,7 @@ func (cpu *cpu) step2() {
 		previousDumpTime = now
 		previousDumpClock = cpu.clock
 
-		cpu.dumpScreen()
+		// cpu.dumpScreen()
 	}
 }
 

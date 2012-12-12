@@ -35,22 +35,24 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func wsHandler(ws *websocket.Conn, ch <-chan cpuUpdate) {
+func wsHandler(ws *websocket.Conn, cmdCh chan<- interface{}) {
 	log.Printf("wsHandler")
+	updateCh := make(chan cpuUpdate)
+	cmdCh <- startUpdates{updateCh}
 
-	for update := range ch {
+	for update := range updateCh {
 		websocket.JSON.Send(ws, update)
 	}
 }
 
-func serveWebsite(ch <-chan cpuUpdate) {
+func serveWebsite(cmdCh chan<- interface{}) {
 	port := 8080
 
 	// Create handlers.
 	handlers := http.NewServeMux()
 	handlers.Handle("/", webutil.GetHandler(http.HandlerFunc(homeHandler)))
 	handlers.Handle("/ws", websocket.Handler(func (ws *websocket.Conn) {
-		wsHandler(ws, ch)
+		wsHandler(ws, cmdCh)
 	}))
 	handlers.Handle("/static/", http.StripPrefix("/static/",
 		http.FileServer(http.Dir("static"))))

@@ -3,14 +3,15 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"time"
 )
 
 func main() {
-	ch := startComputer()
-	serveWebsite(ch)
+	cmdCh := startComputer()
+	serveWebsite(cmdCh)
 }
 
-func startComputer() <-chan cpuUpdate {
+func startComputer() chan<- interface{} {
 	// Allocate memory.
 	memorySize := 1024 * 64
 	memory := make([]byte, memorySize)
@@ -32,20 +33,20 @@ func startComputer() <-chan cpuUpdate {
 		memory: memory,
 		romSize: word(len(rom)),
 		root: &instruction{},
-		ch: make(chan cpuUpdate),
+		updateCh: make(chan cpuUpdate),
 	}
 	cpu.root.loadInstructions(instructionList)
 
 	// Make it go.
 	fmt.Println("Booting")
-	go cpu.run()
-
-	// Pull out updates.
-	go func () {
-		for _ = range cpu.ch {
-			// Nothing.
-		}
+	go func() {
+		time.Sleep(3*time.Second)
+		cpu.run()
 	}()
 
-	return cpu.ch
+	// Pull out updates.
+	cmdCh := make(chan interface{})
+	go dispatchUpdates(cpu.updateCh, cmdCh)
+
+	return cmdCh
 }

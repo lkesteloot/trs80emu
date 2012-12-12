@@ -1,9 +1,18 @@
 
 next:
     Web interface:
-        in main thread serve http
-        in separate thread (?) serve web sockets
-        in separate thread start machine
+        in dispatcher
+
+            receive data channel and 
+            create new channel
+            select
+                listen to command channel
+        in ws handler
+            register to listen for cpu updates
+                add channel to list of channels being sent to.
+            unregister to listen for cpu updates
+                remove channel from list of channels being sent to.
+            on update, send as JSON.
         protocol:
             format:
                 binary

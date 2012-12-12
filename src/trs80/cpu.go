@@ -31,15 +31,7 @@ type cpu struct {
 	root *instruction
 
 	// Channel to get updates from.
-	ch chan cpuUpdate
-}
-
-// Information about changes to the CPU or computer.
-type cpuUpdate struct {
-	Cmd string
-	Reg string
-	Addr int
-	Data int
+	updateCh chan cpuUpdate
 }
 
 func (cpu *cpu) run() {
@@ -145,7 +137,7 @@ func (cpu *cpu) writeMem(addr word, b byte) {
 		panic(fmt.Sprintf("Tried to write %02X to keyboard at %04X", b, addr))
 	} else if addr >= 0x3C00 && addr <= 0x3FFF {
 		cpu.memory[addr] = b
-		cpu.ch <- cpuUpdate{Cmd:"poke", Addr:int(addr), Data:int(b)}
+		cpu.updateCh <- cpuUpdate{Cmd:"poke", Addr:int(addr), Data:int(b)}
 	} else {
 		cpu.memory[addr] = b
 	}

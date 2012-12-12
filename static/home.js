@@ -1,5 +1,36 @@
 
 (function () {
+
+    var createScreen = function () {
+        var $screen = $("<div>").addClass("screen").appendTo($("body"));
+
+        var addr = 15360;
+        for (var y = 0; y < 16; y++) {
+            for (var x = 0; x < 64; x++) {
+                var $ch = $("<span>").attr("id", "s" + addr).text("?");
+                $screen.append($ch);
+                addr++;
+            }
+            $screen.append($("<br>"));
+        }
+    };
+
+    var handleMsg = function (msg) {
+        var cmd = msg.Cmd;
+
+        if (cmd === "poke") {
+            var addr = msg.Addr;
+            var data = msg.Data;
+
+            if (addr >= 15360 && addr < 16384) {
+                // Screen.
+                $("#s" + addr).text(String.fromCharCode(data));
+            }
+        } else {
+            console.log("Unknown command \"" + cmd + "\"");
+        }
+    };
+
     var configureConnection = function () {
         console.log("Creating web socket");
         var ws = new WebSocket("ws://" + window.location.host + "/ws");
@@ -9,8 +40,8 @@
         };
         ws.onmessage = function (event) {
             // https://developer.mozilla.org/en-US/docs/WebSockets/WebSockets_reference/MessageEvent
-            console.log("On message");
-            console.log(event.data);
+            var msg = JSON.parse(event.data);
+            handleMsg(msg);
         };
         ws.onclose = function (event) {
             // https://developer.mozilla.org/en-US/docs/WebSockets/WebSockets_reference/CloseEvent
@@ -19,6 +50,7 @@
     };
 
     $(function () {
+        createScreen();
         configureConnection();
     });
 })();
