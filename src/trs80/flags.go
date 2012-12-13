@@ -87,19 +87,16 @@ func (f flags) c() bool {
 
 // Get add/subtract flag.
 func (f flags) n() bool {
-	panic("Not setting n flag yet")
 	return (f & subtractMask) != 0
 }
 
 // Get parity/overflow flag.
 func (f flags) pv() bool {
-	panic("Not setting pv flag yet")
 	return (f & parityOverflowMask) != 0
 }
 
 // Get half carry flag.
 func (f flags) h() bool {
-	panic("Not setting h flag yet")
 	return (f & halfCarryMask) != 0
 }
 

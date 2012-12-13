@@ -582,6 +582,28 @@ func (cpu *cpu) step() {
 
 	subfields := inst.subfields
 	switch inst.fields[0] {
+	case "ADC":
+		if isWordOperand(subfields[0]) || isWordOperand(subfields[1]) {
+			value1 := cpu.getWordValue(subfields[0], byteData, wordData)
+			value2 := cpu.getWordValue(subfields[1], byteData, wordData)
+			result := value1 + value2
+			if cpu.f.c() {
+				result++
+			}
+			cpu.setWord(subfields[0], result, byteData, wordData)
+			cpu.logf("%04X + %04X + %v = %04X", value1, value2, cpu.f.c(), result)
+			cpu.f.updateFromAddWord(value1, value2, result)
+		} else {
+			value1 := cpu.getByteValue(subfields[0], byteData, wordData)
+			value2 := cpu.getByteValue(subfields[1], byteData, wordData)
+			result := value1 + value2
+			if cpu.f.c() {
+				result++
+			}
+			cpu.setByte(subfields[0], result, byteData, wordData)
+			cpu.logf("%02X + %02X + %v = %02X", value1, value2, cpu.f.c(), result)
+			cpu.f.updateFromAddByte(value1, value2, result)
+		}
 	case "ADD":
 		if isWordOperand(subfields[0]) || isWordOperand(subfields[1]) {
 			value1 := cpu.getWordValue(subfields[0], byteData, wordData)
