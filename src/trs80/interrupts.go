@@ -12,15 +12,15 @@ const (
 )
 
 // NMIs
-const(
-	resetNmiBit = 0x20 << iota
+const (
+	resetNmiBit    = 0x20 << iota
 	motorOffNmiBit // FDC
-	intrqNmiBit  // FDC
+	intrqNmiBit    // FDC
 )
 
 // Compute whether IRQ handling is needed. XXX Can we remove this?
 func (cpu *cpu) updateIrq() {
-    cpu.irq = (cpu.irqLatch & cpu.irqMask) != 0
+	cpu.irq = (cpu.irqLatch & cpu.irqMask) != 0
 }
 
 func (cpu *cpu) setInterruptMask(irqMask byte) {

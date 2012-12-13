@@ -10,7 +10,7 @@ const keyboardEnd = keyboardBegin + 256
 
 func (cpu *cpu) clearKeyboard() {
 	for i := 0; i < len(cpu.keyboard); i++ {
-		cpu.keyboard[i] = 0;
+		cpu.keyboard[i] = 0
 	}
 }
 

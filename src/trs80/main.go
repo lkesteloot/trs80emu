@@ -34,11 +34,11 @@ func startComputer() (chan<- interface{}, chan<- cpuCommand) {
 
 	// Make a CPU.
 	cpu := &cpu{
-		memory:   memory,
-		romSize:  word(len(rom)),
-		root:     &instruction{},
-		updateCh: cpuUpdateCh,
-		nmiMask:  resetNmiBit,
+		memory:    memory,
+		romSize:   word(len(rom)),
+		root:      &instruction{},
+		updateCh:  cpuUpdateCh,
+		nmiMask:   resetNmiBit,
 		modeImage: 0x80,
 	}
 	cpu.root.loadInstructions(instructionList)

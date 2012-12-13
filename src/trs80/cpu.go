@@ -59,8 +59,8 @@ type cpu struct {
 	updateCh chan cpuUpdate
 
 	// XXX tmp
-	previousDumpTime time.Time
-	previousDumpClock uint64
+	previousDumpTime   time.Time
+	previousDumpClock  uint64
 	previousYieldClock uint64
 }
 

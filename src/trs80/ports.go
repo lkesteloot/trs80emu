@@ -23,7 +23,7 @@ func (cpu *cpu) readPort(port byte) byte {
 	case 0xE4:
 		// NMI latch read.
 		return ^cpu.nmiLatch
-    case 0xEC, 0xED, 0xEE, 0xEF:
+	case 0xEC, 0xED, 0xEE, 0xEF:
 		// Acknowledge timer.
 		cpu.timerInterrupt(false)
 		return 0xFF

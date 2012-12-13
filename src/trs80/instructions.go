@@ -412,7 +412,7 @@ type instructionMap map[byte]*instruction
 
 type instruction struct {
 	// Leaf of tree.
-	asm, opcodes string
+	asm, opcodes        string
 	cycles, jumpPenalty uint64
 	fields              []string
 	subfields           []string

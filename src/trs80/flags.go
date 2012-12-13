@@ -167,7 +167,7 @@ func (f *flags) setS(s bool) {
 // Update simple flags (S, Z, P, and undoc) based on result of operation.
 func (f *flags) updateFromByte(value byte) {
 	*f = flags(0)
-	f.setS(value & 0x80 != 0)
+	f.setS(value&0x80 != 0)
 	f.setZ(value == 0)
 	f.setPv(parityTable[value] == 1)
 	*f |= flags(value & undocMasks)
@@ -211,8 +211,8 @@ func (f *flags) updateFromAddByte(value1, value2, result byte) {
 func (f *flags) updateFromAddWord(value1, value2, result word) {
 	index := (value1&0x8800)>>9 | (value2&0x8800)>>10 | (result&0x8800)>>11
 	*f = halfCarryTable[index&7] |
-		(signCarryOverflowTable[index>>4]&carryMask) |
-		(*f & (zeroMask|parityOverflowMask|signMask)) |
+		(signCarryOverflowTable[index>>4] & carryMask) |
+		(*f & (zeroMask | parityOverflowMask | signMask)) |
 		flags(result.h()&undocMasks)
 }
 
@@ -264,17 +264,17 @@ func (f *flags) updateFromDecByte(result byte) {
 	if result == 0x7F {
 		*f |= parityOverflowMask
 	}
-	if result & 0x0F == 0x0F {
+	if result&0x0F == 0x0F {
 		*f |= halfCarryMask
 	}
 	if result == 0 {
 		*f |= zeroMask
 	}
-	if result & 0x80 != 0 {
+	if result&0x80 != 0 {
 		*f |= signMask
 	}
 
-    *f |= flags(result & undocMasks)
+	*f |= flags(result & undocMasks)
 }
 
 func (f *flags) updateFromIncByte(result byte) {
@@ -283,23 +283,23 @@ func (f *flags) updateFromIncByte(result byte) {
 	if result == 0x80 {
 		*f |= parityOverflowMask
 	}
-	if result & 0x0F == 0 {
+	if result&0x0F == 0 {
 		*f |= halfCarryMask
 	}
 	if result == 0 {
 		*f |= zeroMask
 	}
-	if result & 0x80 != 0 {
+	if result&0x80 != 0 {
 		*f |= signMask
 	}
 
-    *f |= flags(result & undocMasks)
+	*f |= flags(result & undocMasks)
 }
 
 func (f *flags) updateFromInByte(result byte) {
 	*f &^= signMask | zeroMask | halfCarryMask | parityOverflowMask | subtractMask
 
-	if result & 0x80 != 0 {
+	if result&0x80 != 0 {
 		*f |= signMask
 	}
 	if result == 0 {
