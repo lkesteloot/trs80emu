@@ -12,6 +12,9 @@ type cpu struct {
 	memory  []byte
 	romSize word
 
+	// 8 bytes, each a bitfield of keys currently pressed.
+	keyboard [8]byte
+
 	// Clock from boot, in cycles.
 	clock uint64
 
@@ -72,7 +75,7 @@ func (cpu *cpu) run(cpuCmdCh <-chan cpuCommand, timerCh <-chan time.Time) {
 			running = true
 		case "press", "release":
 			fmt.Printf("%d", time.Now().UnixNano()/10000000)
-			keyEvent(msg.Data, msg.Cmd == "press")
+			cpu.keyEvent(msg.Data, msg.Cmd == "press")
 		default:
 			panic("Unknown CPU command " + msg.Cmd)
 		}

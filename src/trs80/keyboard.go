@@ -8,11 +8,9 @@ import (
 const keyboardBegin = 0x3800
 const keyboardEnd = keyboardBegin + 256
 
-var keyboard [8]byte
-
 func (cpu *cpu) clearKeyboard() {
-	for i := 0; i < len(keyboard); i++ {
-		keyboard[i] = 0;
+	for i := 0; i < len(cpu.keyboard); i++ {
+		cpu.keyboard[i] = 0;
 	}
 }
 
@@ -21,9 +19,9 @@ func (cpu *cpu) readKeyboard(addr word) byte {
 
 	var b byte
 
-	for i := uint(0); i < 8; i++ {
-		if addr&(1<<i) != 0 {
-			b |= keyboard[i]
+	for i, keys := range cpu.keyboard {
+		if addr&(1<<uint(i)) != 0 {
+			b |= keys
 		}
 	}
 	// fmt.Printf("Reading keyboard %04X (%02X)\n", addr, b)
@@ -31,7 +29,7 @@ func (cpu *cpu) readKeyboard(addr word) byte {
 	return b
 }
 
-func keyEvent(key int, isPressed bool) {
+func (cpu *cpu) keyEvent(key int, isPressed bool) {
 	// http://www.trs-80.com/trs80-zaps-internals.htm#keyboard13
 	// 0 = @
 	// 1 = A
@@ -42,8 +40,8 @@ func keyEvent(key int, isPressed bool) {
 	fmt.Printf("Key %d is %s\n", key, isPressed)
 	bit := byte(1 << uint(key%8))
 	if isPressed {
-		keyboard[key/8] |= bit
+		cpu.keyboard[key/8] |= bit
 	} else {
-		keyboard[key/8] &^= bit
+		cpu.keyboard[key/8] &^= bit
 	}
 }
