@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
-	"runtime"
 )
 
 const cpuHz = 2027520
@@ -578,7 +578,7 @@ func (cpu *cpu) step() {
 
 	// Extremely slow.
 	cpu.logf("%10d %04X ", cpu.clock, instPc)
-	for pc := instPc; pc < instPc + 4; pc++ {
+	for pc := instPc; pc < instPc+4; pc++ {
 		if pc < nextInstPc {
 			cpu.logf("%02X ", cpu.memory[pc])
 		} else {
@@ -603,7 +603,7 @@ func (cpu *cpu) step() {
 			result := value1 + value2
 			cpu.setByte(subfields[0], result, byteData, wordData)
 			cpu.logf("%02X + %02X = %02X", value1, value2, result)
-			cpu.f.updateFromByte(result, inst.flags)
+			cpu.f.updateFromAddByte(value1, value2, result)
 		}
 	case "AND", "XOR", "OR":
 		value := cpu.getByteValue(subfields[0], byteData, wordData)
@@ -620,7 +620,7 @@ func (cpu *cpu) step() {
 			cpu.a |= value
 			symbol = "|"
 		}
-		cpu.f.updateFromByte(cpu.a, inst.flags)
+		cpu.f.updateFromLogicByte(cpu.a, inst.fields[0] == "AND")
 		cpu.logf("%02X %s %02X = %02X", before, symbol, value, cpu.a)
 	case "BIT":
 		b, _ := strconv.ParseUint(subfields[0], 10, 8)
@@ -638,12 +638,9 @@ func (cpu *cpu) step() {
 		cpu.logf("Carry flipped from %s to %s", carry, !carry)
 	case "CP":
 		value := cpu.getByteValue(subfields[0], byteData, wordData)
-		diff := int(cpu.a) - int(value)
-		cpu.f.setS(diff < 0)
-		cpu.f.setZ(diff == 0)
-		cpu.f.setC(diff < 0) // Borrow.
-		cpu.f.setN(true)
-		cpu.logf("%02X - %02X", cpu.a, value)
+		result := cpu.a - value
+		cpu.f.updateFromSubByte(cpu.a, value, result)
+		cpu.logf("%02X - %02X = %02X", cpu.a, value, result)
 	case "CPL":
 		// Complement A.
 		a := cpu.a
@@ -661,7 +658,7 @@ func (cpu *cpu) step() {
 			value := cpu.getByteValue(subfields[0], byteData, wordData) - 1
 			cpu.logf("%02X - 1 = %02X", value+1, value)
 			cpu.setByte(subfields[0], value, byteData, wordData)
-			cpu.f.updateFromByte(value, inst.flags)
+			cpu.f.updateFromDecByte(value)
 		}
 	case "DI":
 		cpu.iff = false
@@ -687,9 +684,11 @@ func (cpu *cpu) step() {
 	case "IN":
 		var port byte
 		source := subfields[len(subfields)-1]
+		affectFlags := false
 		switch source {
 		case "(C)":
 			port = cpu.bc.l()
+			affectFlags = true
 		case "(N)":
 			port = byteData
 		default:
@@ -699,12 +698,15 @@ func (cpu *cpu) step() {
 		if !ok {
 			panic(fmt.Sprintf("Unknown port %02X", port))
 		}
-		value := byte(0)
+		value := readPort(port)
 		if len(subfields) == 2 {
 			cpu.setByte(subfields[0], value, byteData, wordData)
 		}
-		cpu.f.updateFromByte(value, inst.flags)
+		if affectFlags {
+			cpu.f.updateFromInByte(value)
+		}
 		cpu.logf("%02X <- %02X (%s)", value, port, portDescription)
+		fmt.Printf("%02X <- %02X (%s)\n", value, port, portDescription)
 	case "INC":
 		if isWordOperand(subfields[0]) {
 			value := cpu.getWordValue(subfields[0], byteData, wordData) + 1
@@ -715,7 +717,7 @@ func (cpu *cpu) step() {
 			value := cpu.getByteValue(subfields[0], byteData, wordData) + 1
 			cpu.logf("%02X + 1 = %02X", value-1, value)
 			cpu.setByte(subfields[0], value, byteData, wordData)
-			cpu.f.updateFromByte(value, inst.flags)
+			cpu.f.updateFromIncByte(value)
 		}
 	case "JP", "CALL":
 		addr := cpu.getWordValue(subfields[len(subfields)-1], byteData, wordData)
@@ -781,6 +783,7 @@ func (cpu *cpu) step() {
 		if !ok {
 			panic(fmt.Sprintf("Unknown port %02X", port))
 		}
+		writePort(port, value)
 		cpu.logf("%02X (%s) <- %02X", port, portDescription, value)
 	case "POP":
 		value := cpu.popWord()
@@ -895,7 +898,7 @@ func (cpu *cpu) step() {
 		value := cpu.getByteValue(subfields[0], byteData, wordData)
 		cpu.a -= value
 		cpu.logf("%02X - %02X = %02X", before, value, cpu.a)
-		cpu.f.updateFromByte(cpu.a, inst.flags)
+		cpu.f.updateFromSubByte(before, value, cpu.a)
 	default:
 		panic(fmt.Sprintf("Don't know how to handle %s (at %04X)",
 			inst.asm, instPc))

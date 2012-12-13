@@ -40,14 +40,14 @@ type cpu struct {
 
 // Command to the CPU from the UI.
 type cpuCommand struct {
-	Cmd string
+	Cmd  string
 	Data int
 }
 
 func (cpu *cpu) run(cpuCmdCh <-chan cpuCommand) {
 	running := false
 
-	handleCmd := func (msg cpuCommand) {
+	handleCmd := func(msg cpuCommand) {
 		switch msg.Cmd {
 		case "boot":
 			running = true
@@ -60,7 +60,7 @@ func (cpu *cpu) run(cpuCmdCh <-chan cpuCommand) {
 	}
 
 	for {
-		if (running) {
+		if running {
 			select {
 			case msg := <-cpuCmdCh:
 				handleCmd(msg)
@@ -139,7 +139,7 @@ func (cpu *cpu) readMem(addr word) (b byte) {
 
 	// XXX delete.
 	// } else if addr >= 0x37E0 && addr <= 0x37FF {
-		// b = cpu.readDisk(addr)
+	// b = cpu.readDisk(addr)
 	// }
 
 	return
@@ -177,19 +177,19 @@ func (cpu *cpu) popWord() word {
 }
 
 func (cpu *cpu) log(s string) {
-	if (printDebug) {
+	if printDebug {
 		fmt.Print(s)
 	}
 }
 
 func (cpu *cpu) logf(format string, arg ...interface{}) {
-	if (printDebug) {
+	if printDebug {
 		fmt.Printf(format, arg...)
 	}
 }
 
 func (cpu *cpu) logln() {
-	if (printDebug) {
+	if printDebug {
 		fmt.Println()
 	}
 }

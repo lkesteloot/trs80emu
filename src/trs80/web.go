@@ -29,14 +29,14 @@ func generateIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func generateFontCss(w http.ResponseWriter, r *http.Request) {
-    // Image is 512x480
-    // 10 rows of glyphs, but last two are different page.
-    // Use first 8 rows.
-    // 32 chars across (32*8 = 256)
-    // For thin font:
-    //     256px wide.
-    //     Chars are 8px wide (256/32 = 8)
-    //     Chars are 24px high (480/2/10 = 24), with doubled rows.
+	// Image is 512x480
+	// 10 rows of glyphs, but last two are different page.
+	// Use first 8 rows.
+	// 32 chars across (32*8 = 256)
+	// For thin font:
+	//     256px wide.
+	//     Chars are 8px wide (256/32 = 8)
+	//     Chars are 24px high (480/2/10 = 24), with doubled rows.
 	w.Header().Set("Content-Type", "text/css")
 	bw := bufio.NewWriter(w)
 	fmt.Fprint(bw, `.char {
@@ -50,7 +50,7 @@ func generateFontCss(w http.ResponseWriter, r *http.Request) {
 `)
 	for ch := 0; ch < 256; ch++ {
 		fmt.Fprintf(bw, ".char-%d { background-position: %dpx %dpx; }\n",
-			ch, -(ch % 32)*8, -(ch / 32)*24)
+			ch, -(ch%32)*8, -(ch/32)*24)
 	}
 	bw.Flush()
 }
