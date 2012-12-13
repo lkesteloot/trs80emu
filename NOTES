@@ -20,9 +20,13 @@ next:
     Add Shift and Ctrl.
         Test Ctrl-0 (?) to use lower case input.
 
-http://nemesis.lonestar.org/computers/tandy/software/apps/m4/qd/opcodes.html
-http://www.zilog.com/docs/z80/um0080.pdf
-http://wikiti.brandonw.net/index.php?title=Z80_Instruction_Set
-http://clrhome.org/table/
-http://guide.ticalc.org/download/z80.txt
-http://www.trs-80.com/trs80-zaps-internals.htm
+References:
+
+    Best one:
+        http://www.zilog.com/docs/z80/um0080.pdf
+    Others:
+        http://nemesis.lonestar.org/computers/tandy/software/apps/m4/qd/opcodes.html
+        http://wikiti.brandonw.net/index.php?title=Z80_Instruction_Set
+        http://clrhome.org/table/
+        http://guide.ticalc.org/download/z80.txt
+        http://www.trs-80.com/trs80-zaps-internals.htm

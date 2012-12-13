@@ -27,19 +27,25 @@ func startComputer() (chan<- interface{}, chan<- cpuCommand) {
 	// Copy ROM into memory.
 	copy(memory, rom)
 
+	// Various channels to communicate with the CPU.
+	cpuCmdCh := make(chan cpuCommand)
+	timerCh := getTimerCh()
+	cpuUpdateCh := make(chan cpuUpdate)
+
 	// Make a CPU.
 	cpu := &cpu{
 		memory:   memory,
 		romSize:  word(len(rom)),
 		root:     &instruction{},
-		updateCh: make(chan cpuUpdate),
+		updateCh: cpuUpdateCh,
+		nmiMask:  resetNmiBit,
+		modeImage: 0x80,
 	}
 	cpu.root.loadInstructions(instructionList)
 
 	// Make it go.
 	fmt.Println("Booting")
-	cpuCmdCh := make(chan cpuCommand)
-	go cpu.run(cpuCmdCh)
+	go cpu.run(cpuCmdCh, timerCh)
 
 	// Pull out updates.
 	updateCmdCh := make(chan interface{})

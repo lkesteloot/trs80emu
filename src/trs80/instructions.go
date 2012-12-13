@@ -575,6 +575,7 @@ func (cpu *cpu) step() {
 	instPc := cpu.pc
 	inst, byteData, wordData := cpu.lookUpInst()
 	nextInstPc := cpu.pc
+	avoidHandlingIrq := false
 
 	// Extremely slow.
 	cpu.logf("%10d %04X ", cpu.clock, instPc)
@@ -661,7 +662,7 @@ func (cpu *cpu) step() {
 			cpu.f.updateFromDecByte(value)
 		}
 	case "DI":
-		cpu.iff = false
+		cpu.iff1 = false
 	case "DJNZ":
 		rel := signExtend(byteData)
 		cpu.bc.setH(cpu.bc.h() - 1)
@@ -672,7 +673,8 @@ func (cpu *cpu) step() {
 			cpu.log("jump skipped")
 		}
 	case "EI":
-		cpu.iff = true
+		cpu.iff1 = true
+		avoidHandlingIrq = true
 	case "EX":
 		value1 := cpu.getWordValue(subfields[0], byteData, wordData)
 		value2 := cpu.getWordValue(subfields[1], byteData, wordData)
@@ -698,7 +700,7 @@ func (cpu *cpu) step() {
 		if !ok {
 			panic(fmt.Sprintf("Unknown port %02X", port))
 		}
-		value := readPort(port)
+		value := cpu.readPort(port)
 		if len(subfields) == 2 {
 			cpu.setByte(subfields[0], value, byteData, wordData)
 		}
@@ -706,7 +708,6 @@ func (cpu *cpu) step() {
 			cpu.f.updateFromInByte(value)
 		}
 		cpu.logf("%02X <- %02X (%s)", value, port, portDescription)
-		fmt.Printf("%02X <- %02X (%s)\n", value, port, portDescription)
 	case "INC":
 		if isWordOperand(subfields[0]) {
 			value := cpu.getWordValue(subfields[0], byteData, wordData) + 1
@@ -783,7 +784,7 @@ func (cpu *cpu) step() {
 		if !ok {
 			panic(fmt.Sprintf("Unknown port %02X", port))
 		}
-		writePort(port, value)
+		cpu.writePort(port, value)
 		cpu.logf("%02X (%s) <- %02X", port, portDescription, value)
 	case "POP":
 		value := cpu.popWord()
@@ -838,6 +839,19 @@ func (cpu *cpu) step() {
 		cpu.f.setN(false)
 		cpu.f.setC(leftBit == 1)
 		cpu.logf("%02X << 1 = %02X", origValue, cpu.a)
+	case "RRA":
+		// Right rotate A through carry.
+		origValue := cpu.a
+		rightBit := origValue & 1
+		result := origValue >> 1
+		if cpu.f.c() {
+			result |= 0x80
+		}
+		cpu.logf("%02X >> 1 (%v) = %02X", origValue, cpu.f.c(), result)
+		cpu.a = result
+		cpu.f.setC(rightBit != 0)
+		cpu.f.setH(false)
+		cpu.f.setN(false)
 	case "RRCA":
 		// Right rotate.
 		origValue := cpu.a
@@ -905,6 +919,11 @@ func (cpu *cpu) step() {
 	}
 
 	cpu.logln()
+
+	// Handle interrupts.
+	if cpu.irq && cpu.iff1 && !avoidHandlingIrq {
+		cpu.handleIrq()
+	}
 
 	cpu.clock += inst.cycles
 	if cpu.pc != nextInstPc {

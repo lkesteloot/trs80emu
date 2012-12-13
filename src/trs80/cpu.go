@@ -28,8 +28,26 @@ type cpu struct {
 	// 16-bit registers:
 	sp, pc, ix, iy word
 
-	// Interrupt flag?
-	iff bool
+	// Interrupt flag.
+	iff1 bool
+
+	// Which IRQs should be handled.
+	irqMask byte
+
+	// Which IRQs have been requested by the hardware.
+	irqLatch byte
+
+	// Whether IRQ handling is needed. XXX Can we remove this?
+	irq bool
+
+	// Which NMIs should be handled.
+	nmiMask byte
+
+	// Which NMIs have been requested by the hardware.
+	nmiLatch byte
+
+	// Various I/O settings.
+	modeImage byte
 
 	// Root of instruction tree.
 	root *instruction
@@ -44,7 +62,7 @@ type cpuCommand struct {
 	Data int
 }
 
-func (cpu *cpu) run(cpuCmdCh <-chan cpuCommand) {
+func (cpu *cpu) run(cpuCmdCh <-chan cpuCommand, timerCh <-chan time.Time) {
 	running := false
 
 	handleCmd := func(msg cpuCommand) {
@@ -64,6 +82,8 @@ func (cpu *cpu) run(cpuCmdCh <-chan cpuCommand) {
 			select {
 			case msg := <-cpuCmdCh:
 				handleCmd(msg)
+			case <-timerCh:
+				cpu.timerInterrupt(true)
 			default:
 				cpu.step()
 			}
