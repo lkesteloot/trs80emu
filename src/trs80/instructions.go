@@ -827,7 +827,7 @@ func (cpu *cpu) step() {
 		leftBit := origValue >> 7
 		result := (origValue << 1) | leftBit
 		cpu.setByte(subfields[0], result, byteData, wordData)
-		cpu.f.updateFromByte(result, inst.flags)
+		cpu.f.updateFromByte(result)
 		cpu.f.setC(leftBit == 1)
 		cpu.logf("%02X << 1 = %02X", origValue, result)
 	case "RLCA":
@@ -903,7 +903,7 @@ func (cpu *cpu) step() {
 				result--
 			}
 			cpu.logf("%02X - %02X - %v = %02X", before, value, cpu.f.c(), result)
-			cpu.f.updateFromByte(result, inst.flags)
+			cpu.f.updateFromSubByte(before, value, result)
 			cpu.setByte(subfields[0], result, byteData, wordData)
 		}
 	case "SUB":

@@ -1,9 +1,5 @@
 package main
 
-import (
-	"fmt"
-)
-
 // http://www.zilog.com/docs/z80/um0080.pdf page 76
 type flags byte
 
@@ -171,93 +167,13 @@ func (f *flags) setS(s bool) {
 	}
 }
 
-// Update all flags based on result of operation. The "hints" string is
-// the fourth column from the z80.txt files.
-func (f *flags) updateFromByte(value byte, hints string) {
-	// C, set if carry.
-	switch hints[0] {
-	case '-':
-		// Nothing.
-	case '+':
-		// XXX.
-	case '0':
-		f.setC(false)
-	case '1':
-		f.setC(true)
-	default:
-		panic(fmt.Sprintf("Can't handle flag hint %c", hints[0]))
-	}
-
-	// N, ???
-	switch hints[1] {
-	case '-':
-		// Nothing.
-	case '+':
-		// XXX.
-	case '0':
-		f.setN(false)
-	case '1':
-		f.setN(true)
-	default:
-		panic(fmt.Sprintf("Can't handle flag hint %c", hints[1]))
-	}
-
-	// P, set if parity is even. V, set if overflow.
-	switch hints[2] {
-	case '-':
-		// Nothing.
-	case 'P':
-	case 'V':
-		// XXX need more data.
-	case '0':
-		f.setPv(false)
-	case '1':
-		f.setPv(true)
-	default:
-		panic(fmt.Sprintf("Can't handle flag hint %c", hints[2]))
-	}
-
-	// H, XXX
-	switch hints[3] {
-	case '-':
-		// Nothing.
-	case '+':
-		// XXX
-	case '0':
-		f.setH(false)
-	case '1':
-		f.setH(true)
-	default:
-		panic(fmt.Sprintf("Can't handle flag hint %c", hints[3]))
-	}
-
-	// Z, set if zero.
-	switch hints[4] {
-	case '-':
-		// Nothing.
-	case '+':
-		f.setZ(value == 0)
-	case '0':
-		f.setZ(false)
-	case '1':
-		f.setZ(true)
-	default:
-		panic(fmt.Sprintf("Can't handle flag hint %c", hints[4]))
-	}
-
-	// S, set if negative.
-	switch hints[5] {
-	case '-':
-		// Nothing.
-	case '+':
-		f.setS(value&0x80 != 0)
-	case '0':
-		f.setS(false)
-	case '1':
-		f.setS(true)
-	default:
-		panic(fmt.Sprintf("Can't handle flag hint %c", hints[5]))
-	}
+// Update simple flags (S, Z, P, and undoc) based on result of operation.
+func (f *flags) updateFromByte(value byte) {
+	*f = flags(0)
+	f.setS(value & 0x80 != 0)
+	f.setZ(value == 0)
+	f.setPv(parityTable[value] == 1)
+	*f |= flags(value & undocMasks)
 }
 
 // Update all flags based on result of operation. The "hints" string is

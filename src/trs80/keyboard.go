@@ -10,6 +10,12 @@ const keyboardEnd = keyboardBegin + 256
 
 var keyboard [8]byte
 
+func (cpu *cpu) clearKeyboard() {
+	for i := 0; i < len(keyboard); i++ {
+		keyboard[i] = 0;
+	}
+}
+
 func (cpu *cpu) readKeyboard(addr word) byte {
 	addr -= keyboardBegin
 

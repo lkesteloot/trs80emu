@@ -68,6 +68,7 @@ func (cpu *cpu) run(cpuCmdCh <-chan cpuCommand, timerCh <-chan time.Time) {
 	handleCmd := func(msg cpuCommand) {
 		switch msg.Cmd {
 		case "boot":
+			cpu.clearKeyboard()
 			running = true
 		case "press", "release":
 			fmt.Printf("%d", time.Now().UnixNano()/10000000)
