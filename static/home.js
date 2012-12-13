@@ -90,6 +90,7 @@
             var ch = event.which;
 
             console.log(ch);
+            // http://www.trs-80.com/trs80-zaps-internals.htm#keyboard13
             if (ch === 13) {
                 // Enter.
                 ch = 48;
@@ -102,6 +103,12 @@
 
                 // Don't go back to previous page.
                 event.preventDefault();
+            } else if (ch === 188) {
+                // Comma.
+                ch = 44;
+            } else if (ch === 190) {
+                // Period.
+                ch = 46;
             } else if (ch >= 65 && ch <= 90) {
                 // Letters, convert to 1-26.
                 ch -= 64;
