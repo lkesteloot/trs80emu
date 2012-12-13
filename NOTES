@@ -1,24 +1,29 @@
 
-next:
-    Make other-way web connection:
-        Keyboard events.
-        Start/stop CPU.
-        Step, etc.
-    Web interface:
-        keys (for 08 and 09 above):
-            // http://www.trs-80.com/trs80-zaps-internals.htm#keyboard13
-            0 = @
-            1 = A
-            8 = H
-            48 = enter
-            56 = shift
+Next:
+
+    Add Shift and Ctrl.
+        Test Ctrl-0 (?) to use lower case input.
+    Add quote, equal, plus, etc.
+        See how xtrs handles mismatched keyboard.
+    Try clock:
+        POKE 16526, 152
+        POKE 16527, 2
+        X = USR(0)
+    Remove "irq" bool in cpu, just compute it each time.
+    Can we replace other ws with goroutine that reads and sends msg on chan?
+        Might make it harder to do query-replies if we can't distinguish
+            replies from new commands.
+        All replies would have to be in the form of commands, with full context.
     Keep the last few instructions (from log()) as unformatted lines, and print them
         after a panic.
     Replace NN and N in asm with real number.
     If going too fast, sleep for a bit.
         Make this cumulative so it corrects itself.
-    Add Shift and Ctrl.
-        Test Ctrl-0 (?) to use lower case input.
+    Add NMI.
+        See what it's good for first.
+    Fix XXX.
+    Fix aspect ratio of display.
+        Use CSS?
 
 References:
 

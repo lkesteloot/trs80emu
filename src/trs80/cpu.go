@@ -162,14 +162,9 @@ func (cpu *cpu) readMem(addr word) (b byte) {
 		// Keyboard.
 		b = cpu.readKeyboard(addr)
 	} else {
-		// ?? From trs_memory.c. What about all the memory-mapped I/O?
+		// Unmapped memory.
 		b = 0xFF
 	}
-
-	// XXX delete.
-	// } else if addr >= 0x37E0 && addr <= 0x37FF {
-	// b = cpu.readDisk(addr)
-	// }
 
 	return
 }
