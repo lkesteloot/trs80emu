@@ -115,6 +115,36 @@
             } else if (ch >= 48 && ch <= 57) {
                 // Letters, convert to 32-41.
                 ch -= 16;
+            } else if (ch == 16) {
+                // Shift.
+                ch = 56;
+            } else if (ch == 17) {
+                // Control.
+                ch = 60;
+            } else if (ch == 192) {
+                // This is ` on the keyboard, but we translate to @.
+                ch = 0;
+            } else if (ch == 186) {
+                // Semicolon.
+                ch = 43;
+            } else if (ch == 189) {
+                // Hyphen.
+                ch = 45;
+            } else if (ch == 191) {
+                // Slash.
+                ch = 47;
+            } else if (ch == 37) {
+                // Left arrow.
+                ch = 53;
+            } else if (ch == 39) {
+                // Right arrow.
+                ch = 54;
+            } else if (ch == 40) {
+                // Down arrow.
+                ch = 52;
+            } else if (ch == 38) {
+                // Up arrow.
+                ch = 50;
             } else {
                 // Ignore.
                 ch = -1;
