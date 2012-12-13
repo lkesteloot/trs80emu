@@ -57,6 +57,11 @@ type cpu struct {
 
 	// Channel to get updates from.
 	updateCh chan cpuUpdate
+
+	// XXX tmp
+	previousDumpTime time.Time
+	previousDumpClock uint64
+	previousYieldClock uint64
 }
 
 // Command to the CPU from the UI.

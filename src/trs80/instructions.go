@@ -10,11 +10,6 @@ import (
 
 const cpuHz = 2027520
 
-// XXX tmp
-var previousDumpTime time.Time
-var previousDumpClock uint64
-var previousYieldClock uint64
-
 // Copy and pasted from z80.txt (http://guide.ticalc.org/download/z80.txt)
 var instructionList string = `
 ADC A,(HL)    7     1   +0V+++  8E
@@ -931,25 +926,25 @@ func (cpu *cpu) step() {
 		cpu.clock += inst.jumpPenalty
 	}
 
-	if cpu.clock > previousDumpClock+cpuHz {
+	if cpu.clock > cpu.previousDumpClock+cpuHz {
 		now := time.Now()
-		if previousDumpClock > 0 {
-			elapsed := now.Sub(previousDumpTime)
-			computerTime := float64(cpu.clock-previousDumpClock) / float64(cpuHz)
+		if cpu.previousDumpClock > 0 {
+			elapsed := now.Sub(cpu.previousDumpTime)
+			computerTime := float64(cpu.clock-cpu.previousDumpClock) / float64(cpuHz)
 			fmt.Printf("Computer time: %.1fs, elapsed: %.1fs, mult: %.1f\n",
 				computerTime, elapsed.Seconds(), computerTime/elapsed.Seconds())
 		}
-		previousDumpTime = now
-		previousDumpClock = cpu.clock
+		cpu.previousDumpTime = now
+		cpu.previousDumpClock = cpu.clock
 
 		// cpu.dumpScreen()
 	}
 
 	// Yield pediodically so that we can get messages from other goroutines like
 	// the one sending us commands.
-	if cpu.clock > previousYieldClock+1000 {
+	if cpu.clock > cpu.previousYieldClock+1000 {
 		runtime.Gosched()
-		previousYieldClock = cpu.clock
+		cpu.previousYieldClock = cpu.clock
 	}
 }
 
