@@ -211,12 +211,32 @@ func (f *flags) updateFromAddByte(value1, value2, result byte) {
 	}
 }
 
+func (f *flags) updateFromAddWord(value1, value2, result word) {
+	index := (value1&0x8800)>>9 | (value2&0x8800)>>10 | (result&0x8800)>>11
+	*f = halfCarryTable[index&7] |
+		(signCarryOverflowTable[index>>4]&carryMask) |
+		(*f & (zeroMask|parityOverflowMask|signMask)) |
+		flags(result.h()&undocMasks)
+}
+
 func (f *flags) updateFromSubByte(value1, value2, result byte) {
 	index := (value1&0x88)>>1 | (value2&0x88)>>2 | (result&0x88)>>3
 	*f = subtractMask |
 		subtractHalfCarryTable[index&7] |
 		subtractSignCarryOverflowTable[index>>4] |
 		flags(result&undocMasks)
+
+	if result == 0 {
+		*f |= zeroMask
+	}
+}
+
+func (f *flags) updateFromSbcWord(value1, value2, result word) {
+	index := (value1&0x8800)>>9 | (value2&0x8800)>>10 | (result&0x8800)>>11
+	*f = subtractMask |
+		subtractHalfCarryTable[index&7] |
+		subtractSignCarryOverflowTable[index>>4] |
+		flags(result.h()&undocMasks)
 
 	if result == 0 {
 		*f |= zeroMask

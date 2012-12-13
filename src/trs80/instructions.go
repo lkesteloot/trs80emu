@@ -412,7 +412,7 @@ type instructionMap map[byte]*instruction
 
 type instruction struct {
 	// Leaf of tree.
-	asm, flags, opcodes string
+	asm, opcodes string
 	cycles, jumpPenalty uint64
 	fields              []string
 	subfields           []string
@@ -449,16 +449,15 @@ func (inst *instruction) parseInstructionLine(line string) {
 
 	asm := strings.TrimSpace(line[:14])
 	cycles := strings.TrimSpace(line[14:20])
-	flags := strings.TrimSpace(line[24:32])
 	opcodes := strings.Split(strings.TrimSpace(line[32:]), " ")
 
 	// Remove "$" from asm, not sure it means anything.
 	asm = strings.Replace(asm, "$", "", -1)
 
-	inst.addInstruction(asm, cycles, flags, opcodes)
+	inst.addInstruction(asm, cycles, opcodes)
 }
 
-func (inst *instruction) addInstruction(asm, cycles, flags string, opcodes []string) {
+func (inst *instruction) addInstruction(asm, cycles string, opcodes []string) {
 	// See if it's a terminal node.
 	if len(opcodes) == 0 {
 		if inst.asm != "" {
@@ -467,7 +466,6 @@ func (inst *instruction) addInstruction(asm, cycles, flags string, opcodes []str
 
 		// Leaf of tree.
 		inst.asm = asm
-		inst.flags = flags
 
 		// Split cycles into the "17/10" fields. The first (higher) number, if present,
 		// is the number of cycles if the jump is taken.
@@ -494,7 +492,7 @@ func (inst *instruction) addInstruction(asm, cycles, flags string, opcodes []str
 		// See if it's user data.
 		if opcodeStr == "XX" {
 			inst.xx = &instruction{}
-			inst.xx.addInstruction(asm, cycles, flags, opcodes[1:])
+			inst.xx.addInstruction(asm, cycles, opcodes[1:])
 		} else {
 			// Expand "8r" abbreviation to "80+r"
 			if strings.Contains(opcodeStr, "r") && !strings.Contains(opcodeStr, "+r") {
@@ -511,7 +509,7 @@ func (inst *instruction) addInstruction(asm, cycles, flags string, opcodes []str
 				for b := byte(0); b < 8; b++ {
 					opcodes[0] = fmt.Sprintf("%02X%s", opcode+8*b, opcodeRest)
 					inst.addInstruction(strings.Replace(
-						asm, "b", fmt.Sprintf("%d", b), -1), cycles, flags, opcodes)
+						asm, "b", fmt.Sprintf("%d", b), -1), cycles, opcodes)
 				}
 			} else if strings.HasSuffix(opcodeStr, "+r") || strings.HasSuffix(opcodeStr, "+r*") {
 				// Expand registers.
@@ -526,8 +524,7 @@ func (inst *instruction) addInstruction(asm, cycles, flags string, opcodes []str
 
 					if r != "" {
 						opcodes[0] = fmt.Sprintf("%02X", opcode+n)
-						inst.addInstruction(strings.Replace(asm, "r", r, -1),
-							cycles, flags, opcodes)
+						inst.addInstruction(strings.Replace(asm, "r", r, -1), cycles, opcodes)
 					}
 				}
 			} else {
@@ -542,7 +539,7 @@ func (inst *instruction) addInstruction(asm, cycles, flags string, opcodes []str
 					inst.imap[opcode] = subInst
 				}
 
-				subInst.addInstruction(asm, cycles, flags, opcodes[1:])
+				subInst.addInstruction(asm, cycles, opcodes[1:])
 			}
 		}
 	}
@@ -592,7 +589,7 @@ func (cpu *cpu) step() {
 			result := value1 + value2
 			cpu.setWord(subfields[0], result, byteData, wordData)
 			cpu.logf("%04X + %04X = %04X", value1, value2, result)
-			cpu.f.updateFromWord(result, inst.flags)
+			cpu.f.updateFromAddWord(value1, value2, result)
 		} else {
 			value1 := cpu.getByteValue(subfields[0], byteData, wordData)
 			value2 := cpu.getByteValue(subfields[1], byteData, wordData)
@@ -649,7 +646,7 @@ func (cpu *cpu) step() {
 			value := cpu.getWordValue(subfields[0], byteData, wordData) - 1
 			cpu.logf("%04X - 1 = %04X", value+1, value)
 			cpu.setWord(subfields[0], value, byteData, wordData)
-			cpu.f.updateFromWord(value, inst.flags)
+			// Flags are not affected.
 		} else {
 			value := cpu.getByteValue(subfields[0], byteData, wordData) - 1
 			cpu.logf("%02X - 1 = %02X", value+1, value)
@@ -708,7 +705,7 @@ func (cpu *cpu) step() {
 			value := cpu.getWordValue(subfields[0], byteData, wordData) + 1
 			cpu.logf("%04X + 1 = %04X", value-1, value)
 			cpu.setWord(subfields[0], value, byteData, wordData)
-			cpu.f.updateFromWord(value, inst.flags)
+			// Flags are not affected.
 		} else {
 			value := cpu.getByteValue(subfields[0], byteData, wordData) + 1
 			cpu.logf("%02X + 1 = %02X", value-1, value)
@@ -888,7 +885,7 @@ func (cpu *cpu) step() {
 				result--
 			}
 			cpu.logf("%04X - %04X - %v = %04X", before, value, cpu.f.c(), result)
-			cpu.f.updateFromWord(result, inst.flags)
+			cpu.f.updateFromSbcWord(before, value, result)
 			cpu.setWord(subfields[0], result, byteData, wordData)
 		} else {
 			before := cpu.getByteValue(subfields[0], byteData, wordData)
