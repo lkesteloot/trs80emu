@@ -112,18 +112,10 @@ func (cpu *cpu) run(cpuCommandCh <-chan cpuCommand) {
 	close(cpu.cpuUpdateCh)
 }
 
-func (cpu *cpu) fetchByte() byte {
+func (cpu *cpu) fetchNextPcByte() byte {
 	value := cpu.readMem(cpu.pc)
 	cpu.pc++
 	return value
-}
-
-func (cpu *cpu) fetchWord() (w word) {
-	// Little endian.
-	w.setL(cpu.fetchByte())
-	w.setH(cpu.fetchByte())
-
-	return
 }
 
 func (cpu *cpu) writeMem(addr word, b byte) {

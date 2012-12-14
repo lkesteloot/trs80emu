@@ -10,7 +10,7 @@ import (
 var profileFilename = "trs80.prof"
 
 func main() {
-	if true {
+	if false {
 		cpu := createComputer(nil)
 
 		f, err := os.Create(profileFilename)
