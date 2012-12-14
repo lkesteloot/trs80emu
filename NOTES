@@ -6,7 +6,7 @@ Next:
         * In JS, convert .which to ASCII, and use a special set of strings for
             other keys ("Left", "Up", "Enter", "LeftShift", etc.).
         * On the server, look up key or string in map.
-        - Value has key to press and shift state (neutral, force down, force up).
+        * Value has key to press and shift state (neutral, force down, force up).
         - Queue up optional shift force (not shift itself), then key.
         - For key up, queue up key up and neutral shift force.
         - When fetching keyboard memory, check if enough time has gone by (4000 cycles).

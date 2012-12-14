@@ -126,6 +126,7 @@ func (cpu *cpu) clearKeyboard() {
 	for i := 0; i < len(cpu.keyboard); i++ {
 		cpu.keyboard[i] = 0
 	}
+	cpu.shiftForce = shiftNeutral
 }
 
 func (cpu *cpu) readKeyboard(addr word) byte {
@@ -135,6 +136,20 @@ func (cpu *cpu) readKeyboard(addr word) byte {
 
 	for i, keys := range cpu.keyboard {
 		if addr&(1<<uint(i)) != 0 {
+			if i == 7 {
+				// Modify keys based on the shift force.
+				switch cpu.shiftForce {
+				case shiftNeutral:
+					// Nothing.
+				case shiftForceUp:
+					// On the Model III the first two bits are left and right shift,
+					// though we don't handle the right shift anywhere.
+					keys &^= 0x03
+				case shiftForceDown:
+					keys |= 0x01
+				}
+			}
+
 			b |= keys
 		}
 	}
@@ -150,6 +165,7 @@ func (cpu *cpu) keyEvent(key string, isPressed bool) {
 		return
 	}
 
+	cpu.shiftForce = keyInfo.shiftForce
 	bit := byte(1 << keyInfo.bitNumber)
 	if isPressed {
 		cpu.keyboard[keyInfo.byteIndex] |= bit

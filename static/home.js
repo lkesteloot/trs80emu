@@ -152,6 +152,9 @@
             } else if (which == 38) {
                 // Up arrow.
                 key = "Up";
+            } else if (which == 27) {
+                // Escape.
+                key = "Break";
             } else {
                 // Ignore.
                 console.log(which);
