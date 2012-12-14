@@ -570,16 +570,17 @@ func (cpu *cpu) step() {
 	nextInstPc := cpu.pc
 	avoidHandlingIrq := false
 
-	// Extremely slow.
-	cpu.logf("%10d %04X ", cpu.clock, instPc)
-	for pc := instPc; pc < instPc+4; pc++ {
-		if pc < nextInstPc {
-			cpu.logf("%02X ", cpu.memory[pc])
-		} else {
-			cpu.log("   ")
+	if printDebug {
+		cpu.logf("%10d %04X ", cpu.clock, instPc)
+		for pc := instPc; pc < instPc+4; pc++ {
+			if pc < nextInstPc {
+				cpu.logf("%02X ", cpu.memory[pc])
+			} else {
+				cpu.log("   ")
+			}
 		}
+		cpu.logf("%-15s ", inst.asm)
 	}
-	cpu.logf("%-15s ", inst.asm)
 
 	subfields := inst.subfields
 	switch inst.fields[0] {

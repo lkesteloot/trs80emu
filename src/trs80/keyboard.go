@@ -170,7 +170,7 @@ func (cpu *cpu) readKeyboard(addr word) byte {
 }
 
 func (cpu *cpu) keyEvent(key string, isPressed bool) {
-	log.Printf("Key %s is %v\n", key, isPressed)
+	/// log.Printf("Key %s is %v\n", key, isPressed)
 	keyInfo, ok := keyMap[key]
 	if !ok {
 		log.Printf("Unknown key \"%s\"", key)
