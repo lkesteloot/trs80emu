@@ -16,6 +16,9 @@ type cpu struct {
 	// 8 bytes, each a bitfield of keys currently pressed.
 	keyboard [8]byte
 	shiftForce uint
+	keyQueue [16]keyActivity
+	keyQueueSize int
+	keyProcessMinClock uint64
 
 	// Clock from boot, in cycles.
 	clock uint64

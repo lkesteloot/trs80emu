@@ -7,6 +7,7 @@ import (
 // http://www.trs-80.com/trs80-zaps-internals.htm#keyboard13
 const keyboardBegin = 0x3800
 const keyboardEnd = keyboardBegin + 256
+const keyDelayClockCycles = 40000
 const (
 	shiftNeutral = iota
 	shiftForceDown
@@ -15,6 +16,11 @@ const (
 
 type keyInfo struct {
 	byteIndex, bitNumber, shiftForce uint
+}
+
+type keyActivity struct {
+	keyInfo
+	isPressed bool
 }
 
 var keyMap = map[string]keyInfo{
@@ -107,7 +113,7 @@ var keyMap = map[string]keyInfo{
 	"*": {5, 2, shiftForceDown},
 	"+": {5, 3, shiftForceDown},
 	"<": {5, 4, shiftForceDown},
-	"_": {5, 5, shiftForceDown},
+	"=": {5, 5, shiftForceDown},
 	">": {5, 6, shiftForceDown},
 	"?": {5, 7, shiftForceDown},
 
@@ -133,6 +139,12 @@ func (cpu *cpu) readKeyboard(addr word) byte {
 	addr -= keyboardBegin
 
 	var b byte
+
+	if cpu.clock > cpu.keyProcessMinClock {
+		if cpu.processKeyQueue() {
+			cpu.keyProcessMinClock = cpu.clock + keyDelayClockCycles
+		}
+	}
 
 	for i, keys := range cpu.keyboard {
 		if addr&(1<<uint(i)) != 0 {
@@ -165,11 +177,30 @@ func (cpu *cpu) keyEvent(key string, isPressed bool) {
 		return
 	}
 
-	cpu.shiftForce = keyInfo.shiftForce
-	bit := byte(1 << keyInfo.bitNumber)
-	if isPressed {
-		cpu.keyboard[keyInfo.byteIndex] |= bit
-	} else {
-		cpu.keyboard[keyInfo.byteIndex] &^= bit
+	// Append key to queue.
+	if cpu.keyQueueSize < len(cpu.keyQueue) {
+		cpu.keyQueue[cpu.keyQueueSize] = keyActivity{keyInfo, isPressed}
+		cpu.keyQueueSize++
 	}
+}
+
+// Return whether a key was processed.
+func (cpu *cpu) processKeyQueue() bool {
+	if cpu.keyQueueSize == 0 {
+		return false
+	}
+
+	keyActivity := cpu.keyQueue[0]
+	cpu.keyQueueSize--
+	copy(cpu.keyQueue[:], cpu.keyQueue[1:1+cpu.keyQueueSize])
+
+	cpu.shiftForce = keyActivity.shiftForce
+	bit := byte(1 << keyActivity.bitNumber)
+	if keyActivity.isPressed {
+		cpu.keyboard[keyActivity.byteIndex] |= bit
+	} else {
+		cpu.keyboard[keyActivity.byteIndex] &^= bit
+	}
+
+	return true
 }
