@@ -936,7 +936,7 @@ func (cpu *cpu) step() {
 	cpu.logln()
 
 	// Handle interrupts.
-	if (cpu.irqLatch & cpu.irqMask) != 0 && cpu.iff1 && !avoidHandlingIrq {
+	if (cpu.irqLatch&cpu.irqMask) != 0 && cpu.iff1 && !avoidHandlingIrq {
 		cpu.handleIrq()
 	}
 

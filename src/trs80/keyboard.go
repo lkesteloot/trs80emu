@@ -92,16 +92,16 @@ var keyMap = map[string]keyInfo{
 	"8": {5, 0, shiftForceUp},
 	"9": {5, 1, shiftForceUp},
 
-	"`": {4, 0, shiftForceDown}, // Simulate Shift-0.
-	"!": {4, 1, shiftForceDown},
+	"`":  {4, 0, shiftForceDown}, // Simulate Shift-0.
+	"!":  {4, 1, shiftForceDown},
 	"\"": {4, 2, shiftForceDown},
-	"#": {4, 3, shiftForceDown},
-	"$": {4, 4, shiftForceDown},
-	"%": {4, 5, shiftForceDown},
-	"&": {4, 6, shiftForceDown},
-	"'": {4, 7, shiftForceDown},
-	"(": {5, 0, shiftForceDown},
-	")": {5, 1, shiftForceDown},
+	"#":  {4, 3, shiftForceDown},
+	"$":  {4, 4, shiftForceDown},
+	"%":  {4, 5, shiftForceDown},
+	"&":  {4, 6, shiftForceDown},
+	"'":  {4, 7, shiftForceDown},
+	"(":  {5, 0, shiftForceDown},
+	")":  {5, 1, shiftForceDown},
 
 	":": {5, 2, shiftForceUp},
 	";": {5, 3, shiftForceUp},
@@ -120,11 +120,11 @@ var keyMap = map[string]keyInfo{
 	"Enter": {6, 0, shiftNeutral},
 	"Clear": {6, 1, shiftNeutral},
 	"Break": {6, 2, shiftNeutral},
-	"Up": {6, 3, shiftNeutral},
-	"Down": {6, 4, shiftNeutral},
-	"Left": {6, 5, shiftNeutral},
+	"Up":    {6, 3, shiftNeutral},
+	"Down":  {6, 4, shiftNeutral},
+	"Left":  {6, 5, shiftNeutral},
 	"Right": {6, 6, shiftNeutral},
-	" ": {6, 7, shiftNeutral},
+	" ":     {6, 7, shiftNeutral},
 	"Shift": {7, 0, shiftNeutral},
 }
 

@@ -14,10 +14,10 @@ type cpu struct {
 	romSize word
 
 	// 8 bytes, each a bitfield of keys currently pressed.
-	keyboard [8]byte
-	shiftForce uint
-	keyQueue [16]keyActivity
-	keyQueueSize int
+	keyboard           [8]byte
+	shiftForce         uint
+	keyQueue           [16]keyActivity
+	keyQueueSize       int
 	keyProcessMinClock uint64
 
 	// Clock from boot, in cycles.
