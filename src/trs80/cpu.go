@@ -138,7 +138,9 @@ func (cpu *cpu) writeMem(addr word, b byte) {
 	} else if addr >= screenBegin && addr < screenEnd {
 		// Screen.
 		cpu.memory[addr] = b
-		cpu.cpuUpdateCh <- cpuUpdate{Cmd: "poke", Addr: int(addr), Data: int(b)}
+		if cpu.cpuUpdateCh != nil {
+			cpu.cpuUpdateCh <- cpuUpdate{Cmd: "poke", Addr: int(addr), Data: int(b)}
+		}
 	} else if addr == 0x37E8 {
 		// Printer. Ignore, but could print ASCII byte to display.
 	} else {

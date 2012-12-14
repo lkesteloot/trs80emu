@@ -409,7 +409,7 @@ XOR N         7     2   00P0++  EE XX
 var registerNybble []string = []string{"B", "C", "D", "E", "H", "L" /*"(HL)"*/, "", "A"}
 var registerStarNybble []string = []string{"B", "C", "D", "E", "HX", "LX", "", "A"}
 
-type instructionMap map[byte]*instruction
+type instructionMap [256]*instruction
 
 type instruction struct {
 	// Leaf of tree.
@@ -529,13 +529,9 @@ func (inst *instruction) addInstruction(asm, cycles string, opcodes []string) {
 					}
 				}
 			} else {
-				if inst.imap == nil {
-					inst.imap = make(instructionMap)
-				}
-
 				// Get or create node in tree.
-				subInst, ok := inst.imap[opcode]
-				if !ok {
+				subInst := inst.imap[opcode]
+				if subInst == nil {
 					subInst = &instruction{}
 					inst.imap[opcode] = subInst
 				}
@@ -543,23 +539,6 @@ func (inst *instruction) addInstruction(asm, cycles string, opcodes []string) {
 				subInst.addInstruction(asm, cycles, opcodes[1:])
 			}
 		}
-	}
-
-	// Sanity check.
-	var hasiMap, hasXx, isLeaf int
-	if inst.imap != nil {
-		hasiMap = 1
-	}
-	if inst.xx != nil {
-		hasXx = 1
-	}
-	if inst.asm != "" {
-		isLeaf = 1
-	}
-
-	if hasiMap+hasXx+isLeaf != 1 {
-		panic(fmt.Sprintf("Instruction %s has wrong number of children (%d, %d, %d)",
-			asm, hasiMap, hasXx, isLeaf))
 	}
 }
 
@@ -1141,9 +1120,8 @@ func (cpu *cpu) lookUpInst() (inst *instruction, byteData byte, wordData word) {
 			inst = inst.xx
 		} else {
 			// Keep fetching as long as it's an extended instruction.
-			var ok bool
-			inst, ok = inst.imap[opcode]
-			if !ok {
+			inst = inst.imap[opcode]
+			if inst == nil {
 				err := "Don't know how to handle opcode"
 				for pc := instPc; pc < cpu.pc; pc++ {
 					err += fmt.Sprintf(" %02X", cpu.memory[pc])

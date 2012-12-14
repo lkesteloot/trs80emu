@@ -1,19 +1,41 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
+	"runtime/pprof"
+	"os"
+	"log"
 )
 
+var profileFilename = "trs80.prof"
+
 func main() {
-	serveWebsite()
+	if true {
+		cpu := createComputer(nil)
+
+		f, err := os.Create(profileFilename)
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = pprof.StartCPUProfile(f)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer pprof.StopCPUProfile()
+
+		for cpu.clock < cpuHz*50 {
+			cpu.step()
+		}
+	} else {
+		serveWebsite()
+	}
 }
 
-func createComputer(cpuCommandCh <-chan cpuCommand, cpuUpdateCh chan<- cpuUpdate) {
+func createComputer(cpuUpdateCh chan<- cpuUpdate) *cpu {
 	// Allocate memory.
 	memorySize := 1024 * 64
 	memory := make([]byte, memorySize)
-	fmt.Printf("Memory has %d bytes.\n", len(memory))
+	log.Printf("Memory has %d bytes", len(memory))
 
 	// Load ROM into memory.
 	romFilename := "roms/model3.rom"
@@ -21,7 +43,7 @@ func createComputer(cpuCommandCh <-chan cpuCommand, cpuUpdateCh chan<- cpuUpdate
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("ROM has %d bytes.\n", len(rom))
+	log.Printf("ROM has %d bytes", len(rom))
 
 	// Copy ROM into memory.
 	copy(memory, rom)
@@ -37,7 +59,5 @@ func createComputer(cpuCommandCh <-chan cpuCommand, cpuUpdateCh chan<- cpuUpdate
 	}
 	cpu.root.loadInstructions(instructionList)
 
-	// Make it go.
-	fmt.Println("Booting")
-	cpu.run(cpuCommandCh)
+	return cpu
 }

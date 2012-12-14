@@ -97,7 +97,8 @@ func wsHandler(ws *websocket.Conn) {
 	cpuCommandCh := make(chan cpuCommand)
 	cpuUpdateCh := make(chan cpuUpdate)
 	go readWs(ws, cpuCommandCh)
-	go createComputer(cpuCommandCh, cpuUpdateCh)
+	cpu := createComputer(cpuUpdateCh)
+	go cpu.run(cpuCommandCh)
 
 	// Batch updates.
 	var cpuUpdates []cpuUpdate
