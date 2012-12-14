@@ -2,7 +2,7 @@
 (function () {
 
     var msgCount = 0;
-    var commandWs = null;
+    var g_ws = null;
 
     var createScreen = function () {
         var $screen = $("<div>").addClass("screen").appendTo($("body"));
@@ -25,8 +25,8 @@
             attr("type", "button").
             text("Boot").
             click(function () {
-                if (commandWs) {
-                    commandWs.send(JSON.stringify({Cmd: "boot"}));
+                if (g_ws) {
+                    g_ws.send(JSON.stringify({Cmd: "boot"}));
                 }
             }).
             appendTo($buttons);
@@ -53,34 +53,14 @@
         }
     };
 
-    var configureUpdates = function () {
-        var ws = new WebSocket("ws://" + window.location.host + "/updates.ws");
-        ws.onopen = function (event) {
-            // Nothing.
-        };
+    var configureWs = function () {
+        var ws = new WebSocket("ws://" + window.location.host + "/ws");
         ws.onmessage = function (event) {
-            // https://developer.mozilla.org/en-US/docs/WebSockets/WebSockets_reference/MessageEvent
             var msg = JSON.parse(event.data);
             handleMsg(msg);
         };
         ws.onclose = function (event) {
-            // https://developer.mozilla.org/en-US/docs/WebSockets/WebSockets_reference/CloseEvent
-            console.log("On update close (" + event.code + ")");
-            commandWs = null;
-        };
-    };
-
-    var configureCommands = function () {
-        var ws = new WebSocket("ws://" + window.location.host + "/commands.ws");
-        ws.onopen = function (event) {
-            // Nothing.
-        };
-        ws.onmessage = function (event) {
-            // Nothing.
-        };
-        ws.onclose = function (event) {
-            // https://developer.mozilla.org/en-US/docs/WebSockets/WebSockets_reference/CloseEvent
-            console.log("On command close (" + event.code + ")");
+            g_ws = null;
         };
         return ws;
     };
@@ -147,8 +127,8 @@
                 ch = -1;
             }
 
-            if (ch !== -1 && commandWs) {
-                commandWs.send(JSON.stringify({
+            if (ch !== -1 && g_ws) {
+                g_ws.send(JSON.stringify({
                     Cmd: isPressed ? "press" : "release",
                     Data: ch
                 }));
@@ -165,8 +145,7 @@
     $(function () {
         createScreen();
         createButtons();
-        configureUpdates();
-        commandWs = configureCommands();
+        g_ws = configureWs();
         configureKeyboard();
     });
 })();

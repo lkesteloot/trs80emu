@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"runtime"
 	"strconv"
 	"strings"
@@ -950,7 +951,7 @@ func (cpu *cpu) step() {
 		if cpu.previousDumpClock > 0 {
 			elapsed := now.Sub(cpu.previousDumpTime)
 			computerTime := float64(cpu.clock-cpu.previousDumpClock) / float64(cpuHz)
-			fmt.Printf("Computer time: %.1fs, elapsed: %.1fs, mult: %.1f\n",
+			log.Printf("Computer time: %.1fs, elapsed: %.1fs, mult: %.1f",
 				computerTime, elapsed.Seconds(), computerTime/elapsed.Seconds())
 		}
 		cpu.previousDumpTime = now

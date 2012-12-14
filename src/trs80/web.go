@@ -10,6 +10,13 @@ import (
 	"time"
 )
 
+// Simple interface that has a Timeout() method, since so many net errors have
+// the method.
+
+type Timeouter interface {
+	Timeout() bool
+}
+
 func generateIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	bw := bufio.NewWriter(w)
@@ -65,57 +72,49 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func updatesWsHandler(ws *websocket.Conn, updateCmdCh chan<- interface{}) {
-	log.Printf("updatesWsHandler")
-	updateCh := make(chan cpuUpdate)
-	updateCmdCh <- startUpdates{updateCh}
+// Goroutine to read from the ws and send us the commands.
+func readWs(ws *websocket.Conn, cpuCommandCh chan<- cpuCommand) {
+	for {
+		var message cpuCommand
 
-	for update := range updateCh {
+		err := websocket.JSON.Receive(ws, &message)
+		if err != nil {
+			timeoutErr, ok := err.(Timeouter)
+			if ok && timeoutErr.Timeout() {
+				// Timeout okay, just retry.
+				continue
+			}
+			log.Printf("websocket.JSON.Receive: %s", err)
+			cpuCommandCh <- cpuCommand{Cmd: "shutdown"}
+			return
+		}
+		log.Printf("Got command %s", message)
+		cpuCommandCh <- message
+	}
+}
+
+func wsHandler(ws *websocket.Conn) {
+	cpuCommandCh := make(chan cpuCommand)
+	cpuUpdateCh := make(chan cpuUpdate)
+	go readWs(ws, cpuCommandCh)
+	go createComputer(cpuCommandCh, cpuUpdateCh)
+
+	for update := range cpuUpdateCh {
 		err := websocket.JSON.Send(ws, update)
 		if err != nil {
 			log.Printf("websocket.JSON.Send: %s", err)
 			break
 		}
 	}
-
-	updateCmdCh <- stopUpdates{}
 }
 
-type Timeouter interface {
-	Timeout() bool
-}
-
-func commandsWsHandler(ws *websocket.Conn, cpuCmdCh chan<- cpuCommand) {
-	log.Printf("commandsWsHandler")
-
-	for {
-		var message cpuCommand
-		err := websocket.JSON.Receive(ws, &message)
-		if err != nil {
-			timeoutErr, ok := err.(Timeouter)
-			if ok && timeoutErr.Timeout() {
-				continue
-			}
-			log.Printf("websocket.JSON.Receive: %s", err)
-			break
-		}
-		log.Printf("Got command %s", message)
-		cpuCmdCh <- message
-	}
-}
-
-func serveWebsite(updateCmdCh chan<- interface{}, cpuCmdCh chan<- cpuCommand) {
+func serveWebsite() {
 	port := 8080
 
 	// Create handlers.
 	handlers := http.NewServeMux()
 	handlers.Handle("/", webutil.GetHandler(http.HandlerFunc(homeHandler)))
-	handlers.Handle("/updates.ws", websocket.Handler(func(ws *websocket.Conn) {
-		updatesWsHandler(ws, updateCmdCh)
-	}))
-	handlers.Handle("/commands.ws", websocket.Handler(func(ws *websocket.Conn) {
-		commandsWsHandler(ws, cpuCmdCh)
-	}))
+	handlers.Handle("/ws", websocket.Handler(wsHandler))
 	handlers.Handle("/static/", http.StripPrefix("/static/",
 		http.FileServer(http.Dir("static"))))
 

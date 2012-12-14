@@ -6,11 +6,10 @@ import (
 )
 
 func main() {
-	updateCmdCh, cpuCmdCh := startComputer()
-	serveWebsite(updateCmdCh, cpuCmdCh)
+	serveWebsite()
 }
 
-func startComputer() (chan<- interface{}, chan<- cpuCommand) {
+func createComputer(cpuCommandCh <-chan cpuCommand, cpuUpdateCh chan<- cpuUpdate) {
 	// Allocate memory.
 	memorySize := 1024 * 64
 	memory := make([]byte, memorySize)
@@ -27,29 +26,18 @@ func startComputer() (chan<- interface{}, chan<- cpuCommand) {
 	// Copy ROM into memory.
 	copy(memory, rom)
 
-	// Various channels to communicate with the CPU.
-	cpuCmdCh := make(chan cpuCommand)
-	timerCh := getTimerCh()
-	cpuUpdateCh := make(chan cpuUpdate)
-
 	// Make a CPU.
 	cpu := &cpu{
-		memory:    memory,
-		romSize:   word(len(rom)),
-		root:      &instruction{},
-		updateCh:  cpuUpdateCh,
-		nmiMask:   resetNmiBit,
-		modeImage: 0x80,
+		memory:      memory,
+		romSize:     word(len(rom)),
+		root:        &instruction{},
+		cpuUpdateCh: cpuUpdateCh,
+		nmiMask:     resetNmiBit,
+		modeImage:   0x80,
 	}
 	cpu.root.loadInstructions(instructionList)
 
 	// Make it go.
 	fmt.Println("Booting")
-	go cpu.run(cpuCmdCh, timerCh)
-
-	// Pull out updates.
-	updateCmdCh := make(chan interface{})
-	go dispatchUpdates(cpu.updateCh, updateCmdCh)
-
-	return updateCmdCh, cpuCmdCh
+	cpu.run(cpuCommandCh)
 }

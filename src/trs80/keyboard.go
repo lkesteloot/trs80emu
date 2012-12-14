@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 )
 
 // http://www.trs-80.com/trs80-zaps-internals.htm#keyboard13
@@ -24,7 +24,6 @@ func (cpu *cpu) readKeyboard(addr word) byte {
 			b |= keys
 		}
 	}
-	// fmt.Printf("Reading keyboard %04X (%02X)\n", addr, b)
 
 	return b
 }
@@ -37,7 +36,7 @@ func (cpu *cpu) keyEvent(key int, isPressed bool) {
 	// 48 = enter
 	// 56 = shift
 
-	fmt.Printf("Key %d is %s\n", key, isPressed)
+	log.Printf("Key %d is %v\n", key, isPressed)
 	bit := byte(1 << uint(key%8))
 	if isPressed {
 		cpu.keyboard[key/8] |= bit

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -56,7 +57,7 @@ type cpu struct {
 	root *instruction
 
 	// Channel to get updates from.
-	updateCh chan cpuUpdate
+	cpuUpdateCh chan<- cpuUpdate
 
 	// XXX tmp
 	previousDumpTime   time.Time
@@ -70,26 +71,30 @@ type cpuCommand struct {
 	Data int
 }
 
-func (cpu *cpu) run(cpuCmdCh <-chan cpuCommand, timerCh <-chan time.Time) {
+func (cpu *cpu) run(cpuCommandCh <-chan cpuCommand) {
 	running := false
+	shutdown := false
+
+	timerCh := getTimerCh()
 
 	handleCmd := func(msg cpuCommand) {
 		switch msg.Cmd {
 		case "boot":
 			cpu.clearKeyboard()
 			running = true
+		case "shutdown":
+			shutdown = true
 		case "press", "release":
-			fmt.Printf("%d", time.Now().UnixNano()/10000000)
 			cpu.keyEvent(msg.Data, msg.Cmd == "press")
 		default:
 			panic("Unknown CPU command " + msg.Cmd)
 		}
 	}
 
-	for {
+	for !shutdown {
 		if running {
 			select {
-			case msg := <-cpuCmdCh:
+			case msg := <-cpuCommandCh:
 				handleCmd(msg)
 			case <-timerCh:
 				cpu.timerInterrupt(true)
@@ -97,9 +102,14 @@ func (cpu *cpu) run(cpuCmdCh <-chan cpuCommand, timerCh <-chan time.Time) {
 				cpu.step()
 			}
 		} else {
-			handleCmd(<-cpuCmdCh)
+			handleCmd(<-cpuCommandCh)
 		}
 	}
+
+	log.Print("CPU shut down")
+
+	// No more updates.
+	close(cpu.cpuUpdateCh)
 }
 
 func (cpu *cpu) fetchByte() byte {
@@ -128,7 +138,7 @@ func (cpu *cpu) writeMem(addr word, b byte) {
 	} else if addr >= screenBegin && addr < screenEnd {
 		// Screen.
 		cpu.memory[addr] = b
-		cpu.updateCh <- cpuUpdate{Cmd: "poke", Addr: int(addr), Data: int(b)}
+		cpu.cpuUpdateCh <- cpuUpdate{Cmd: "poke", Addr: int(addr), Data: int(b)}
 	} else if addr == 0x37E8 {
 		// Printer. Ignore, but could print ASCII byte to display.
 	} else {

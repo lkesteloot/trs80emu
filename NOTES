@@ -14,17 +14,7 @@ Next:
         If shift force, record it in global.
         If key, set/clear bit.
         Then return actual memory, but override with shift force.
-    Create CPU on WS connect, so each connection can have its own computer.
-    Deal with dropped keys.
-        Don't send key release for some minimum time.
-        Or more generally stream key events at minimum rate.
-        Can space out keys using chan?
-    See how xtrs handles mismatched keyboard.
     Remove "irq" bool in cpu, just compute it each time.
-    Can we replace other ws with goroutine that reads and sends msg on chan?
-        Might make it harder to do query-replies if we can't distinguish
-            replies from new commands.
-        All replies would have to be in the form of commands, with full context.
     Keep the last few instructions (from log()) as unformatted lines, and print them
         after a panic.
     Replace NN and N in asm with real number.
