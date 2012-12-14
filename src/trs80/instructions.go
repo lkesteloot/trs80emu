@@ -956,8 +956,6 @@ func (cpu *cpu) step() {
 		}
 		cpu.previousDumpTime = now
 		cpu.previousDumpClock = cpu.clock
-
-		// cpu.dumpScreen()
 	}
 
 	// Yield periodically so that we can get messages from other goroutines like
