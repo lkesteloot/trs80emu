@@ -118,9 +118,6 @@
             } else if (ch == 16) {
                 // Shift.
                 ch = 56;
-            } else if (ch == 17) {
-                // Control.
-                ch = 60;
             } else if (ch == 192) {
                 // This is ` on the keyboard, but we translate to @.
                 ch = 0;

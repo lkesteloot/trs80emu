@@ -959,7 +959,7 @@ func (cpu *cpu) step() {
 		// cpu.dumpScreen()
 	}
 
-	// Yield pediodically so that we can get messages from other goroutines like
+	// Yield periodically so that we can get messages from other goroutines like
 	// the one sending us commands.
 	if cpu.clock > cpu.previousYieldClock+1000 {
 		runtime.Gosched()
