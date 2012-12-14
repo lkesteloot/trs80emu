@@ -41,9 +41,6 @@ type cpu struct {
 	// Which IRQs have been requested by the hardware.
 	irqLatch byte
 
-	// Whether IRQ handling is needed. XXX Can we remove this?
-	irq bool
-
 	// Which NMIs should be handled.
 	nmiMask byte
 

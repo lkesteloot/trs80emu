@@ -16,6 +16,4 @@ func (cpu *cpu) timerInterrupt(state bool) {
 	} else {
 		cpu.irqLatch &^= timerIrqBit
 	}
-
-	cpu.updateIrq()
 }

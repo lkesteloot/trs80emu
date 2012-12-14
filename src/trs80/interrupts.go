@@ -18,14 +18,8 @@ const (
 	intrqNmiBit    // FDC
 )
 
-// Compute whether IRQ handling is needed. XXX Can we remove this?
-func (cpu *cpu) updateIrq() {
-	cpu.irq = (cpu.irqLatch & cpu.irqMask) != 0
-}
-
 func (cpu *cpu) setInterruptMask(irqMask byte) {
 	cpu.irqMask = irqMask
-	cpu.updateIrq()
 }
 
 func (cpu *cpu) handleIrq() {

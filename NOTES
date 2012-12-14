@@ -14,7 +14,6 @@ Next:
         If shift force, record it in global.
         If key, set/clear bit.
         Then return actual memory, but override with shift force.
-    Remove "irq" bool in cpu, just compute it each time.
     Keep the last few instructions (from log()) as unformatted lines, and print them
         after a panic.
     Replace NN and N in asm with real number.
