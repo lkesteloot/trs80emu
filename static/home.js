@@ -56,8 +56,10 @@
     var configureWs = function () {
         var ws = new WebSocket("ws://" + window.location.host + "/ws");
         ws.onmessage = function (event) {
-            var msg = JSON.parse(event.data);
-            handleMsg(msg);
+            var msgs = JSON.parse(event.data);
+            for (var i = 0; i < msgs.length; i++) {
+                handleMsg(msgs[i]);
+            }
         };
         ws.onclose = function (event) {
             g_ws = null;

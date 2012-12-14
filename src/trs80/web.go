@@ -99,11 +99,31 @@ func wsHandler(ws *websocket.Conn) {
 	go readWs(ws, cpuCommandCh)
 	go createComputer(cpuCommandCh, cpuUpdateCh)
 
-	for update := range cpuUpdateCh {
-		err := websocket.JSON.Send(ws, update)
-		if err != nil {
-			log.Printf("websocket.JSON.Send: %s", err)
-			break
+	// Batch updates.
+	var cpuUpdates []cpuUpdate
+	flushUpdates := func () bool {
+		if len(cpuUpdates) > 0 {
+			/// log.Printf("Flushing %d updates", len(cpuUpdates))
+			err := websocket.JSON.Send(ws, cpuUpdates)
+			if err != nil {
+				log.Printf("websocket.JSON.Send: %s", err)
+				return false
+			}
+			// Clear queue.
+			cpuUpdates = cpuUpdates[:0]
+		}
+
+		return true
+	}
+	tickerCh := time.Tick(10*time.Millisecond)
+
+	receiving := true
+	for receiving {
+		select {
+		case update := <-cpuUpdateCh:
+			cpuUpdates = append(cpuUpdates, update)
+		case <-tickerCh:
+			receiving = flushUpdates()
 		}
 	}
 }

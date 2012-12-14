@@ -1,7 +1,6 @@
 
 Next:
 
-    Collapse video updates.
     Deal with JSON send I/O timeouts.
         Detecting it and looping makes it lock up. Deadlock?
     Speed up emulation.
