@@ -66,71 +66,109 @@
     };
 
     var configureKeyboard = function () {
-        var keyEvent = function (event, isPressed) {
-            var ch = event.which;
+        // Converts a key up/down event to an ASCII character or string representing
+        // key, like "Left".
+        var eventToKey = function (event) {
+            var key;
+            var which = event.which;
+            var shifted = event.shiftKey;
 
-            console.log(ch);
             // http://www.trs-80.com/trs80-zaps-internals.htm#keyboard13
-            if (ch === 13) {
+            if (which === 13) {
                 // Enter.
-                ch = 48;
-            } else if (ch === 32) {
+                key = "Enter";
+            } else if (which === 32) {
                 // Space.
-                ch = 55;
-            } else if (ch === 8) {
+                key = " ";
+            } else if (which >= 65 && which < 65+26) {
+                // Letters.
+                if (!shifted) {
+                    // Make lower case.
+                    which += 32;
+                }
+                key = String.fromCharCode(which);
+            } else if (which === 48) {
+                key = shifted ? ")" : "0";
+            } else if (which === 49) {
+                key = shifted ? "!" : "1";
+            } else if (which === 50) {
+                key = shifted ? "@" : "2";
+            } else if (which === 51) {
+                key = shifted ? "#" : "3";
+            } else if (which === 52) {
+                key = shifted ? "$" : "4";
+            } else if (which === 53) {
+                key = shifted ? "%" : "5";
+            } else if (which === 54) {
+                key = shifted ? "^" : "6";
+            } else if (which === 55) {
+                key = shifted ? "&" : "7";
+            } else if (which === 56) {
+                key = shifted ? "*" : "8";
+            } else if (which === 57) {
+                key = shifted ? "(" : "9";
+            } else if (which === 8) {
                 // Backspace.
-                ch = 53; // Left.
+                key = "Left"; // Left.
 
                 // Don't go back to previous page.
                 event.preventDefault();
-            } else if (ch === 188) {
+            } else if (which === 187) {
+                // Equal.
+                key = shifted ? "+" : "=";
+            } else if (which === 188) {
                 // Comma.
-                ch = 44;
-            } else if (ch === 190) {
+                key = shifted ? "<" : ",";
+            } else if (which === 190) {
                 // Period.
-                ch = 46;
-            } else if (ch >= 65 && ch <= 90) {
-                // Letters, convert to 1-26.
-                ch -= 64;
-            } else if (ch >= 48 && ch <= 57) {
-                // Letters, convert to 32-41.
-                ch -= 16;
-            } else if (ch == 16) {
+                key = shifted ? ">" : ".";
+            } else if (which == 16) {
                 // Shift.
-                ch = 56;
-            } else if (ch == 192) {
-                // This is ` on the keyboard, but we translate to @.
-                ch = 0;
-            } else if (ch == 186) {
+                key = "Shift";
+            } else if (which == 192) {
+                // Backtick.
+                key = shifted ? "~" : "`";
+            } else if (which == 186) {
                 // Semicolon.
-                ch = 43;
-            } else if (ch == 189) {
+                key = shifted ? ":" : ";";
+            } else if (which == 222) {
+                // Quote..
+                key = shifted ? "\"" : "'";
+            } else if (which == 189) {
                 // Hyphen.
-                ch = 45;
-            } else if (ch == 191) {
+                key = shifted ? "_" : "-";
+            } else if (which == 191) {
                 // Slash.
-                ch = 47;
-            } else if (ch == 37) {
+                key = shifted ? "?" : "/";
+            } else if (which == 37) {
                 // Left arrow.
-                ch = 53;
-            } else if (ch == 39) {
+                key = "Left";
+            } else if (which == 39) {
                 // Right arrow.
-                ch = 54;
-            } else if (ch == 40) {
+                key = "Right";
+            } else if (which == 40) {
                 // Down arrow.
-                ch = 52;
-            } else if (ch == 38) {
+                key = "Down";
+            } else if (which == 38) {
                 // Up arrow.
-                ch = 50;
+                key = "Up";
             } else {
                 // Ignore.
-                ch = -1;
+                console.log(which);
+                key = "";
             }
 
-            if (ch !== -1 && g_ws) {
+            return key
+        };
+
+        var keyEvent = function (event, isPressed) {
+            var key = eventToKey(event);
+            console.log("Key is \"" + key + "\"");
+
+            if (key !== "" && g_ws) {
                 g_ws.send(JSON.stringify({
                     Cmd: isPressed ? "press" : "release",
-                    Data: ch
+                    Data: key
                 }));
             }
         };

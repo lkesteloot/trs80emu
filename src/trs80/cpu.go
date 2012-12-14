@@ -64,7 +64,7 @@ type cpu struct {
 // Command to the CPU from the UI.
 type cpuCommand struct {
 	Cmd  string
-	Data int
+	Data string
 }
 
 func (cpu *cpu) run(cpuCommandCh <-chan cpuCommand) {
