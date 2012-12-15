@@ -63,6 +63,8 @@ type cpu struct {
 	previousDumpTime   time.Time
 	previousDumpClock  uint64
 	previousYieldClock uint64
+	startTime int64
+	previousAdjustClock uint64
 }
 
 // Command to the CPU from the UI.
@@ -80,7 +82,7 @@ func (cpu *cpu) run(cpuCommandCh <-chan cpuCommand) {
 	handleCmd := func(msg cpuCommand) {
 		switch msg.Cmd {
 		case "boot":
-			cpu.clearKeyboard()
+			cpu.boot()
 			running = true
 		case "shutdown":
 			shutdown = true
@@ -110,6 +112,11 @@ func (cpu *cpu) run(cpuCommandCh <-chan cpuCommand) {
 
 	// No more updates.
 	close(cpu.cpuUpdateCh)
+}
+
+func (cpu *cpu) boot() {
+	cpu.clearKeyboard()
+	cpu.startTime = time.Now().UnixNano()
 }
 
 func (cpu *cpu) fetchNextPcByte() byte {

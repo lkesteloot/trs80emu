@@ -10,6 +10,7 @@ import (
 )
 
 const cpuHz = 2027520
+const cpuPeriodNs = 1000000000/cpuHz
 
 // Copy and pasted from z80.txt (http://guide.ticalc.org/download/z80.txt)
 var instructionList string = `
@@ -1046,6 +1047,19 @@ func (cpu *cpu) step() {
 	if cpu.clock > cpu.previousYieldClock+1000 {
 		runtime.Gosched()
 		cpu.previousYieldClock = cpu.clock
+	}
+
+	// Slow down CPU if we're going too fast.
+	if cpu.clock > cpu.previousAdjustClock+1000 {
+		now := time.Now().UnixNano()
+		elapsedReal := time.Duration(now - cpu.startTime)
+		elapsedFake := time.Duration(cpu.clock*cpuPeriodNs)
+		aheadNs := elapsedFake - elapsedReal
+		if aheadNs > 0 {
+			/// log.Printf("Sleeping %dns", aheadNs)
+			time.Sleep(aheadNs)
+		}
+		cpu.previousAdjustClock = cpu.clock
 	}
 }
 

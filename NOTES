@@ -1,10 +1,6 @@
 
 Next:
 
-    If going too fast, sleep for a bit.
-        Make this cumulative so it corrects itself.
-        Sleep might not work if code is depending on right timing.
-        xtrs uses loop of adjustable size.
     Deal with JSON send I/O timeouts.
         Detecting it and looping makes it lock up. Deadlock?
     Fix aspect ratio of display.

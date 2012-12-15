@@ -28,6 +28,7 @@ func profileSystem() {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
+	cpu.boot()
 	for cpu.clock < cpuHz*50 {
 		cpu.step()
 	}
