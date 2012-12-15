@@ -102,7 +102,7 @@ func wsHandler(ws *websocket.Conn) {
 
 	// Batch updates.
 	var cpuUpdates []cpuUpdate
-	flushUpdates := func () bool {
+	flushUpdates := func() bool {
 		if len(cpuUpdates) > 0 {
 			/// log.Printf("Flushing %d updates", len(cpuUpdates))
 			err := websocket.JSON.Send(ws, cpuUpdates)
@@ -116,7 +116,7 @@ func wsHandler(ws *websocket.Conn) {
 
 		return true
 	}
-	tickerCh := time.Tick(10*time.Millisecond)
+	tickerCh := time.Tick(10 * time.Millisecond)
 
 	receiving := true
 	for receiving {

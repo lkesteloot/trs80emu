@@ -2,9 +2,9 @@ package main
 
 import (
 	"io/ioutil"
-	"runtime/pprof"
-	"os"
 	"log"
+	"os"
+	"runtime/pprof"
 )
 
 const profiling = false

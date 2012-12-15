@@ -10,7 +10,7 @@ import (
 )
 
 const cpuHz = 2027520
-const cpuPeriodNs = 1000000000/cpuHz
+const cpuPeriodNs = 1000000000 / cpuHz
 
 // Copy and pasted from z80.txt (http://guide.ticalc.org/download/z80.txt)
 var instructionList string = `
@@ -560,7 +560,7 @@ func (inst *instruction) addInstruction(asm, cycles string, opcodes []string) {
 
 	if hasiMap+hasXx+isLeaf != 1 {
 		panic(fmt.Sprintf("Instruction %s has wrong number of children (%d, %d, %d)",
-		asm, hasiMap, hasXx, isLeaf))
+			asm, hasiMap, hasXx, isLeaf))
 	}
 }
 
@@ -1053,7 +1053,7 @@ func (cpu *cpu) step() {
 	if cpu.clock > cpu.previousAdjustClock+1000 {
 		now := time.Now().UnixNano()
 		elapsedReal := time.Duration(now - cpu.startTime)
-		elapsedFake := time.Duration(cpu.clock*cpuPeriodNs)
+		elapsedFake := time.Duration(cpu.clock * cpuPeriodNs)
 		aheadNs := elapsedFake - elapsedReal
 		if aheadNs > 0 {
 			/// log.Printf("Sleeping %dns", aheadNs)

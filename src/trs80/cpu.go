@@ -60,10 +60,10 @@ type cpu struct {
 	// Channel to get updates from.
 	cpuUpdateCh chan<- cpuUpdate
 
-	previousDumpTime   time.Time
-	previousDumpClock  uint64
-	previousYieldClock uint64
-	startTime int64
+	previousDumpTime    time.Time
+	previousDumpClock   uint64
+	previousYieldClock  uint64
+	startTime           int64
 	previousAdjustClock uint64
 }
 
