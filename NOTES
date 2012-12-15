@@ -1,22 +1,21 @@
 
 Next:
 
-    Deal with JSON send I/O timeouts.
-        Detecting it and looping makes it lock up. Deadlock?
-    Speed up emulation.
-    Keep the last few instructions (from log()) as unformatted lines, and print them
-        after a panic.
-    Replace NN and N in asm with real number.
     If going too fast, sleep for a bit.
         Make this cumulative so it corrects itself.
-    Add NMI.
-        Reset button and FDI stuff.
+        Sleep might not work if code is depending on right timing.
+        xtrs uses loop of adjustable size.
+    Deal with JSON send I/O timeouts.
+        Detecting it and looping makes it lock up. Deadlock?
     Fix aspect ratio of display.
         Use CSS?
+    Add NMI.
+        Reset button and FDI stuff.
     Get Eliminator to work for Larry:
         http://www.trs-80.org/the-eliminator/
         http://www.trs-80.org/games-by-wayne-westmoreland-and-terry-gilman/
         Needs disk reading.
+    Replace NN and N in asm with real number.
 
 References:
 

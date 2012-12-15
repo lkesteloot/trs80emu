@@ -7,27 +7,29 @@ import (
 	"log"
 )
 
-var profileFilename = "trs80.prof"
+const profiling = false
+const profileFilename = "trs80.prof"
 
 func main() {
-	if false {
-		cpu := createComputer(nil)
-
-		f, err := os.Create(profileFilename)
-		if err != nil {
-			log.Fatal(err)
-		}
-		err = pprof.StartCPUProfile(f)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer pprof.StopCPUProfile()
-
-		for cpu.clock < cpuHz*50 {
-			cpu.step()
-		}
+	if profiling {
+		profileSystem()
 	} else {
 		serveWebsite()
+	}
+}
+
+func profileSystem() {
+	cpu := createComputer(nil)
+
+	f, err := os.Create(profileFilename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
+
+	for cpu.clock < cpuHz*50 {
+		cpu.step()
 	}
 }
 
