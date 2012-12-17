@@ -1,12 +1,12 @@
 
 Next:
 
+    Add NMI.
+        Reset button and FDI stuff.
     Deal with JSON send I/O timeouts.
         Detecting it and looping makes it lock up. Deadlock?
     Fix aspect ratio of display.
         Use CSS?
-    Add NMI.
-        Reset button and FDI stuff.
     Get Eliminator to work for Larry:
         http://www.trs-80.org/the-eliminator/
         http://www.trs-80.org/games-by-wayne-westmoreland-and-terry-gilman/

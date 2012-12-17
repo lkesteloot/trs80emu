@@ -51,6 +51,9 @@ type cpu struct {
 	// Which NMIs have been requested by the hardware.
 	nmiLatch byte
 
+	// Whether we've seen this NMI and handled it.
+	nmiSeen bool
+
 	// Various I/O settings.
 	modeImage byte
 
@@ -82,8 +85,10 @@ func (cpu *cpu) run(cpuCommandCh <-chan cpuCommand) {
 	handleCmd := func(msg cpuCommand) {
 		switch msg.Cmd {
 		case "boot":
-			cpu.boot()
+			cpu.reset(true)
 			running = true
+		case "reset":
+			cpu.reset(false)
 		case "shutdown":
 			shutdown = true
 		case "press", "release":
@@ -114,8 +119,29 @@ func (cpu *cpu) run(cpuCommandCh <-chan cpuCommand) {
 	close(cpu.cpuUpdateCh)
 }
 
-func (cpu *cpu) boot() {
+func (cpu *cpu) reset(powerOn bool) {
+    /// trs_cassette_reset()
+    /// trs_timer_speed(0)
+    /// trs_disk_init(powerOn); // also inits trs_hard and trs_stringy
+    /// trs_hard_out(TRS_HARD_CONTROL, TRS_HARD_SOFTWARE_RESET|TRS_HARD_DEVICE_ENABLE)
+	cpu.irqMask = 0
+	cpu.nmiMask = resetNmiMask
 	cpu.clearKeyboard()
+	cpu.timerInterrupt(false)
+
+    if (powerOn) {
+		cpu.z80reset()
+    } else {
+		cpu.resetButtonInterrupt(true)
+	}
+}
+
+func (cpu *cpu) z80reset() {
+	cpu.pc = 0
+    // cpu.i = 0
+    cpu.iff1 = false
+    // cpu.iff2 = false
+
 	cpu.startTime = time.Now().UnixNano()
 }
 

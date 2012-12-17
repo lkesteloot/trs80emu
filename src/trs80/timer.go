@@ -12,8 +12,8 @@ func getTimerCh() <-chan time.Time {
 
 func (cpu *cpu) timerInterrupt(state bool) {
 	if state {
-		cpu.irqLatch |= timerIrqBit
+		cpu.irqLatch |= timerIrqMask
 	} else {
-		cpu.irqLatch &^= timerIrqBit
+		cpu.irqLatch &^= timerIrqMask
 	}
 }

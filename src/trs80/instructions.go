@@ -1019,6 +1019,15 @@ func (cpu *cpu) step() {
 		cpu.logln()
 	}
 
+	// Handle non-maskable interrupts.
+	if (cpu.nmiLatch&cpu.nmiMask) != 0 && !cpu.nmiSeen {
+		cpu.handleNmi()
+		cpu.nmiSeen = true
+
+		// Simulate the reset button being released.
+		cpu.resetButtonInterrupt(false)
+	}
+
 	// Handle interrupts.
 	if (cpu.irqLatch&cpu.irqMask) != 0 && cpu.iff1 && !avoidHandlingIrq {
 		cpu.handleIrq()

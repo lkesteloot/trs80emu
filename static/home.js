@@ -30,6 +30,16 @@
                 }
             }).
             appendTo($buttons);
+
+        $("<button>").
+            attr("type", "button").
+            text("Reset").
+            click(function () {
+                if (g_ws) {
+                    g_ws.send(JSON.stringify({Cmd: "reset"}));
+                }
+            }).
+            appendTo($buttons);
     };
 
     var handleMsg = function (msg) {

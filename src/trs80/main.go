@@ -28,7 +28,7 @@ func profileSystem() {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	cpu.boot()
+	cpu.reset(true)
 	for cpu.clock < cpuHz*50 {
 		cpu.step()
 	}
@@ -57,7 +57,6 @@ func createComputer(cpuUpdateCh chan<- cpuUpdate) *cpu {
 		romSize:     word(len(rom)),
 		root:        &instruction{},
 		cpuUpdateCh: cpuUpdateCh,
-		nmiMask:     resetNmiBit,
 		modeImage:   0x80,
 	}
 	cpu.root.loadInstructions(instructionList)
