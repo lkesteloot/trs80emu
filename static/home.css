@@ -11,6 +11,15 @@ body {
     background-color: #334843;
     color: white;
     font-family: monospace;
+    /* Pack the lines tightly: */
+    line-height: 1px;
+    /* Not needed: */
+    /*
+    -webkit-transform-origin: top left;
+    -webkit-transform: scaleX(2);
+    transform-origin: top left;
+    transform: scaleX(2);
+    */
 }
 
 .screen span {

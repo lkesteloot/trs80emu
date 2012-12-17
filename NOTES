@@ -1,8 +1,6 @@
 
 Next:
 
-    Add NMI.
-        Reset button and FDI stuff.
     Deal with JSON send I/O timeouts.
         Detecting it and looping makes it lock up. Deadlock?
     Fix aspect ratio of display.
