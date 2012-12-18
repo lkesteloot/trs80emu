@@ -1,6 +1,7 @@
 
 Next:
 
+    Implement read-only disk.
     Deal with JSON send I/O timeouts.
         Detecting it and looping makes it lock up. Deadlock?
     Fix aspect ratio of display.
@@ -21,3 +22,26 @@ References:
         http://clrhome.org/table/
         http://guide.ticalc.org/download/z80.txt
         http://www.trs-80.com/trs80-zaps-internals.htm
+
+I/O at boot:
+
+    2012/12/17 17:11:22 Writing 00 to port E4 // NMI Mask.
+    2012/12/17 17:11:22 Writing 20 to port EC // Mode image.
+    2012/12/17 17:11:22 Writing 81 to port F4 // Disk select (MFM, drive 0).
+    2012/12/17 17:11:22 Writing D0 to port F0 // Disk command (0xD0 = forceint, no interrupt).
+    2012/12/17 17:11:22 Writing 04 to port E0 // Interrupt mask. (timer)
+    2012/12/17 17:11:22 Writing 0B to port F0 // Disk command (0x00 = restore, heavy, 40ms).
+    2012/12/17 17:11:22 Writing 28 to port EC // Mode image.
+    2012/12/17 17:11:22 Reading port E0 // Clear IRQ.
+    2012/12/17 17:11:22 Reading port EC // Read mode image.
+
+
+
+
+
+
+
+
+
+
+

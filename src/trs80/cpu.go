@@ -124,8 +124,8 @@ func (cpu *cpu) reset(powerOn bool) {
     /// trs_timer_speed(0)
     /// trs_disk_init(powerOn); // also inits trs_hard and trs_stringy
     /// trs_hard_out(TRS_HARD_CONTROL, TRS_HARD_SOFTWARE_RESET|TRS_HARD_DEVICE_ENABLE)
-	cpu.irqMask = 0
-	cpu.nmiMask = resetNmiMask
+	cpu.setIrqMask(0)
+	cpu.setNmiMask(0)
 	cpu.clearKeyboard()
 	cpu.timerInterrupt(false)
 

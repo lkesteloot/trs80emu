@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 )
 
 // http://www.trs-80.com/trs80-zaps-internals.htm#portsm3
@@ -16,6 +17,7 @@ var ports = map[byte]string{
 }
 
 func (cpu *cpu) readPort(port byte) byte {
+	log.Printf("Reading port %02X", port)
 	switch port {
 	case 0xE0:
 		// Figure out which interrupts were requested.
@@ -40,16 +42,14 @@ func (cpu *cpu) readPort(port byte) byte {
 }
 
 func (cpu *cpu) writePort(port byte, value byte) {
+	log.Printf("Writing %02X to port %02X", value, port)
 	switch port {
 	case 0xE0:
 		// Set interrupt mask.
-		cpu.setInterruptMask(value)
-		/// fmt.Printf("Setting interrupt mask to %02X", value)
+		cpu.setIrqMask(value)
 	case 0xE4, 0xE5, 0xE6, 0xE7:
 		// NMI state.
-		/// nmi_mask = value | M3_RESET_BIT
-		/// z80_state.nmi = (nmi_latch & nmi_mask) != 0
-		/// if (!z80_state.nmi) z80_state.nmi_seen = 0
+		cpu.setNmiMask(value)
 	case 0xEC, 0xED, 0xEE, 0xEF:
 		// Various controls.
 		cpu.modeImage = value

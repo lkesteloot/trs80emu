@@ -18,8 +18,20 @@ const (
 	intrqNmiMask    // FDC
 )
 
-func (cpu *cpu) setInterruptMask(irqMask byte) {
+func (cpu *cpu) setIrqMask(irqMask byte) {
 	cpu.irqMask = irqMask
+}
+
+func (cpu *cpu) setNmiMask(nmiMask byte) {
+	// Always allowed:
+	cpu.nmiMask = nmiMask | resetNmiMask
+	cpu.updateNmiSeen()
+}
+
+func (cpu *cpu) updateNmiSeen() {
+	if (cpu.nmiLatch&cpu.nmiMask) == 0 {
+		cpu.nmiSeen = false
+	}
 }
 
 func (cpu *cpu) handleIrq() {
@@ -40,7 +52,5 @@ func (cpu *cpu) resetButtonInterrupt(state bool) {
 	} else {
 		cpu.nmiLatch &^= resetNmiMask
 	}
-	if (cpu.nmiLatch&cpu.nmiMask) == 0 {
-		cpu.nmiSeen = false
-	}
+	cpu.updateNmiSeen()
 }
