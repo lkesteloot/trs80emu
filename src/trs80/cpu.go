@@ -57,6 +57,9 @@ type cpu struct {
 	// Various I/O settings.
 	modeImage byte
 
+	// Floppy disk controller and its disks.
+	fdc fdc
+
 	// Root of instruction tree.
 	root *instruction
 
