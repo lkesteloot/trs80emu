@@ -293,7 +293,7 @@ func (cpu *cpu) readDiskData() byte {
 }
 
 func (cpu *cpu) writeDiskCommand(value byte) {
-//	panic("writeDiskCommand")
+	panic("writeDiskCommand")
 }
 
 func (cpu *cpu) writeDiskTrack(value byte) {
