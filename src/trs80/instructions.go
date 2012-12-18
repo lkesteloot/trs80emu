@@ -9,9 +9,6 @@ import (
 	"time"
 )
 
-const cpuHz = 2027520
-const cpuPeriodNs = 1000000000 / cpuHz
-
 // Copy and pasted from z80.txt (http://guide.ticalc.org/download/z80.txt)
 var instructionList string = `
 ADC A,(HL)    7     1   +0V+++  8E
@@ -739,10 +736,6 @@ func (cpu *cpu) step() {
 		default:
 			panic("Unknown IN source " + source)
 		}
-		portDescription, ok := ports[port]
-		if !ok {
-			panic(fmt.Sprintf("Unknown port %02X", port))
-		}
 		value := cpu.readPort(port)
 		if len(subfields) == 2 {
 			cpu.setByte(subfields[0], value, byteData, wordData)
@@ -751,6 +744,10 @@ func (cpu *cpu) step() {
 			cpu.f.updateFromInByte(value)
 		}
 		if printDebug {
+			portDescription, ok := ports[port]
+			if !ok {
+				panic(fmt.Sprintf("Unknown port %02X", port))
+			}
 			cpu.logf("%02X <- %02X (%s)", value, port, portDescription)
 		}
 	case "INC":
@@ -843,12 +840,12 @@ func (cpu *cpu) step() {
 		default:
 			panic("Unknown OUT destination " + subfields[0])
 		}
-		portDescription, ok := ports[port]
-		if !ok {
-			panic(fmt.Sprintf("Unknown port %02X", port))
-		}
 		cpu.writePort(port, value)
 		if printDebug {
+			portDescription, ok := ports[port]
+			if !ok {
+				panic(fmt.Sprintf("Unknown port %02X", port))
+			}
 			cpu.logf("%02X (%s) <- %02X", port, portDescription, value)
 		}
 	case "POP":

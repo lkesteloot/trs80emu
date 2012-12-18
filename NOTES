@@ -11,6 +11,7 @@ Next:
         http://www.trs-80.org/games-by-wayne-westmoreland-and-terry-gilman/
         Needs disk reading.
     Replace NN and N in asm with real number.
+    Replace instruction strings with integers for faster lookup.
 
 References:
 

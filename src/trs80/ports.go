@@ -30,8 +30,8 @@ func (cpu *cpu) readPort(port byte) byte {
 		cpu.timerInterrupt(false)
 		return 0xFF
 	case 0xF0:
-		// Disk command.
-		return cpu.readDiskCommand()
+		// Disk status.
+		return cpu.readDiskStatus()
 	case 0xF1:
 		// Disk track.
 		return cpu.readDiskTrack()

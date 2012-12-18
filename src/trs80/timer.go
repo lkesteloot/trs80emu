@@ -17,3 +17,8 @@ func (cpu *cpu) timerInterrupt(state bool) {
 		cpu.irqLatch &^= timerIrqMask
 	}
 }
+
+func (cpu *cpu) handleTimer() {
+	cpu.timerInterrupt(true)
+	cpu.diskMotorOffInterrupt(cpu.checkDiskMotorOff())
+}

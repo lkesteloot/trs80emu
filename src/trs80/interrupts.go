@@ -14,8 +14,8 @@ const (
 // NMIs
 const (
 	resetNmiMask    = 0x20 << iota
-	motorOffNmiMask // FDC
-	intrqNmiMask    // FDC
+	diskMotorOffNmiMask
+	diskIntrqNmiMask
 )
 
 func (cpu *cpu) setIrqMask(irqMask byte) {
@@ -51,6 +51,24 @@ func (cpu *cpu) resetButtonInterrupt(state bool) {
 		cpu.nmiLatch |= resetNmiMask
 	} else {
 		cpu.nmiLatch &^= resetNmiMask
+	}
+	cpu.updateNmiSeen()
+}
+
+func (cpu *cpu) diskMotorOffInterrupt(state bool) {
+    if state {
+		cpu.nmiLatch |= diskMotorOffNmiMask
+	} else {
+		cpu.nmiLatch &^= diskMotorOffNmiMask
+	}
+	cpu.updateNmiSeen()
+}
+
+func (cpu *cpu) diskIntrqInterrupt(state bool) {
+    if state {
+		cpu.nmiLatch |= diskIntrqNmiMask
+	} else {
+		cpu.nmiLatch &^= diskIntrqNmiMask
 	}
 	cpu.updateNmiSeen()
 }

@@ -6,8 +6,12 @@ import (
 	"time"
 )
 
-const printDebug = false
-const ramBegin = 0x4000
+const (
+	printDebug = false
+	ramBegin = 0x4000
+	cpuHz = 2027520
+	cpuPeriodNs = 1000000000 / cpuHz
+)
 
 type cpu struct {
 	memory  []byte
@@ -107,7 +111,7 @@ func (cpu *cpu) run(cpuCommandCh <-chan cpuCommand) {
 			case msg := <-cpuCommandCh:
 				handleCmd(msg)
 			case <-timerCh:
-				cpu.timerInterrupt(true)
+				cpu.handleTimer()
 			default:
 				cpu.step()
 			}
@@ -125,7 +129,7 @@ func (cpu *cpu) run(cpuCommandCh <-chan cpuCommand) {
 func (cpu *cpu) reset(powerOn bool) {
     /// trs_cassette_reset()
     /// trs_timer_speed(0)
-    /// trs_disk_init(powerOn); // also inits trs_hard and trs_stringy
+    cpu.diskInit(powerOn)
     /// trs_hard_out(TRS_HARD_CONTROL, TRS_HARD_SOFTWARE_RESET|TRS_HARD_DEVICE_ENABLE)
 	cpu.setIrqMask(0)
 	cpu.setNmiMask(0)
