@@ -30,8 +30,17 @@ func (cpu *cpu) readPort(port byte) byte {
 		cpu.timerInterrupt(false)
 		return 0xFF
 	case 0xF0:
-		// No controller.
-		return 0xFF
+		// Disk command.
+		return readDiskCommand()
+	case 0xF1:
+		// Disk track.
+		return readDiskTrack()
+	case 0xF2:
+		// Disk sector.
+		return readDiskSector()
+	case 0xF3:
+		// Disk data.
+		return readDiskData()
 	case 0xFF:
 		// Cassette and various flags.
 		cassetteStatus := byte(0)
@@ -59,8 +68,19 @@ func (cpu *cpu) writePort(port byte, value byte) {
 		/// trs_timer_speed((value & 0x40) >> 6)
 	case 0xF0:
 		// Disk command.
+		writeDiskCommand(value)
+	case 0xF1:
+		// Disk track.
+		writeDiskTrack(value)
+	case 0xF2:
+		// Disk sector.
+		writeDiskSector(value)
+	case 0xF3:
+		// Disk data.
+		writeDiskData(value)
 	case 0xF4, 0xF5, 0xF6, 0xF7:
 		// Disk select.
+		writeDiskSelect(value)
 	default:
 		panic(fmt.Sprintf("Can't write %02X to unknown port %02X", value, port))
 	}
