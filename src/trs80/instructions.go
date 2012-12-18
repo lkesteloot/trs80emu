@@ -766,6 +766,14 @@ func (cpu *cpu) step() {
 			cpu.setByte(subfields[0], value, byteData, wordData)
 			cpu.f.updateFromIncByte(value)
 		}
+	case "INI":
+		value := cpu.readPort(cpu.bc.l())
+		cpu.writeMem(cpu.hl, value)
+		cpu.hl++
+		b := cpu.bc.h() - 1
+		cpu.bc.setH(b)
+		cpu.f.setZ(b == 0)
+		cpu.f.setN(true)
 	case "JP", "CALL":
 		addr := cpu.getWordValue(subfields[len(subfields)-1], byteData, wordData)
 		if len(subfields) == 1 || cpu.conditionSatisfied(subfields[0]) {
