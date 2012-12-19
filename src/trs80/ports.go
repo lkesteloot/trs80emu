@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	/// "log"
 )
 
 // http://www.trs-80.com/trs80-zaps-internals.htm#portsm3
@@ -17,7 +17,7 @@ var ports = map[byte]string{
 }
 
 func (cpu *cpu) readPort(port byte) byte {
-	log.Printf("Reading port %02X", port)
+	/// log.Printf("Reading port %02X", port)
 	switch port {
 	case 0xE0:
 		// Figure out which interrupts were requested.
@@ -51,7 +51,7 @@ func (cpu *cpu) readPort(port byte) byte {
 }
 
 func (cpu *cpu) writePort(port byte, value byte) {
-	log.Printf("Writing %02X to port %02X", value, port)
+	/// log.Printf("Writing %02X to port %02X", value, port)
 	switch port {
 	case 0xE0:
 		// Set interrupt mask.

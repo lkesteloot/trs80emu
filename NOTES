@@ -36,13 +36,54 @@ I/O at boot:
     2012/12/17 17:11:22 Reading port E0 // Clear IRQ.
     2012/12/17 17:11:22 Reading port EC // Read mode image.
 
+Disk notes:
 
-
-
-
-
-
-
-
+    http://www.ece.msstate.edu/~reese/EE3724/lectures/fixdisk/fixdisk.pdf
+        5.25" disks typically have 40 tracks, 9 sectors/track, 300 RPM, 360K
+    http://en.wikipedia.org/wiki/Floppy_disk_format
+        Sectors are usually 256 or 512 bytes.
+        35-40 tracks of 9 512-byte sectors or 18 256-byte sectors.
+        360K = 9 sectors, 320K = 8 sectors.
+    http://en.wikipedia.org/wiki/List_of_floppy_disk_formats
+        Nothing about TRS-80.
+    http://en.wikipedia.org/wiki/TRS-80
+        Model I used Western Digital 1771 chip, unreliable.
+        Model III used Western Digital 1791
+        All TRS-80 formats are soft-sectored (?) and have 40 tracks.
+        Needed second index hole to flip disk.
+        Drives sold by Radio Shack had 35 tracks, 160K.
+    http://en.wikipedia.org/wiki/Western_Digital_FD1771
+    Math:
+        90000/40/9 = 250
+        Files are 89600 bytes, so missing 400 bytes.
+        Header seems to continue until 02400 = 1280 = 0x500
+        89600 - 1280 = 88320
+        88320/40/8 = 276 = 256 + 20
+        Headers are identical in both files.
+        89600/1280 = 70 = 35*2
+        89600/35 = 2560 = 1280*2
+        2360/8 = 320
+        Another break at 012000 = 02400*4
+        So guessing:
+            No header, everything is data.
+                First 1280 bytes have NO SYSTEM etc, so can't be raw header.
+            89,600 bytes total.
+            35 tracks = 2560 bytes per track.
+            8 sectors = 320 bytes per sector.
+            5 sectors = 512 bytes per sector.
+                Can't be, first section is 1280 bytes.
+            10 sectors = 256 bytes per sector.
+        First few bytes of file are:
+            00              NOP
+            fe  11          CP 11
+            f3              DI
+            31  fc  41      LD SP, 41FC
+            21  e2  42      LD HL, 42E2
+            cd  9a  42      CALL 429A
+            3e  01          LD A, 01
+            32  e1  37      LD (37E1), A
+            3a  02  42      LD A, (4202)
+            57              LD D, A
+        So except for first 3 bytes, it's definitely code. No header.
 
 
