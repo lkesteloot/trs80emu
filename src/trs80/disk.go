@@ -211,10 +211,7 @@ func (cpu *cpu) diskInit(powerOn bool) {
 func (cpu *cpu) checkDiskMotorOff() bool {
 	stopped := cpu.clock > cpu.fdc.motorTimeout
 	if stopped {
-		if cpu.fdc.motorIsOn {
-			log.Print("Stopping motor")
-			cpu.fdc.motorIsOn = false
-		}
+		cpu.setDiskMotor(false)
 		cpu.fdc.status |= diskNotRdy
 
 		if isReadWriteCommand(cpu.fdc.currentCommand) && (cpu.fdc.status & diskDrq) != 0 {
@@ -225,6 +222,24 @@ func (cpu *cpu) checkDiskMotorOff() bool {
 	}
 
 	return stopped
+}
+
+func (cpu *cpu) setDiskMotor(value bool) {
+	if cpu.fdc.motorIsOn != value {
+		var intValue int
+		if value {
+			log.Print("Starting motor")
+			intValue = 1
+		} else {
+			log.Print("Stopping motor")
+			intValue = 0
+		}
+		// Update UI.
+		if cpu.cpuUpdateCh != nil {
+			cpu.cpuUpdateCh <- cpuUpdate{Cmd: "motor", Data: intValue}
+		}
+		cpu.fdc.motorIsOn = value
+	}
 }
 
 // Return a value in [0,1) indicating how far we've rotated
@@ -299,10 +314,7 @@ func (cpu *cpu) readDiskStatus() byte {
 	cpu.updateDiskStatus()
 	if cpu.fdc.status & diskNotRdy == 0 {
 		if cpu.clock > cpu.fdc.motorTimeout {
-			if cpu.fdc.motorIsOn {
-				log.Print("Stopping motor")
-				cpu.fdc.motorIsOn = false
-			}
+			cpu.setDiskMotor(false)
 			cpu.fdc.status |= diskNotRdy
 		}
 	}
@@ -451,10 +463,7 @@ func (cpu *cpu) writeDiskSelect(value byte) {
 
 	// If a drive was selected, turn on its motor.
 	if cpu.fdc.status & diskNotRdy == 0 {
-		if !cpu.fdc.motorIsOn {
-			log.Print("Starting motor")
-			cpu.fdc.motorIsOn = true
-		}
+		cpu.setDiskMotor(true)
 		cpu.fdc.motorTimeout = cpu.clock + motorTimeAfterSelect*cpuHz
 		cpu.diskMotorOffInterrupt(false)
 	}

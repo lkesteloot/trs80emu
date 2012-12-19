@@ -40,6 +40,10 @@
                 }
             }).
             appendTo($buttons);
+
+        $("<div>").
+            attr("id", "motor").
+            appendTo($("body"));
     };
 
     var handleMsg = function (msg) {
@@ -52,6 +56,14 @@
             if (addr >= 15360 && addr < 16384) {
                 // Screen.
                 $("#s" + addr).attr("class", "char char-" + data);
+            }
+        } else if (cmd === "motor") {
+            var motorOn = msg.Data != 0;
+            var $motor = $("#motor");
+            if (motorOn) {
+                $motor.show();
+            } else {
+                $motor.hide();
             }
         } else {
             console.log("Unknown command \"" + cmd + "\"");

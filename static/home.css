@@ -2,7 +2,6 @@
 body {
     margin: 0;
     padding: 10px;
-    font-size: 18pt;
 }
 
 .screen {
@@ -24,4 +23,17 @@ body {
 
 .screen span {
     white-space: pre;
+}
+
+.buttons {
+    margin-top: 5px;
+}
+
+#motor {
+    display: none;
+    width: 32px;
+    height: 32px;
+    background-color: red;
+    border-radius: 16px;
+    margin-top: 5px;
 }
