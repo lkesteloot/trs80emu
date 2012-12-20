@@ -438,123 +438,123 @@ func (cpu *cpu) readDiskData() byte {
 	case diskReadAdr:
 		panic("diskReadAdr")
 		/*
-		    if (cpu.fdc.byteCount <= 0 || !(cpu.fdc.status & TRSDISK_DRQ)) break
-		    if (d->emutype == REAL) {
-		#if 0
-		      cpu.fdc.sector = d->u.real.buf[0]; //179x data sheet says this
-		#else
-		      cpu.fdc.track = d->u.real.buf[0]; //let's guess it meant this
-		      cpu.fdc.sector = d->u.real.buf[2]; //1771 data sheet says this
-		#endif
-		      cpu.fdc.data = d->u.real.buf[6 - cpu.fdc.byteCount]
+			    if (cpu.fdc.byteCount <= 0 || !(cpu.fdc.status & TRSDISK_DRQ)) break
+			    if (d->emutype == REAL) {
+			#if 0
+			      cpu.fdc.sector = d->u.real.buf[0]; //179x data sheet says this
+			#else
+			      cpu.fdc.track = d->u.real.buf[0]; //let's guess it meant this
+			      cpu.fdc.sector = d->u.real.buf[2]; //1771 data sheet says this
+			#endif
+			      cpu.fdc.data = d->u.real.buf[6 - cpu.fdc.byteCount]
 
-		    } else if (d->emutype == DMK) {
-		      cpu.fdc.data = d->u.dmk.buf[d->u.dmk.curbyte]
-		#if 0
-		      if (cpu.fdc.byteCount == 6) {
-			cpu.fdc.sector = cpu.fdc.data; //179x data sheet says this
-		      }
-		#else
-		      if (cpu.fdc.byteCount == 6) {
-			cpu.fdc.track = cpu.fdc.data; //let's guess it meant this!!
-		      } else if (cpu.fdc.byteCount == 4) {
-			cpu.fdc.sector = cpu.fdc.data;  //1771 data sheet says this
-		      }
-		#endif
-		      d->u.dmk.curbyte += dmk_incr(d)
+			    } else if (d->emutype == DMK) {
+			      cpu.fdc.data = d->u.dmk.buf[d->u.dmk.curbyte]
+			#if 0
+			      if (cpu.fdc.byteCount == 6) {
+				cpu.fdc.sector = cpu.fdc.data; //179x data sheet says this
+			      }
+			#else
+			      if (cpu.fdc.byteCount == 6) {
+				cpu.fdc.track = cpu.fdc.data; //let's guess it meant this!!
+			      } else if (cpu.fdc.byteCount == 4) {
+				cpu.fdc.sector = cpu.fdc.data;  //1771 data sheet says this
+			      }
+			#endif
+			      d->u.dmk.curbyte += dmk_incr(d)
 
-		    } else if (cpu.fdc.last_readadr >= 0) {
-		      if (d->emutype == JV1) {
-			switch (cpu.fdc.byteCount) {
-			case 6:
-			  cpu.fdc.data = d->phytrack
-		#if 0
-			  cpu.fdc.sector = d->phytrack; //179x data sheet says this
-		#else
-			  cpu.fdc.track = d->phytrack; //let's guess it meant this
-		#endif
-			  break
-			case 5:
-			  cpu.fdc.data = 0
-			  break
-			case 4:
-			  cpu.fdc.data = jv1_interleave[cpu.fdc.last_readadr % JV1_SECPERTRK]
-			  cpu.fdc.sector = cpu.fdc.data;  //1771 data sheet says this
-			  break
-			case 3:
-			  cpu.fdc.data = 0x01;  // 256 bytes always
-			  break
-			case 2:
-			case 1:
-			  cpu.fdc.data = cpu.fdc.crc >> 8
-			  break
-			}
-		      } else if (d->emutype == JV3) {
-			sid = &d->u.jv3.id[d->u.jv3.sorted_id[cpu.fdc.last_readadr]]
-			switch (cpu.fdc.byteCount) {
-			case 6:
-			  cpu.fdc.data = sid->track
-		#if 0
-			  cpu.fdc.sector = sid->track; //179x data sheet says this
-		#else
-			  cpu.fdc.track = sid->track; //let's guess it meant this
-		#endif
-			  break
-			case 5:
-			  cpu.fdc.data = (sid->flags & JV3_SIDE) != 0
-			  break
-			case 4:
-			  cpu.fdc.data = sid->sector
-			  cpu.fdc.sector = sid->sector;  //1771 data sheet says this
-			  break
-			case 3:
-			  cpu.fdc.data =
-			    id_index_to_size_code(d, d->u.jv3.sorted_id[cpu.fdc.last_readadr])
-			  break
-			case 2:
-			case 1:
-			  cpu.fdc.data = cpu.fdc.crc >> 8
-			  break
-			}
-		      }
-		    }
-		    cpu.fdc.crc = calc_crc1(cpu.fdc.crc, cpu.fdc.data)
-		    cpu.fdc.byteCount--
-		    if (cpu.fdc.byteCount <= 0) {
-		      if (d->emutype == DMK && cpu.fdc.crc != 0) {
-			cpu.fdc.status |= TRSDISK_CRCERR
-		      }
-		      cpu.fdc.byteCount = 0
-		      cpu.fdc.status &= ~TRSDISK_DRQ
-		      trs_disk_drq_interrupt(0)
-		      if (trs_event_scheduled() == trs_disk_lostdata) {
-			trs_cancel_event()
-		      }
-		      trs_schedule_event(trs_disk_done, 0, 64)
-		    }
-		    break
+			    } else if (cpu.fdc.last_readadr >= 0) {
+			      if (d->emutype == JV1) {
+				switch (cpu.fdc.byteCount) {
+				case 6:
+				  cpu.fdc.data = d->phytrack
+			#if 0
+				  cpu.fdc.sector = d->phytrack; //179x data sheet says this
+			#else
+				  cpu.fdc.track = d->phytrack; //let's guess it meant this
+			#endif
+				  break
+				case 5:
+				  cpu.fdc.data = 0
+				  break
+				case 4:
+				  cpu.fdc.data = jv1_interleave[cpu.fdc.last_readadr % JV1_SECPERTRK]
+				  cpu.fdc.sector = cpu.fdc.data;  //1771 data sheet says this
+				  break
+				case 3:
+				  cpu.fdc.data = 0x01;  // 256 bytes always
+				  break
+				case 2:
+				case 1:
+				  cpu.fdc.data = cpu.fdc.crc >> 8
+				  break
+				}
+			      } else if (d->emutype == JV3) {
+				sid = &d->u.jv3.id[d->u.jv3.sorted_id[cpu.fdc.last_readadr]]
+				switch (cpu.fdc.byteCount) {
+				case 6:
+				  cpu.fdc.data = sid->track
+			#if 0
+				  cpu.fdc.sector = sid->track; //179x data sheet says this
+			#else
+				  cpu.fdc.track = sid->track; //let's guess it meant this
+			#endif
+				  break
+				case 5:
+				  cpu.fdc.data = (sid->flags & JV3_SIDE) != 0
+				  break
+				case 4:
+				  cpu.fdc.data = sid->sector
+				  cpu.fdc.sector = sid->sector;  //1771 data sheet says this
+				  break
+				case 3:
+				  cpu.fdc.data =
+				    id_index_to_size_code(d, d->u.jv3.sorted_id[cpu.fdc.last_readadr])
+				  break
+				case 2:
+				case 1:
+				  cpu.fdc.data = cpu.fdc.crc >> 8
+				  break
+				}
+			      }
+			    }
+			    cpu.fdc.crc = calc_crc1(cpu.fdc.crc, cpu.fdc.data)
+			    cpu.fdc.byteCount--
+			    if (cpu.fdc.byteCount <= 0) {
+			      if (d->emutype == DMK && cpu.fdc.crc != 0) {
+				cpu.fdc.status |= TRSDISK_CRCERR
+			      }
+			      cpu.fdc.byteCount = 0
+			      cpu.fdc.status &= ~TRSDISK_DRQ
+			      trs_disk_drq_interrupt(0)
+			      if (trs_event_scheduled() == trs_disk_lostdata) {
+				trs_cancel_event()
+			      }
+			      trs_schedule_event(trs_disk_done, 0, 64)
+			    }
+			    break
 		*/
 
 	case diskReadTrk:
 		panic("diskReadTrk")
 		/*
-		    // assert(emutype == DMK)
-		    if (!(cpu.fdc.status & TRSDISK_DRQ)) break
-		    if (cpu.fdc.byteCount > 0) {
-		      cpu.fdc.data = d->u.dmk.buf[d->u.dmk.curbyte]
-		      d->u.dmk.curbyte += dmk_incr(d)
-		      cpu.fdc.byteCount = cpu.fdc.byteCount - 2 + cpu.fdc.density
-		    }
-		    if (cpu.fdc.byteCount <= 0) {
-		      cpu.fdc.byteCount = 0
-		      cpu.fdc.status &= ~TRSDISK_DRQ
-		      trs_disk_drq_interrupt(0)
-		      if (trs_event_scheduled() == trs_disk_lostdata) {
-			trs_cancel_event()
-		      }
-		      trs_schedule_event(trs_disk_done, 0, 64)
-		    }
-		    break
+			    // assert(emutype == DMK)
+			    if (!(cpu.fdc.status & TRSDISK_DRQ)) break
+			    if (cpu.fdc.byteCount > 0) {
+			      cpu.fdc.data = d->u.dmk.buf[d->u.dmk.curbyte]
+			      d->u.dmk.curbyte += dmk_incr(d)
+			      cpu.fdc.byteCount = cpu.fdc.byteCount - 2 + cpu.fdc.density
+			    }
+			    if (cpu.fdc.byteCount <= 0) {
+			      cpu.fdc.byteCount = 0
+			      cpu.fdc.status &= ~TRSDISK_DRQ
+			      trs_disk_drq_interrupt(0)
+			      if (trs_event_scheduled() == trs_disk_lostdata) {
+				trs_cancel_event()
+			      }
+			      trs_schedule_event(trs_disk_done, 0, 64)
+			    }
+			    break
 		*/
 	default:
 		// Might be okay, not sure.
