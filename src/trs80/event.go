@@ -18,13 +18,13 @@ const (
 )
 
 type eventType uint
-type eventCallback func ()
+type eventCallback func()
 
 type event struct {
 	eventType eventType
-	callback eventCallback
-	clock uint64
-	next *event
+	callback  eventCallback
+	clock     uint64
+	next      *event
 }
 
 type events struct {
@@ -34,7 +34,7 @@ type events struct {
 // Queue up an event to happen at clock, using a delta clock relative to the
 // current time.
 func (cpu *cpu) addEvent(eventType eventType, callback eventCallback, deltaClock uint64) {
-	cpu.events.add(eventType, callback, cpu.clock + deltaClock)
+	cpu.events.add(eventType, callback, cpu.clock+deltaClock)
 }
 
 // Queue up an event to happen at clock.
@@ -81,7 +81,7 @@ func (events *events) cancelEvents(eventMask eventType) {
 		nextEventPtr := &(*eventPtr).next
 		eventType := (*eventPtr).eventType
 
-		if eventType & eventMask != 0 {
+		if eventType&eventMask != 0 {
 			// Remove it from list.
 			*eventPtr = *nextEventPtr
 
@@ -99,7 +99,7 @@ func (events *events) cancelEvents(eventMask eventType) {
 // found.
 func (events *events) getFirstEvent(eventMask eventType) *event {
 	for event := events.head; event != nil; event = event.next {
-		if event.eventType & eventMask != 0 {
+		if event.eventType&eventMask != 0 {
 			return event
 		}
 	}

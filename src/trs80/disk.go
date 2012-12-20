@@ -4,8 +4,8 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"io/ioutil"
+	"log"
 )
 
 const (
@@ -14,24 +14,24 @@ const (
 
 // Type I status bits.
 const (
-	diskBusy = 1 << iota
-	diskIndex // Over index hole.
+	diskBusy    = 1 << iota
+	diskIndex   // Over index hole.
 	diskTrkZero // On track 0.
 	diskCrcErr
 	diskSeekErr
 	diskHeadEngd // Head engaged.
 	diskWritePrt // Write-protected.
-	diskNotRdy // Disk not ready (motor not running).
+	diskNotRdy   // Disk not ready (motor not running).
 )
 
 // Read status bits.
 const (
-	diskDrq = 0x02
+	diskDrq      = 0x02
 	diskLostData = 0x04
 	diskNotFound = 0x10
-	diskRecType = 0x60
-	disk1791FB = 0x00
-	disk1791F8 = 0x20
+	diskRecType  = 0x60
+	disk1791FB   = 0x00
+	disk1791F8   = 0x20
 )
 
 // Select register bits for writeDiskSelect().
@@ -45,7 +45,7 @@ const (
 	diskWait
 	diskMfm // Double density.
 
-	diskDriveMask = diskDrive0|diskDrive1|diskDrive2|diskDrive3
+	diskDriveMask = diskDrive0 | diskDrive1 | diskDrive2 | diskDrive3
 )
 
 const (
@@ -56,8 +56,8 @@ const (
 	diskHoleWidth = 0.01
 
 	// Speed of disk.
-	diskRpm = 300
-	clocksPerRevolution = cpuHz*60/diskRpm
+	diskRpm             = 300
+	clocksPerRevolution = cpuHz * 60 / diskRpm
 
 	// Whether disks are write-protected.
 	writeProtection = true
@@ -66,7 +66,7 @@ const (
 	maxTracks = 255
 
 	// JV1 info.
-	jv1BytesPerSector = 256
+	jv1BytesPerSector  = 256
 	jv1SectorsPerTrack = 10
 )
 
@@ -79,17 +79,17 @@ const (
 	//     h = head load
 	//     v = verify (i.e., read next address to check we're on the right track)
 	//     rr = step rate:  00=6ms, 01=12ms, 10=20ms, 11=40ms
-	diskRestore = 0x00
-	diskSeek = 0x10
-	diskStep = 0x20  // Doesn't update track register
-	diskStepU = 0x30  // Updates track register
-	diskStepIn = 0x40
-	diskStepInU = 0x50
-	diskStepOut = 0x60
+	diskRestore  = 0x00
+	diskSeek     = 0x10
+	diskStep     = 0x20 // Doesn't update track register
+	diskStepU    = 0x30 // Updates track register
+	diskStepIn   = 0x40
+	diskStepInU  = 0x50
+	diskStepOut  = 0x60
 	diskStepOutU = 0x70
-	diskUMask = 0x10
-	diskHMask = 0x08
-	diskVMask = 0x04
+	diskUMask    = 0x10
+	diskHMask    = 0x08
+	diskVMask    = 0x04
 
 	// Type II commands: ccccbecd, where
 	//     cccc = command number
@@ -98,22 +98,22 @@ const (
 	//     c = side compare (0=disable, 1=enable)
 	//     d = select data address mark (writes only, 0 for reads):
 	//         0=FB (normal), 1=F8 (deleted)
-	diskRead = 0x80  // Single sector
-	diskReadM = 0x90  // Multiple sectors
-	diskWrite = 0xa0
+	diskRead   = 0x80 // Single sector
+	diskReadM  = 0x90 // Multiple sectors
+	diskWrite  = 0xa0
 	diskWriteM = 0xb0
-	diskMMask = 0x10
-	diskBMask = 0x08
-	diskEMask = 0x04
-	diskCMask = 0x02
-	diskDMask = 0x01
+	diskMMask  = 0x10
+	diskBMask  = 0x08
+	diskEMask  = 0x04
+	diskCMask  = 0x02
+	diskDMask  = 0x01
 
 	// Type III commands: ccccxxxs (?), where
 	//     cccc = command number
 	//     xxx = ?? (usually 010)
 	//     s = 1=READTRK no synchronize; otherwise 0
-	diskReadAdr = 0xc0
-	diskReadTrk = 0xe0
+	diskReadAdr  = 0xc0
+	diskReadTrk  = 0xe0
 	diskWriteTrk = 0xf0
 
 	// Type IV command: cccciiii, where
@@ -133,23 +133,23 @@ type side int
 type fdc struct {
 	// Registers.
 	status byte
-	track byte
+	track  byte
 	sector byte
-	data byte
+	data   byte
 
 	// Various state.
 	currentCommand byte
-	byteCount int  // Bytes left to transfer this command.
-	side side
-	doubleDensity bool
-	currentDrive int
-	motorIsOn bool
-	motorTimeout uint64
-	lastReadAdr int // Id index found by last readadr.
+	byteCount      int // Bytes left to transfer this command.
+	side           side
+	doubleDensity  bool
+	currentDrive   int
+	motorIsOn      bool
+	motorTimeout   uint64
+	lastReadAdr    int // Id index found by last readadr.
 
 	// Disks themselves.
 	driveCount int
-	disk disk
+	disk       disk
 }
 
 // Data about the floppy that has been inserted.
@@ -196,7 +196,7 @@ func (cpu *cpu) diskInit(powerOn bool) {
 	}
 
 	// Registers.
-	cpu.fdc.status = diskNotRdy|diskTrkZero
+	cpu.fdc.status = diskNotRdy | diskTrkZero
 	cpu.fdc.track = 0
 	cpu.fdc.sector = 0
 	cpu.fdc.data = 0
@@ -244,7 +244,7 @@ func (cpu *cpu) diskLostData(cmd byte) {
 		log.Printf("diskLostData(%02X)", cmd)
 	}
 
-	if (cpu.fdc.currentCommand == cmd) {
+	if cpu.fdc.currentCommand == cmd {
 		cpu.fdc.status &^= diskBusy
 		cpu.fdc.status |= diskLostData
 		cpu.fdc.byteCount = 0
@@ -263,7 +263,7 @@ func (cpu *cpu) diskFirstDrq(bits byte) {
 	cpu.diskDrqInterrupt(true)
 	// Evaluate this now, not when the callback is run.
 	currentCommand := cpu.fdc.currentCommand
-	cpu.addEvent(eventDiskLostData, func () { cpu.diskLostData(currentCommand) }, cpuHz*2)
+	cpu.addEvent(eventDiskLostData, func() { cpu.diskLostData(currentCommand) }, cpuHz*2)
 }
 
 func (cpu *cpu) checkDiskMotorOff() bool {
@@ -272,9 +272,9 @@ func (cpu *cpu) checkDiskMotorOff() bool {
 		cpu.setDiskMotor(false)
 		cpu.fdc.status |= diskNotRdy
 
-		if isReadWriteCommand(cpu.fdc.currentCommand) && (cpu.fdc.status & diskDrq) != 0 {
+		if isReadWriteCommand(cpu.fdc.currentCommand) && (cpu.fdc.status&diskDrq) != 0 {
 			// Also end the command and set Lost Data for good measure
-			cpu.fdc.status = (cpu.fdc.status | diskLostData) & ^byte(diskBusy | diskDrq)
+			cpu.fdc.status = (cpu.fdc.status | diskLostData) & ^byte(diskBusy|diskDrq)
 			cpu.fdc.byteCount = 0
 		}
 	}
@@ -308,7 +308,7 @@ func (cpu *cpu) setDiskMotor(value bool) {
 // from the leading edge of the index hole. For the first diskHoleWidth we're
 // on the hole itself.
 func (cpu *cpu) diskAngle() float32 {
-  return float32(cpu.clock % clocksPerRevolution) / float32(clocksPerRevolution)
+	return float32(cpu.clock%clocksPerRevolution) / float32(clocksPerRevolution)
 }
 
 func isReadWriteCommand(cmd byte) bool {
@@ -362,7 +362,7 @@ func (cpu *cpu) updateDiskStatus() {
 	}
 
 	// RDY and HLT inputs are wired together on TRS-80 I/III/4/4P.
-	if cpu.fdc.status & diskNotRdy != 0 {
+	if cpu.fdc.status&diskNotRdy != 0 {
 		cpu.fdc.status &^= diskHeadEngd
 	} else {
 		cpu.fdc.status |= diskHeadEngd
@@ -377,7 +377,7 @@ func (cpu *cpu) readDiskStatus() byte {
 	cpu.updateDiskStatus()
 
 	// Turn off motor if it's running and been too long.
-	if cpu.fdc.status & diskNotRdy == 0 {
+	if cpu.fdc.status&diskNotRdy == 0 {
 		if cpu.clock > cpu.fdc.motorTimeout {
 			cpu.setDiskMotor(false)
 			cpu.fdc.status |= diskNotRdy
@@ -414,7 +414,7 @@ func (cpu *cpu) readDiskData() byte {
 
 	switch cpu.fdc.currentCommand & diskCommandMask {
 	case diskRead:
-		if cpu.fdc.byteCount > 0 && (cpu.fdc.status & diskDrq) != 0 {
+		if cpu.fdc.byteCount > 0 && (cpu.fdc.status&diskDrq) != 0 {
 			var c byte
 			if disk.dataOffset >= len(disk.data) {
 				c = 0xE5
@@ -426,146 +426,146 @@ func (cpu *cpu) readDiskData() byte {
 			}
 			cpu.fdc.data = c
 			cpu.fdc.byteCount--
-			if (cpu.fdc.byteCount <= 0) {
+			if cpu.fdc.byteCount <= 0 {
 				cpu.fdc.byteCount = 0
 				cpu.fdc.status &^= diskDrq
 				cpu.diskDrqInterrupt(false)
 				cpu.events.cancelEvents(eventDiskLostData)
-				cpu.addEvent(eventDiskDone, func () { cpu.diskDone(0) }, 64)
+				cpu.addEvent(eventDiskDone, func() { cpu.diskDone(0) }, 64)
 			}
 		}
 
 	case diskReadAdr:
 		panic("diskReadAdr")
-	  /*
-    if (cpu.fdc.byteCount <= 0 || !(cpu.fdc.status & TRSDISK_DRQ)) break
-    if (d->emutype == REAL) {
-#if 0
-      cpu.fdc.sector = d->u.real.buf[0]; //179x data sheet says this
-#else
-      cpu.fdc.track = d->u.real.buf[0]; //let's guess it meant this
-      cpu.fdc.sector = d->u.real.buf[2]; //1771 data sheet says this
-#endif
-      cpu.fdc.data = d->u.real.buf[6 - cpu.fdc.byteCount]
+		/*
+		    if (cpu.fdc.byteCount <= 0 || !(cpu.fdc.status & TRSDISK_DRQ)) break
+		    if (d->emutype == REAL) {
+		#if 0
+		      cpu.fdc.sector = d->u.real.buf[0]; //179x data sheet says this
+		#else
+		      cpu.fdc.track = d->u.real.buf[0]; //let's guess it meant this
+		      cpu.fdc.sector = d->u.real.buf[2]; //1771 data sheet says this
+		#endif
+		      cpu.fdc.data = d->u.real.buf[6 - cpu.fdc.byteCount]
 
-    } else if (d->emutype == DMK) {
-      cpu.fdc.data = d->u.dmk.buf[d->u.dmk.curbyte]
-#if 0
-      if (cpu.fdc.byteCount == 6) {
-	cpu.fdc.sector = cpu.fdc.data; //179x data sheet says this
-      }
-#else
-      if (cpu.fdc.byteCount == 6) {
-	cpu.fdc.track = cpu.fdc.data; //let's guess it meant this!!
-      } else if (cpu.fdc.byteCount == 4) {
-	cpu.fdc.sector = cpu.fdc.data;  //1771 data sheet says this
-      }
-#endif
-      d->u.dmk.curbyte += dmk_incr(d)
+		    } else if (d->emutype == DMK) {
+		      cpu.fdc.data = d->u.dmk.buf[d->u.dmk.curbyte]
+		#if 0
+		      if (cpu.fdc.byteCount == 6) {
+			cpu.fdc.sector = cpu.fdc.data; //179x data sheet says this
+		      }
+		#else
+		      if (cpu.fdc.byteCount == 6) {
+			cpu.fdc.track = cpu.fdc.data; //let's guess it meant this!!
+		      } else if (cpu.fdc.byteCount == 4) {
+			cpu.fdc.sector = cpu.fdc.data;  //1771 data sheet says this
+		      }
+		#endif
+		      d->u.dmk.curbyte += dmk_incr(d)
 
-    } else if (cpu.fdc.last_readadr >= 0) {
-      if (d->emutype == JV1) {
-	switch (cpu.fdc.byteCount) {
-	case 6:
-	  cpu.fdc.data = d->phytrack
-#if 0
-	  cpu.fdc.sector = d->phytrack; //179x data sheet says this
-#else
-	  cpu.fdc.track = d->phytrack; //let's guess it meant this
-#endif
-	  break
-	case 5:
-	  cpu.fdc.data = 0
-	  break
-	case 4:
-	  cpu.fdc.data = jv1_interleave[cpu.fdc.last_readadr % JV1_SECPERTRK]
-	  cpu.fdc.sector = cpu.fdc.data;  //1771 data sheet says this
-	  break
-	case 3:
-	  cpu.fdc.data = 0x01;  // 256 bytes always
-	  break
-	case 2:
-	case 1:
-	  cpu.fdc.data = cpu.fdc.crc >> 8
-	  break
-	}
-      } else if (d->emutype == JV3) {
-	sid = &d->u.jv3.id[d->u.jv3.sorted_id[cpu.fdc.last_readadr]]
-	switch (cpu.fdc.byteCount) {
-	case 6:
-	  cpu.fdc.data = sid->track
-#if 0
-	  cpu.fdc.sector = sid->track; //179x data sheet says this
-#else
-	  cpu.fdc.track = sid->track; //let's guess it meant this
-#endif
-	  break
-	case 5:
-	  cpu.fdc.data = (sid->flags & JV3_SIDE) != 0
-	  break
-	case 4:
-	  cpu.fdc.data = sid->sector
-	  cpu.fdc.sector = sid->sector;  //1771 data sheet says this
-	  break
-	case 3:
-	  cpu.fdc.data =
-	    id_index_to_size_code(d, d->u.jv3.sorted_id[cpu.fdc.last_readadr])
-	  break
-	case 2:
-	case 1:
-	  cpu.fdc.data = cpu.fdc.crc >> 8
-	  break
-	}
-      }
-    }
-    cpu.fdc.crc = calc_crc1(cpu.fdc.crc, cpu.fdc.data)
-    cpu.fdc.byteCount--
-    if (cpu.fdc.byteCount <= 0) {
-      if (d->emutype == DMK && cpu.fdc.crc != 0) {
-	cpu.fdc.status |= TRSDISK_CRCERR
-      }
-      cpu.fdc.byteCount = 0
-      cpu.fdc.status &= ~TRSDISK_DRQ
-      trs_disk_drq_interrupt(0)
-      if (trs_event_scheduled() == trs_disk_lostdata) {
-	trs_cancel_event()
-      }
-      trs_schedule_event(trs_disk_done, 0, 64)
-    }
-    break
-	*/
+		    } else if (cpu.fdc.last_readadr >= 0) {
+		      if (d->emutype == JV1) {
+			switch (cpu.fdc.byteCount) {
+			case 6:
+			  cpu.fdc.data = d->phytrack
+		#if 0
+			  cpu.fdc.sector = d->phytrack; //179x data sheet says this
+		#else
+			  cpu.fdc.track = d->phytrack; //let's guess it meant this
+		#endif
+			  break
+			case 5:
+			  cpu.fdc.data = 0
+			  break
+			case 4:
+			  cpu.fdc.data = jv1_interleave[cpu.fdc.last_readadr % JV1_SECPERTRK]
+			  cpu.fdc.sector = cpu.fdc.data;  //1771 data sheet says this
+			  break
+			case 3:
+			  cpu.fdc.data = 0x01;  // 256 bytes always
+			  break
+			case 2:
+			case 1:
+			  cpu.fdc.data = cpu.fdc.crc >> 8
+			  break
+			}
+		      } else if (d->emutype == JV3) {
+			sid = &d->u.jv3.id[d->u.jv3.sorted_id[cpu.fdc.last_readadr]]
+			switch (cpu.fdc.byteCount) {
+			case 6:
+			  cpu.fdc.data = sid->track
+		#if 0
+			  cpu.fdc.sector = sid->track; //179x data sheet says this
+		#else
+			  cpu.fdc.track = sid->track; //let's guess it meant this
+		#endif
+			  break
+			case 5:
+			  cpu.fdc.data = (sid->flags & JV3_SIDE) != 0
+			  break
+			case 4:
+			  cpu.fdc.data = sid->sector
+			  cpu.fdc.sector = sid->sector;  //1771 data sheet says this
+			  break
+			case 3:
+			  cpu.fdc.data =
+			    id_index_to_size_code(d, d->u.jv3.sorted_id[cpu.fdc.last_readadr])
+			  break
+			case 2:
+			case 1:
+			  cpu.fdc.data = cpu.fdc.crc >> 8
+			  break
+			}
+		      }
+		    }
+		    cpu.fdc.crc = calc_crc1(cpu.fdc.crc, cpu.fdc.data)
+		    cpu.fdc.byteCount--
+		    if (cpu.fdc.byteCount <= 0) {
+		      if (d->emutype == DMK && cpu.fdc.crc != 0) {
+			cpu.fdc.status |= TRSDISK_CRCERR
+		      }
+		      cpu.fdc.byteCount = 0
+		      cpu.fdc.status &= ~TRSDISK_DRQ
+		      trs_disk_drq_interrupt(0)
+		      if (trs_event_scheduled() == trs_disk_lostdata) {
+			trs_cancel_event()
+		      }
+		      trs_schedule_event(trs_disk_done, 0, 64)
+		    }
+		    break
+		*/
 
-  case diskReadTrk:
+	case diskReadTrk:
 		panic("diskReadTrk")
-	  /*
-    // assert(emutype == DMK)
-    if (!(cpu.fdc.status & TRSDISK_DRQ)) break
-    if (cpu.fdc.byteCount > 0) {
-      cpu.fdc.data = d->u.dmk.buf[d->u.dmk.curbyte]
-      d->u.dmk.curbyte += dmk_incr(d)
-      cpu.fdc.byteCount = cpu.fdc.byteCount - 2 + cpu.fdc.density
-    }
-    if (cpu.fdc.byteCount <= 0) {
-      cpu.fdc.byteCount = 0
-      cpu.fdc.status &= ~TRSDISK_DRQ
-      trs_disk_drq_interrupt(0)
-      if (trs_event_scheduled() == trs_disk_lostdata) {
-	trs_cancel_event()
-      }
-      trs_schedule_event(trs_disk_done, 0, 64)
-    }
-    break
-	*/
-default:
-	// Might be okay, not sure.
-	panic("Unhandled case in readDiskData()")
-  }
+		/*
+		    // assert(emutype == DMK)
+		    if (!(cpu.fdc.status & TRSDISK_DRQ)) break
+		    if (cpu.fdc.byteCount > 0) {
+		      cpu.fdc.data = d->u.dmk.buf[d->u.dmk.curbyte]
+		      d->u.dmk.curbyte += dmk_incr(d)
+		      cpu.fdc.byteCount = cpu.fdc.byteCount - 2 + cpu.fdc.density
+		    }
+		    if (cpu.fdc.byteCount <= 0) {
+		      cpu.fdc.byteCount = 0
+		      cpu.fdc.status &= ~TRSDISK_DRQ
+		      trs_disk_drq_interrupt(0)
+		      if (trs_event_scheduled() == trs_disk_lostdata) {
+			trs_cancel_event()
+		      }
+		      trs_schedule_event(trs_disk_done, 0, 64)
+		    }
+		    break
+		*/
+	default:
+		// Might be okay, not sure.
+		panic("Unhandled case in readDiskData()")
+	}
 
-  if diskDebug {
-	  log.Printf("readDiskData() = %02X (%d left)", cpu.fdc.data, cpu.fdc.byteCount)
-  }
+	if diskDebug {
+		log.Printf("readDiskData() = %02X (%d left)", cpu.fdc.data, cpu.fdc.byteCount)
+	}
 
-  return cpu.fdc.data
+	return cpu.fdc.data
 }
 
 func (cpu *cpu) writeDiskCommand(cmd byte) {
@@ -585,11 +585,11 @@ func (cpu *cpu) writeDiskCommand(cmd byte) {
 		cpu.fdc.lastReadAdr = -1
 		cpu.fdc.disk.physicalTrack = 0
 		cpu.fdc.track = 0
-		cpu.fdc.status = diskTrkZero|diskBusy
-		if cmd & diskVMask != 0 {
+		cpu.fdc.status = diskTrkZero | diskBusy
+		if cmd&diskVMask != 0 {
 			cpu.diskVerify()
 		}
-		cpu.addEvent(eventDiskDone, func () { cpu.diskDone(0) }, 2000)
+		cpu.addEvent(eventDiskDone, func() { cpu.diskDone(0) }, 2000)
 	case diskSeek:
 		panic("Don't handle diskSeek")
 	case diskStep:
@@ -608,13 +608,13 @@ func (cpu *cpu) writeDiskCommand(cmd byte) {
 		cpu.fdc.lastReadAdr = -1
 		cpu.fdc.status = 0
 		goalSide := side(-1)
-		if cmd & diskCMask != 0 {
+		if cmd&diskCMask != 0 {
 			goalSide.setFromBoolean((cmd & diskBMask) != 0)
 		}
 		sectorIndex := cpu.searchSector(int(cpu.fdc.sector), goalSide)
 		if sectorIndex == -1 {
 			cpu.fdc.status |= diskBusy
-			cpu.addEvent(eventDiskDone, func () { cpu.diskDone(0) }, 512)
+			cpu.addEvent(eventDiskDone, func() { cpu.diskDone(0) }, 512)
 		} else {
 			disk := &cpu.fdc.disk
 			var newStatus byte = 0
@@ -624,7 +624,7 @@ func (cpu *cpu) writeDiskCommand(cmd byte) {
 			cpu.fdc.byteCount = jv1BytesPerSector
 			disk.dataOffset = cpu.dataOffset(sectorIndex)
 			cpu.fdc.status |= diskBusy
-			cpu.addEvent(eventDiskFirstDrq, func () { cpu.diskFirstDrq(newStatus) }, 64)
+			cpu.addEvent(eventDiskFirstDrq, func() { cpu.diskFirstDrq(newStatus) }, 64)
 		}
 	case diskReadM:
 		panic("Don't handle diskReadM")
@@ -688,7 +688,7 @@ func (cpu *cpu) writeDiskSelect(value byte) {
 	cpu.fdc.status &^= diskNotRdy
 	cpu.fdc.side.setFromBoolean((value & diskSide) != 0)
 	cpu.fdc.doubleDensity = (value & diskMfm) != 0
-	if value & diskWait != 0 {
+	if value&diskWait != 0 {
 		// If there was an event pending, simulate waiting until it was due.
 		event := cpu.events.getFirstEvent(eventDisk &^ eventDiskLostData)
 		if event != nil {
@@ -722,7 +722,7 @@ func (cpu *cpu) writeDiskSelect(value byte) {
 	}
 
 	// If a drive was selected, turn on its motor.
-	if cpu.fdc.status & diskNotRdy == 0 {
+	if cpu.fdc.status&diskNotRdy == 0 {
 		cpu.setDiskMotor(true)
 		cpu.fdc.motorTimeout = cpu.clock + motorTimeAfterSelect*cpuHz
 		cpu.diskMotorOffInterrupt(false)
@@ -746,17 +746,17 @@ func (cpu *cpu) searchSector(sector int, side side) int {
 
 		cpu.fdc.status |= diskNotFound
 		return -1
-    }
+	}
 
 	if sector < 0 {
 		sector = 0
 	}
 
-    return jv1SectorsPerTrack*int(disk.physicalTrack) + sector
+	return jv1SectorsPerTrack*int(disk.physicalTrack) + sector
 }
 
 func (cpu *cpu) dataOffset(index int) int {
-	return index*jv1BytesPerSector
+	return index * jv1BytesPerSector
 }
 
 // Verify that head is on the expected track.

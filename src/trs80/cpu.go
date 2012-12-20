@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	printDebug = false
-	ramBegin = 0x4000
-	cpuHz = 2027520
+	printDebug  = false
+	ramBegin    = 0x4000
+	cpuHz       = 2027520
 	cpuPeriodNs = 1000000000 / cpuHz
 )
 
@@ -75,7 +75,7 @@ type cpu struct {
 
 	previousDumpTime    time.Time
 	previousDumpClock   uint64
-	sleptSinceDump	time.Duration
+	sleptSinceDump      time.Duration
 	previousYieldClock  uint64
 	startTime           int64
 	previousAdjustClock uint64
@@ -131,27 +131,27 @@ func (cpu *cpu) run(cpuCommandCh <-chan cpuCommand) {
 }
 
 func (cpu *cpu) reset(powerOn bool) {
-    /// trs_cassette_reset()
-    /// trs_timer_speed(0)
-    cpu.diskInit(powerOn)
-    /// trs_hard_out(TRS_HARD_CONTROL, TRS_HARD_SOFTWARE_RESET|TRS_HARD_DEVICE_ENABLE)
+	/// trs_cassette_reset()
+	/// trs_timer_speed(0)
+	cpu.diskInit(powerOn)
+	/// trs_hard_out(TRS_HARD_CONTROL, TRS_HARD_SOFTWARE_RESET|TRS_HARD_DEVICE_ENABLE)
 	cpu.setIrqMask(0)
 	cpu.setNmiMask(0)
 	cpu.clearKeyboard()
 	cpu.timerInterrupt(false)
 
-    if (powerOn) {
+	if powerOn {
 		cpu.z80reset()
-    } else {
+	} else {
 		cpu.resetButtonInterrupt(true)
 	}
 }
 
 func (cpu *cpu) z80reset() {
 	cpu.pc = 0
-    // cpu.i = 0
-    cpu.iff1 = false
-    // cpu.iff2 = false
+	// cpu.i = 0
+	cpu.iff1 = false
+	// cpu.iff2 = false
 
 	cpu.startTime = time.Now().UnixNano()
 }

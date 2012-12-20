@@ -13,7 +13,7 @@ const (
 
 // NMIs
 const (
-	resetNmiMask    = 0x20 << iota
+	resetNmiMask = 0x20 << iota
 	diskMotorOffNmiMask
 	diskIntrqNmiMask
 )
@@ -29,7 +29,7 @@ func (cpu *cpu) setNmiMask(nmiMask byte) {
 }
 
 func (cpu *cpu) updateNmiSeen() {
-	if (cpu.nmiLatch&cpu.nmiMask) == 0 {
+	if (cpu.nmiLatch & cpu.nmiMask) == 0 {
 		cpu.nmiSeen = false
 	}
 }
@@ -47,7 +47,7 @@ func (cpu *cpu) handleNmi() {
 }
 
 func (cpu *cpu) resetButtonInterrupt(state bool) {
-    if state {
+	if state {
 		cpu.nmiLatch |= resetNmiMask
 	} else {
 		cpu.nmiLatch &^= resetNmiMask
@@ -56,7 +56,7 @@ func (cpu *cpu) resetButtonInterrupt(state bool) {
 }
 
 func (cpu *cpu) diskMotorOffInterrupt(state bool) {
-    if state {
+	if state {
 		cpu.nmiLatch |= diskMotorOffNmiMask
 	} else {
 		cpu.nmiLatch &^= diskMotorOffNmiMask
@@ -65,7 +65,7 @@ func (cpu *cpu) diskMotorOffInterrupt(state bool) {
 }
 
 func (cpu *cpu) diskIntrqInterrupt(state bool) {
-    if state {
+	if state {
 		cpu.nmiLatch |= diskIntrqNmiMask
 	} else {
 		cpu.nmiLatch &^= diskIntrqNmiMask
