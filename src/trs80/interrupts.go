@@ -72,3 +72,7 @@ func (cpu *cpu) diskIntrqInterrupt(state bool) {
 	}
 	cpu.updateNmiSeen()
 }
+
+func (cpu *cpu) diskDrqInterrupt(state bool) {
+	// No effect.
+}

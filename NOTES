@@ -75,7 +75,7 @@ Disk notes:
             10 sectors = 256 bytes per sector.
         First few bytes of file are:
             00              NOP
-            fe  11          CP 11
+            fe  11          CP 11   (0x11 = 17; 17th track is special?)
             f3              DI
             31  fc  41      LD SP, 41FC
             21  e2  42      LD HL, 42E2

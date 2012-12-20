@@ -70,6 +70,9 @@ type cpu struct {
 	// Channel to get updates from.
 	cpuUpdateCh chan<- cpuUpdate
 
+	// Queue of events to dispatch.
+	events events
+
 	previousDumpTime    time.Time
 	previousDumpClock   uint64
 	previousYieldClock  uint64

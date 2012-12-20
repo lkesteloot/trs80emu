@@ -1024,6 +1024,9 @@ func (cpu *cpu) step() {
 		cpu.logln()
 	}
 
+	// Dispatch scheduled events.
+	cpu.events.dispatch(cpu.clock)
+
 	// Handle non-maskable interrupts.
 	if (cpu.nmiLatch&cpu.nmiMask) != 0 && !cpu.nmiSeen {
 		cpu.handleNmi()
