@@ -1,12 +1,23 @@
 package main
 
-const (
-	eventDiskDone = eventType(iota)
-	eventDiskLostData
-	eventDiskFirstDrq
+import (
+	"log"
 )
 
-type eventType int
+const (
+	eventDebug = true
+)
+
+const (
+	eventDiskDone = eventType(1 << iota)
+	eventDiskLostData
+	eventDiskFirstDrq
+
+	// Masks for multiple events.
+	eventDisk = eventDiskDone | eventDiskLostData | eventDiskFirstDrq
+)
+
+type eventType uint
 type eventCallback func ()
 
 type event struct {
@@ -32,12 +43,18 @@ func (events *events) add(eventType eventType, callback eventCallback, clock uin
 
 	// Insert into list sorted by clock.
 	eventPtr := &events.head
+	place := 0
 	for *eventPtr != nil && (*eventPtr).clock < clock {
 		*eventPtr = (*eventPtr).next
+		place++
 	}
 
 	event.next = *eventPtr
 	*eventPtr = event
+
+	if eventDebug {
+		log.Printf("events.add(%d at %d in place %d)", eventType, clock, place)
+	}
 }
 
 // Dispatch all events that are scheduled for clock or later.
@@ -48,20 +65,29 @@ func (events *events) dispatch(clock uint64) {
 		event := events.head
 		events.head = event.next
 
+		if eventDebug {
+			log.Printf("events.dispatch(%d at %d)", event.eventType, clock)
+		}
+
 		event.callback()
 	}
 }
 
-// Remove all events in list that are of type eventType.
-func (events *events) cancelEvents(eventType eventType) {
+// Remove all events in list that match the mask eventMask.
+func (events *events) cancelEvents(eventMask eventType) {
 	eventPtr := &events.head
 
 	for *eventPtr != nil {
 		nextEventPtr := &(*eventPtr).next
+		eventType := (*eventPtr).eventType
 
-		if (*eventPtr).eventType == eventType {
-			// Skip it.
+		if eventType & eventMask != 0 {
+			// Remove it from list.
 			*eventPtr = *nextEventPtr
+
+			if eventDebug {
+				log.Printf("events.cancelEvents(%d)", eventType)
+			}
 		} else {
 			// Move to next one.
 			eventPtr = nextEventPtr
@@ -69,18 +95,11 @@ func (events *events) cancelEvents(eventType eventType) {
 	}
 }
 
-// Cancel all disk-related events.
-func (events *events) cancelDiskEvents() {
-	events.cancelEvents(eventDiskDone)
-	events.cancelEvents(eventDiskLostData)
-	events.cancelEvents(eventDiskFirstDrq)
-}
-
-// Returns the first event of the specified type, or nil if none are of that
-// type.
-func (events *events) getFirstEvent(eventType eventType) *event {
+// Returns the first event that matches the specified mask, or nil if none are
+// found.
+func (events *events) getFirstEvent(eventMask eventType) *event {
 	for event := events.head; event != nil; event = event.next {
-		if event.eventType == eventType {
+		if event.eventType & eventMask != 0 {
 			return event
 		}
 	}

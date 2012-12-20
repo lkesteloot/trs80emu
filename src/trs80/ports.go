@@ -20,7 +20,7 @@ func (cpu *cpu) readPort(port byte) byte {
 	/// log.Printf("Reading port %02X", port)
 	switch port {
 	case 0xE0:
-		// Figure out which interrupts were requested.
+		// IRQ latch read.
 		return ^cpu.irqLatch
 	case 0xE4:
 		// NMI latch read.

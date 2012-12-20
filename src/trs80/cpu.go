@@ -75,6 +75,7 @@ type cpu struct {
 
 	previousDumpTime    time.Time
 	previousDumpClock   uint64
+	sleptSinceDump	time.Duration
 	previousYieldClock  uint64
 	startTime           int64
 	previousAdjustClock uint64
@@ -248,19 +249,13 @@ func (cpu *cpu) popWord() word {
 }
 
 func (cpu *cpu) log(s string) {
-	if printDebug {
-		fmt.Print(s)
-	}
+	fmt.Print(s)
 }
 
 func (cpu *cpu) logf(format string, arg ...interface{}) {
-	if printDebug {
-		fmt.Printf(format, arg...)
-	}
+	fmt.Printf(format, arg...)
 }
 
 func (cpu *cpu) logln() {
-	if printDebug {
-		fmt.Println()
-	}
+	fmt.Println()
 }

@@ -8,16 +8,20 @@ import (
 	"io/ioutil"
 )
 
+const (
+	diskDebug = true
+)
+
 // Type I status bits.
 const (
 	diskBusy = 1 << iota
-	diskIndex
-	diskTrkZero
+	diskIndex // Over index hole.
+	diskTrkZero // On track 0.
 	diskCrcErr
 	diskSeekErr
-	diskHeadEngd
-	diskWritePrt
-	diskNotRdy
+	diskHeadEngd // Head engaged.
+	diskWritePrt // Write-protected.
+	diskNotRdy // Disk not ready (motor not running).
 )
 
 // Read status bits.
@@ -30,12 +34,18 @@ const (
 	disk1791F8 = 0x20
 )
 
-// Select register bits.
+// Select register bits for writeDiskSelect().
 const (
-	diskSide = 0x10 << iota
+	diskDrive0 = 1 << iota
+	diskDrive1
+	diskDrive2
+	diskDrive3
+	diskSide // 0 = front, 1 = back.
 	diskPrecomp
 	diskWait
-	diskMfm
+	diskMfm // Double density.
+
+	diskDriveMask = diskDrive0|diskDrive1|diskDrive2|diskDrive3
 )
 
 const (
@@ -61,6 +71,7 @@ const (
 )
 
 const (
+	// for writeDiskCommand().
 	diskCommandMask = 0xF0
 
 	// Type I commands: cccchvrr, where
@@ -180,6 +191,10 @@ func (disk *disk) load(filename string) error {
 }
 
 func (cpu *cpu) diskInit(powerOn bool) {
+	if diskDebug {
+		log.Printf("diskInit(%v)", powerOn)
+	}
+
 	// Registers.
 	cpu.fdc.status = diskNotRdy|diskTrkZero
 	cpu.fdc.track = 0
@@ -204,7 +219,7 @@ func (cpu *cpu) diskInit(powerOn bool) {
 	// trs_disk_change_all()
 
 	// Cancel any pending disk event.
-	cpu.events.cancelDiskEvents()
+	cpu.events.cancelEvents(eventDisk)
 
 	cpu.fdc.driveCount = 1
 }
@@ -213,6 +228,10 @@ func (cpu *cpu) diskInit(powerOn bool) {
 // sets any additional bits specified, and generates a command
 // completion interrupt.
 func (cpu *cpu) diskDone(bits byte) {
+	if diskDebug {
+		log.Printf("diskDone(%02X)", bits)
+	}
+
 	cpu.fdc.status &^= diskBusy
 	cpu.fdc.status |= bits
 	cpu.diskIntrqInterrupt(true)
@@ -221,6 +240,10 @@ func (cpu *cpu) diskDone(bits byte) {
 // Event to abort the last command with LOSTDATA if it is
 // still in progress.
 func (cpu *cpu) diskLostData(cmd byte) {
+	if diskDebug {
+		log.Printf("diskLostData(%02X)", cmd)
+	}
+
 	if (cpu.fdc.currentCommand == cmd) {
 		cpu.fdc.status &^= diskBusy
 		cpu.fdc.status |= diskLostData
@@ -232,11 +255,15 @@ func (cpu *cpu) diskLostData(cmd byte) {
 // Event used as a delayed command start. Sets DRQ, generates a DRQ interrupt,
 // sets any additional bits specified, and schedules a diskLostData() event.
 func (cpu *cpu) diskFirstDrq(bits byte) {
+	if diskDebug {
+		log.Printf("diskFirstDrq(%v)", bits)
+	}
+
 	cpu.fdc.status |= diskDrq | bits
 	cpu.diskDrqInterrupt(true)
 	// Evaluate this now, not when the callback is run.
 	currentCommand := cpu.fdc.currentCommand
-	cpu.addEvent(eventDiskLostData, func () { cpu.diskLostData(currentCommand) }, cpuHz/2)
+	cpu.addEvent(eventDiskLostData, func () { cpu.diskLostData(currentCommand) }, cpuHz*2)
 }
 
 func (cpu *cpu) checkDiskMotorOff() bool {
@@ -259,10 +286,14 @@ func (cpu *cpu) setDiskMotor(value bool) {
 	if cpu.fdc.motorIsOn != value {
 		var intValue int
 		if value {
-			log.Print("Starting motor")
+			if diskDebug {
+				log.Print("Starting motor")
+			}
 			intValue = 1
 		} else {
-			log.Print("Stopping motor")
+			if diskDebug {
+				log.Print("Stopping motor")
+			}
 			intValue = 0
 		}
 		// Update UI.
@@ -304,6 +335,7 @@ func commandType(cmd byte) int {
 
 func (cpu *cpu) updateDiskStatus() {
 	if isReadWriteCommand(cpu.fdc.currentCommand) {
+		// Don't modify status.
 		return
 	}
 
@@ -343,6 +375,8 @@ func (cpu *cpu) readDiskStatus() byte {
 	}
 
 	cpu.updateDiskStatus()
+
+	// Turn off motor if it's running and been too long.
 	if cpu.fdc.status & diskNotRdy == 0 {
 		if cpu.clock > cpu.fdc.motorTimeout {
 			cpu.setDiskMotor(false)
@@ -352,20 +386,30 @@ func (cpu *cpu) readDiskStatus() byte {
 
 	cpu.diskIntrqInterrupt(false)
 
+	if diskDebug {
+		log.Printf("readDiskStatus() = %02X", cpu.fdc.status)
+	}
+
 	return cpu.fdc.status
 }
 
 func (cpu *cpu) readDiskTrack() byte {
+	if diskDebug {
+		log.Printf("readDiskTrack() = %02X", cpu.fdc.track)
+	}
+
 	return cpu.fdc.track
 }
 
 func (cpu *cpu) readDiskSector() byte {
+	if diskDebug {
+		log.Printf("readDiskSector() = %02X", cpu.fdc.sector)
+	}
+
 	return cpu.fdc.sector
 }
 
 func (cpu *cpu) readDiskData() byte {
-	log.Printf("Bytes left: %d", cpu.fdc.byteCount)
-
 	disk := &cpu.fdc.disk
 
 	switch cpu.fdc.currentCommand & diskCommandMask {
@@ -373,7 +417,7 @@ func (cpu *cpu) readDiskData() byte {
 		if cpu.fdc.byteCount > 0 && (cpu.fdc.status & diskDrq) != 0 {
 			var c byte
 			if disk.dataOffset >= len(disk.data) {
-				c = 0xe5
+				c = 0xE5
 				cpu.fdc.status &^= diskRecType
 				cpu.fdc.status |= disk1791FB
 			} else {
@@ -517,11 +561,19 @@ default:
 	panic("Unhandled case in readDiskData()")
   }
 
+  if diskDebug {
+	  log.Printf("readDiskData() = %02X (%d left)", cpu.fdc.data, cpu.fdc.byteCount)
+  }
+
   return cpu.fdc.data
 }
 
 func (cpu *cpu) writeDiskCommand(cmd byte) {
-	// Cancel any ongoing command.
+	if diskDebug {
+		log.Printf("writeDiskCommand(%02X)", cmd)
+	}
+
+	// Cancel "lost data" event.
 	cpu.events.cancelEvents(eventDiskLostData)
 
 	cpu.diskIntrqInterrupt(false)
@@ -534,8 +586,9 @@ func (cpu *cpu) writeDiskCommand(cmd byte) {
 		cpu.fdc.disk.physicalTrack = 0
 		cpu.fdc.track = 0
 		cpu.fdc.status = diskTrkZero|diskBusy
-		// We don't implement verification. XXX
-		/// if (cmd & TRSDISK_VBIT) verify()
+		if cmd & diskVMask != 0 {
+			cpu.diskVerify()
+		}
 		cpu.addEvent(eventDiskDone, func () { cpu.diskDone(0) }, 2000)
 	case diskSeek:
 		panic("Don't handle diskSeek")
@@ -587,7 +640,7 @@ func (cpu *cpu) writeDiskCommand(cmd byte) {
 		panic("Don't handle diskWriteTrk")
 	case diskForceInt:
 		// Stop whatever is going on and forget it.
-		cpu.events.cancelDiskEvents()
+		cpu.events.cancelEvents(eventDisk)
 		cpu.fdc.status = 0
 		cpu.updateDiskStatus()
 		if (cmd & 0x07) != 0 {
@@ -604,38 +657,68 @@ func (cpu *cpu) writeDiskCommand(cmd byte) {
 }
 
 func (cpu *cpu) writeDiskTrack(value byte) {
+	if diskDebug {
+		log.Printf("writeDiskTrack(%02X)", value)
+	}
+
 	cpu.fdc.track = value
 }
 
 func (cpu *cpu) writeDiskSector(value byte) {
+	if diskDebug {
+		log.Printf("writeDiskSector(%02X)", value)
+	}
+
 	cpu.fdc.sector = value
 }
 
 func (cpu *cpu) writeDiskData(value byte) {
+	if diskDebug {
+		log.Printf("writeDiskData(%02X)", value)
+	}
+
 	panic("writeDiskData")
 }
 
 func (cpu *cpu) writeDiskSelect(value byte) {
+	if diskDebug {
+		log.Printf("writeDiskSelect(%02X)", value)
+	}
+
 	cpu.fdc.status &^= diskNotRdy
 	cpu.fdc.side.setFromBoolean((value & diskSide) != 0)
 	cpu.fdc.doubleDensity = (value & diskMfm) != 0
 	if value & diskWait != 0 {
 		// If there was an event pending, simulate waiting until it was due.
-		event := cpu.events.getFirstEvent(eventDiskLostData)
+		event := cpu.events.getFirstEvent(eventDisk &^ eventDiskLostData)
 		if event != nil {
+			if diskDebug {
+				log.Printf("Advancing clock from %d to %d", cpu.clock, event.clock)
+			}
 			cpu.clock = event.clock
 			cpu.events.dispatch(cpu.clock)
 		}
 	}
 
-	switch value & 0x0F {
+	// Which drive is being enabled?
+	switch value & diskDriveMask {
 	case 0:
 		cpu.fdc.status |= diskNotRdy
-	case 1:
+	case diskDrive0:
 		cpu.fdc.currentDrive = 0
+	case diskDrive1:
+		cpu.fdc.currentDrive = 1
+	case diskDrive2:
+		cpu.fdc.currentDrive = 2
+	case diskDrive3:
+		cpu.fdc.currentDrive = 3
 	default:
-		// Could extend this if we wanted more than 2 disks. See fdc.driveCount.
 		panic("Disk not handled")
+	}
+
+	// Sanity check.
+	if cpu.fdc.currentDrive >= cpu.fdc.driveCount {
+		panic("Drive too high")
 	}
 
 	// If a drive was selected, turn on its motor.
@@ -674,4 +757,18 @@ func (cpu *cpu) searchSector(sector int, side side) int {
 
 func (cpu *cpu) dataOffset(index int) int {
 	return index*jv1BytesPerSector
+}
+
+// Verify that head is on the expected track.
+func (cpu *cpu) diskVerify() {
+	disk := &cpu.fdc.disk
+
+	if disk.data == nil {
+		cpu.fdc.status |= diskNotFound
+	}
+	if cpu.fdc.doubleDensity {
+		cpu.fdc.status |= diskNotFound
+	} else if cpu.fdc.track != disk.physicalTrack {
+		cpu.fdc.status |= diskSeekErr
+	}
 }

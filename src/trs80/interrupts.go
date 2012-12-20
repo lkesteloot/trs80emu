@@ -23,7 +23,7 @@ func (cpu *cpu) setIrqMask(irqMask byte) {
 }
 
 func (cpu *cpu) setNmiMask(nmiMask byte) {
-	// Always allowed:
+	// Reset is always allowed:
 	cpu.nmiMask = nmiMask | resetNmiMask
 	cpu.updateNmiSeen()
 }

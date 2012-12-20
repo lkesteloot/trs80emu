@@ -1052,8 +1052,10 @@ func (cpu *cpu) step() {
 		if cpu.previousDumpClock > 0 {
 			elapsed := now.Sub(cpu.previousDumpTime)
 			computerTime := float64(cpu.clock-cpu.previousDumpClock) / float64(cpuHz)
-			log.Printf("Computer time: %.1fs, elapsed: %.1fs, mult: %.1f",
-				computerTime, elapsed.Seconds(), computerTime/elapsed.Seconds())
+			log.Printf("Computer time: %.1fs, elapsed: %.1fs, mult: %.1f, slept: %dms",
+				computerTime, elapsed.Seconds(), computerTime/elapsed.Seconds(),
+				cpu.sleptSinceDump/time.Millisecond)
+			cpu.sleptSinceDump = 0
 		}
 		cpu.previousDumpTime = now
 		cpu.previousDumpClock = cpu.clock
@@ -1073,8 +1075,8 @@ func (cpu *cpu) step() {
 		elapsedFake := time.Duration(cpu.clock * cpuPeriodNs)
 		aheadNs := elapsedFake - elapsedReal
 		if aheadNs > 0 {
-			/// log.Printf("Sleeping %dns", aheadNs)
 			time.Sleep(aheadNs)
+			cpu.sleptSinceDump += aheadNs
 		}
 		cpu.previousAdjustClock = cpu.clock
 	}
