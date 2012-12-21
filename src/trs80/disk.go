@@ -973,7 +973,8 @@ func (cpu *cpu) writeDiskSelect(value byte) {
 
 	// Sanity check.
 	if cpu.fdc.currentDrive >= cpu.fdc.driveCount {
-		panic("Drive too high")
+		// XXX?
+		log.Printf("Drive too high (%d >= %d)", cpu.fdc.currentDrive, cpu.fdc.driveCount)
 	}
 
 	// If a drive was selected, turn on its motor.
