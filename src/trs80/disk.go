@@ -66,12 +66,15 @@ const (
 	// Never have more than this many tracks.
 	maxTracks = 255
 
+	// I don't know what this is but it defaults to false on xtrs.
+	diskTrueDam = false
+
 	// JV1 info.
 	jv1BytesPerSector  = 256
 	jv1SectorsPerTrack = 10
 
 	// JV3 info.
-	jv3Sides = 2 // Number of sides supported by this format.
+	jv3MaxSides = 2 // Number of sides supported by this format.
 	jv3IdStart = 0 // Where in file the IDs start.
 	jv3SectorStart = 34*256 // Start of sectors within file (end of IDs).
 	jv3SectorsPerBlock = jv3SectorStart / 3 // Number of jv3Sector structs per info block.
@@ -133,14 +136,14 @@ const (
 
 // JV3 flags and constants.
 const (
-	JV3_DENSITY =   0x80  // 1=dden, 0=sden
-	JV3_DAM =       0x60  // Data address mark; values follow.
-	JV3_DAMSDFB =   0x00
-	JV3_DAMSDFA =   0x20
-	JV3_DAMSDF9 =   0x40
-	JV3_DAMSDF8 =   0x60
-	JV3_DAMDDFB =   0x00
-	JV3_DAMDDF8 =   0x20
+	jv3Density =   0x80  // 1=dden, 0=sden
+	jv3Dam =       0x60  // Data address mark; values follow.
+	jv3DamSdFB =   0x00
+	jv3DamSdFA =   0x20
+	jv3DamSdF9 =   0x40
+	jv3DamSdF8 =   0x60
+	jv3DamDdFB =   0x00
+	jv3DamDdF8 =   0x20
 	jv3Side =      0x10  // 0=side 0, 1=side 1
 	jv3Error =     0x08  // 0=ok, 1=CRC error
 	jv3NonIbm =    0x04  // 0=normal, 1=short (for VTOS 3.0, xtrs only)
@@ -209,7 +212,7 @@ type jv3 struct {
 	id [jv3SectorsMax + 1]jv3Sector   // Extra one is a loop sentinel.
 	offset [jv3SectorsMax + 1]int    // Offset into file for each id.
 	sortedId [jv3SectorsMax + 1]int // Mapping from sorted id[] to real one.
-	trackStart [maxTracks][jv3Sides]int // Where each side/side track starts in id.
+	trackStart [maxTracks][jv3MaxSides]int // Where each side/side track starts in id.
 }
 
 // The first block of a JV3 file has jv3SectorsPerBlock of these.
@@ -234,6 +237,10 @@ func (id *jv3Sector) fillFromSlice(data []byte) {
 func (id *jv3Sector) side() (side side) {
 	side.setFromBoolean(id.flags & jv3Side != 0)
 	return
+}
+
+func (id *jv3Sector) doubleDensity() bool {
+	return id.flags & jv3Density != 0
 }
 
 // Return the size of this sector in bytes.
@@ -597,8 +604,10 @@ func (cpu *cpu) readDiskData() byte {
 			var c byte
 			if disk.dataOffset >= len(disk.data) {
 				c = 0xE5
-				cpu.fdc.status &^= diskRecType
-				cpu.fdc.status |= disk1791FB
+				if disk.emulationType == emuJv3 {
+					cpu.fdc.status &^= diskRecType
+					cpu.fdc.status |= disk1791FB
+				}
 			} else {
 				c = disk.data[disk.dataOffset]
 				disk.dataOffset++
@@ -646,11 +655,11 @@ func (cpu *cpu) readDiskData() byte {
 			      if (d->emutype == JV1) {
 				switch (cpu.fdc.byteCount) {
 				case 6:
-				  cpu.fdc.data = d->phytrack
+				  cpu.fdc.data = d->physicalTrack
 			#if 0
-				  cpu.fdc.sector = d->phytrack; //179x data sheet says this
+				  cpu.fdc.sector = d->physicalTrack; //179x data sheet says this
 			#else
-				  cpu.fdc.track = d->phytrack; //let's guess it meant this
+				  cpu.fdc.track = d->physicalTrack; //let's guess it meant this
 			#endif
 				  break
 				case 5:
@@ -701,7 +710,7 @@ func (cpu *cpu) readDiskData() byte {
 			    cpu.fdc.byteCount--
 			    if (cpu.fdc.byteCount <= 0) {
 			      if (d->emutype == DMK && cpu.fdc.crc != 0) {
-				cpu.fdc.status |= TRSDISK_CRCERR
+				cpu.fdc.status |= diskCrcErr
 			      }
 			      cpu.fdc.byteCount = 0
 			      cpu.fdc.status &= ~TRSDISK_DRQ
@@ -722,7 +731,7 @@ func (cpu *cpu) readDiskData() byte {
 			    if (cpu.fdc.byteCount > 0) {
 			      cpu.fdc.data = d->u.dmk.buf[d->u.dmk.curbyte]
 			      d->u.dmk.curbyte += dmk_incr(d)
-			      cpu.fdc.byteCount = cpu.fdc.byteCount - 2 + cpu.fdc.density
+			      cpu.fdc.byteCount = cpu.fdc.byteCount - 2 + cpu.fdc.doubleDensity
 			    }
 			    if (cpu.fdc.byteCount <= 0) {
 			      cpu.fdc.byteCount = 0
@@ -797,11 +806,54 @@ func (cpu *cpu) writeDiskCommand(cmd byte) {
 		} else {
 			disk := &cpu.fdc.disk
 			var newStatus byte = 0
-			if disk.physicalTrack == 17 {
-				newStatus = disk1791F8
+			switch disk.emulationType {
+			case emuJv1:
+				if disk.physicalTrack == 17 {
+					newStatus = disk1791F8
+				}
+				cpu.fdc.byteCount = jv1BytesPerSector
+				disk.dataOffset = disk.getDataOffset(sectorIndex)
+			case emuJv3:
+				if (!cpu.fdc.doubleDensity) {
+					// Single density 179x.
+					switch (disk.jv3.id[sectorIndex].flags & jv3Dam) {
+					case jv3DamSdFB:
+						newStatus = disk1791FB
+						break
+					case jv3DamSdFA:
+						if diskTrueDam {
+							newStatus = disk1791FB
+						} else {
+							newStatus = disk1791F8
+						}
+						break
+					case jv3DamSdF9:
+						newStatus = disk1791F8
+						break
+					case jv3DamSdF8:
+						newStatus = disk1791F8
+						break
+					}
+				} else {
+					// Double density 179x.
+					switch (disk.jv3.id[sectorIndex].flags & jv3Dam) {
+						default: /*impossible*/
+					case jv3DamDdFB:
+						newStatus = disk1791FB
+						break
+					case jv3DamDdF8:
+						newStatus = disk1791F8
+						break
+					}
+				}
+				if disk.jv3.id[sectorIndex].flags & jv3Error != 0 {
+					newStatus |= diskCrcErr
+				}
+				cpu.fdc.byteCount = disk.jv3.id[sectorIndex].getSize()
+				disk.dataOffset = disk.getDataOffset(sectorIndex)
+			default:
+				panic("Unhandled case in diskRead")
 			}
-			cpu.fdc.byteCount = jv1BytesPerSector
-			disk.dataOffset = cpu.dataOffset(sectorIndex)
 			cpu.fdc.status |= diskBusy
 			cpu.addEvent(eventDiskFirstDrq, func() { cpu.diskFirstDrq(newStatus) }, 64)
 		}
@@ -915,40 +967,98 @@ func (cpu *cpu) writeDiskSelect(value byte) {
 func (cpu *cpu) searchSector(sector int, side side) int {
 	disk := &cpu.fdc.disk
 
-	if disk.physicalTrack < 0 ||
-		disk.physicalTrack >= maxTracks ||
-		cpu.fdc.side == 1 ||
-		side == 1 ||
-		sector >= jv1SectorsPerTrack ||
-		disk.data == nil ||
-		disk.physicalTrack != cpu.fdc.track {
+	switch disk.emulationType {
+	case emuNone:
+		cpu.fdc.status |= diskNotFound
+		return -1
+	case emuJv1:
+		if disk.physicalTrack < 0 ||
+			disk.physicalTrack >= maxTracks ||
+			cpu.fdc.side == 1 ||
+			side == 1 ||
+			sector >= jv1SectorsPerTrack ||
+			disk.data == nil ||
+			disk.physicalTrack != cpu.fdc.track {
 
+			cpu.fdc.status |= diskNotFound
+			return -1
+		}
+
+		if sector < 0 {
+			sector = 0
+		}
+
+		return jv1SectorsPerTrack*int(disk.physicalTrack) + sector
+	case emuJv3:
+		if disk.physicalTrack < 0 ||
+			disk.physicalTrack >= maxTracks ||
+			cpu.fdc.side >= jv3MaxSides ||
+			(side != -1 && side != cpu.fdc.side) ||
+			disk.physicalTrack != cpu.fdc.track ||
+			disk.data == nil {
+
+			cpu.fdc.status |= diskNotFound
+			return -1
+		}
+		if !disk.jv3.sortedValid {
+			disk.jv3.sortIds(cpu.fdc.currentDrive)
+		}
+
+		i := disk.jv3.trackStart[disk.physicalTrack][cpu.fdc.side]
+		if i != -1 {
+			for {
+				id := disk.jv3.sortedId[i]
+				sid := &disk.jv3.id[id]
+				if sid.track != disk.physicalTrack ||
+					sid.side() != cpu.fdc.side {
+
+					break
+				}
+				if (sector == -1 || int(sid.sector) == sector) &&
+					sid.doubleDensity() == cpu.fdc.doubleDensity {
+
+					return id
+				}
+				i++
+			}
+		}
 		cpu.fdc.status |= diskNotFound
 		return -1
 	}
 
-	if sector < 0 {
-		sector = 0
-	}
-
-	return jv1SectorsPerTrack*int(disk.physicalTrack) + sector
+	panic("Unhandled case in searchSector()")
 }
 
-func (cpu *cpu) dataOffset(index int) int {
-	return index * jv1BytesPerSector
+func (disk *disk) getDataOffset(index int) int {
+	switch disk.emulationType {
+	case emuJv1:
+		return index * jv1BytesPerSector
+	case emuJv3:
+		return disk.jv3.offset[index]
+	}
+
+	panic("Unimplemented case in getDataOffset()")
 }
 
 // Verify that head is on the expected track.
 func (cpu *cpu) diskVerify() {
 	disk := &cpu.fdc.disk
 
-	if disk.data == nil {
+	switch disk.emulationType {
+	case emuNone:
 		cpu.fdc.status |= diskNotFound
-	}
-	if cpu.fdc.doubleDensity {
-		cpu.fdc.status |= diskNotFound
-	} else if cpu.fdc.track != disk.physicalTrack {
-		cpu.fdc.status |= diskSeekErr
+	case emuJv1:
+		if disk.data == nil {
+			cpu.fdc.status |= diskNotFound
+		}
+		if cpu.fdc.doubleDensity {
+			cpu.fdc.status |= diskNotFound
+		} else if cpu.fdc.track != disk.physicalTrack {
+			cpu.fdc.status |= diskSeekErr
+		}
+	case emuJv3:
+		// diskSeekErr == diskNotFound
+		cpu.searchSector(-1, -1)
 	}
 }
 

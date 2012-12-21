@@ -61,7 +61,8 @@ func createComputer(cpuUpdateCh chan<- cpuUpdate) *cpu {
 	}
 	cpu.root.loadInstructions(instructionList)
 
-	err = cpu.loadDisk("disks/aigames1.dsk")
+	/// err = cpu.loadDisk("disks/aigames1.dsk")
+	err = cpu.loadDisk("disks/tdos13a.dsk")
 	if err != nil {
 		panic(err)
 	}
