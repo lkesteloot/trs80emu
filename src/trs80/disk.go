@@ -651,7 +651,7 @@ func (cpu *cpu) readDiskData() byte {
 			#endif
 			      d->u.dmk.curbyte += dmk_incr(d)
 
-			    } else if (cpu.fdc.last_readadr >= 0) {
+			    } else if (cpu.fdc.lastReadAdr >= 0) {
 			      if (d->emutype == JV1) {
 				switch (cpu.fdc.byteCount) {
 				case 6:
@@ -666,7 +666,7 @@ func (cpu *cpu) readDiskData() byte {
 				  cpu.fdc.data = 0
 				  break
 				case 4:
-				  cpu.fdc.data = jv1_interleave[cpu.fdc.last_readadr % JV1_SECPERTRK]
+				  cpu.fdc.data = jv1_interleave[cpu.fdc.lastReadAdr % JV1_SECPERTRK]
 				  cpu.fdc.sector = cpu.fdc.data;  //1771 data sheet says this
 				  break
 				case 3:
@@ -678,7 +678,7 @@ func (cpu *cpu) readDiskData() byte {
 				  break
 				}
 			      } else if (d->emutype == JV3) {
-				sid = &d->u.jv3.id[d->u.jv3.sortedId[cpu.fdc.last_readadr]]
+				sid = &d->u.jv3.id[d->u.jv3.sortedId[cpu.fdc.lastReadAdr]]
 				switch (cpu.fdc.byteCount) {
 				case 6:
 				  cpu.fdc.data = sid->track
@@ -697,7 +697,7 @@ func (cpu *cpu) readDiskData() byte {
 				  break
 				case 3:
 				  cpu.fdc.data =
-				    id_index_to_size_code(d, d->u.jv3.sortedId[cpu.fdc.last_readadr])
+				    id_index_to_size_code(d, d->u.jv3.sortedId[cpu.fdc.lastReadAdr])
 				  break
 				case 2:
 				case 1:
@@ -779,7 +779,21 @@ func (cpu *cpu) writeDiskCommand(cmd byte) {
 		}
 		cpu.addEvent(eventDiskDone, func() { cpu.diskDone(0) }, 2000)
 	case diskSeek:
-		panic("Don't handle diskSeek")
+		cpu.fdc.lastReadAdr = -1
+		cpu.fdc.disk.physicalTrack += cpu.fdc.data - cpu.fdc.track
+		cpu.fdc.track = cpu.fdc.data
+		if cpu.fdc.disk.physicalTrack <= 0 {
+			// cpu.fdc.track too?
+			cpu.fdc.disk.physicalTrack = 0
+			cpu.fdc.status = diskTrkZero|diskBusy
+		} else {
+			cpu.fdc.status = diskBusy
+		}
+		// Should this set lastDirection?
+		if cmd & diskVMask != 0 {
+			cpu.diskVerify()
+		}
+		cpu.addEvent(eventDiskDone, func() { cpu.diskDone(0) }, 2000)
 	case diskStep:
 		panic("Don't handle diskStep")
 	case diskStepU:
@@ -908,7 +922,17 @@ func (cpu *cpu) writeDiskData(value byte) {
 		log.Printf("writeDiskData(%02X)", value)
 	}
 
-	panic("writeDiskData")
+	switch cpu.fdc.currentCommand & diskCommandMask {
+	case diskWrite:
+		panic("diskWrite")
+	case diskWriteTrk:
+		panic("diskWriteTrk")
+	default:
+		// No action, just fall through and store data.
+		break
+	}
+
+	cpu.fdc.data = value
 }
 
 func (cpu *cpu) writeDiskSelect(value byte) {
