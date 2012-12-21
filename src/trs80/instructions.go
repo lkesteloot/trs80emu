@@ -1342,7 +1342,7 @@ func (cpu *cpu) conditionSatisfied(cond string) bool {
 
 func isWordOperand(op string) bool {
 	switch op {
-	case "BC", "DE", "HL", "NN", "SP":
+	case "BC", "DE", "HL", "NN", "SP", "IX", "IY":
 		return true
 	}
 
