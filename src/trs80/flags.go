@@ -165,36 +165,13 @@ func (f *flags) setS(s bool) {
 }
 
 // Update simple flags (S, Z, P, and undoc) based on result of operation.
+// Carry is unaffected.
 func (f *flags) updateFromByte(value byte) {
-	*f = flags(0)
+	*f &= carryMask
 	f.setS(value&0x80 != 0)
 	f.setZ(value == 0)
 	f.setPv(parityTable[value] == 1)
 	*f |= flags(value & undocMasks)
-}
-
-// Update all flags based on result of operation. The "hints" string is
-// the fourth column from the z80.txt files.
-func (f *flags) updateFromWord(value word, hints string) {
-	// Z
-	switch hints[4] {
-	case '+':
-		f.setZ(value == 0)
-	case '0':
-		f.setZ(false)
-	case '1':
-		f.setZ(true)
-	}
-
-	// S, set if negative.
-	switch hints[5] {
-	case '+':
-		f.setS(value&0x8000 != 0)
-	case '0':
-		f.setS(false)
-	case '1':
-		f.setS(true)
-	}
 }
 
 func (f *flags) updateFromAddByte(value1, value2, result byte) {

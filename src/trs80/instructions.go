@@ -925,6 +925,18 @@ func (cpu *cpu) step() {
 		if printDebug {
 			cpu.logf("%02X << 1 = %02X", origValue, cpu.a)
 		}
+	case "RLD":
+		// Left rotate decimal.
+		origValue := cpu.readMem(cpu.hl)
+
+		// Left-shift old value, add lower bits of A.
+		newValue := (origValue << 4) | (cpu.a & 0x0F)
+
+		// Rotate high bits of old value into low bits of A.
+		cpu.a = (cpu.a & 0xF0) | (origValue >> 4)
+
+		cpu.f.updateFromByte(cpu.a)
+		cpu.writeMem(cpu.hl, newValue)
 	case "RRA":
 		// Right rotate A through carry.
 		origValue := cpu.a
