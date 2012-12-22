@@ -565,7 +565,7 @@ func (inst *instruction) addInstruction(asm, cycles string, opcodes []string) {
 func (cpu *cpu) step() {
 	// Look up the instruction in the tree.
 	instPc := cpu.pc
-	inst, byteData, wordData := cpu.lookUpInst()
+	inst, byteData, wordData := cpu.lookUpInst(&cpu.pc)
 	nextInstPc := cpu.pc
 	avoidHandlingIrq := false
 
@@ -1276,10 +1276,8 @@ func (cpu *cpu) setWord(ref string, value word, byteData byte, wordData word) {
 	}
 }
 
-func (cpu *cpu) lookUpInst() (inst *instruction, byteData byte, wordData word) {
+func (cpu *cpu) lookUpInst(pc *word) (inst *instruction, byteData byte, wordData word) {
 	haveByteData := false
-
-	instPc := cpu.pc
 	inst = cpu.root
 
 	for {
@@ -1288,7 +1286,8 @@ func (cpu *cpu) lookUpInst() (inst *instruction, byteData byte, wordData word) {
 			return
 		}
 
-		opcode := cpu.fetchNextPcByte()
+		opcode := cpu.readMem(*pc)
+		*pc++
 
 		// User data.
 		if inst.xx != nil {
@@ -1305,12 +1304,7 @@ func (cpu *cpu) lookUpInst() (inst *instruction, byteData byte, wordData word) {
 			// Keep fetching as long as it's an extended instruction.
 			inst = inst.imap[opcode]
 			if inst == nil {
-				err := "Don't know how to handle opcode"
-				for pc := instPc; pc < cpu.pc; pc++ {
-					err += fmt.Sprintf(" %02X", cpu.memory[pc])
-				}
-
-				panic(err)
+				panic("Don't know how to handle opcode")
 			}
 		}
 	}

@@ -173,12 +173,6 @@ func (cpu *cpu) z80reset() {
 	cpu.startTime = time.Now().UnixNano()
 }
 
-func (cpu *cpu) fetchNextPcByte() byte {
-	value := cpu.readMem(cpu.pc)
-	cpu.pc++
-	return value
-}
-
 func (cpu *cpu) writeMem(addr word, b byte) {
 	// xtrs:trs_memory.c
 	// Check ROM writing. Harmless in real life, but may indicate a bug here.
