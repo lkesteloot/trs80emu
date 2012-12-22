@@ -561,6 +561,7 @@ func (inst *instruction) addInstruction(asm, cycles string, opcodes []string) {
 	}
 }
 
+// Steps through one instruction.
 func (cpu *cpu) step() {
 	// Look up the instruction in the tree.
 	instPc := cpu.pc

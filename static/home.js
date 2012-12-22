@@ -41,6 +41,28 @@
             }).
             appendTo($buttons);
 
+        var $breakpoint_address = $("<input>").
+            attr("id", "breakpoint_address").
+            attr("type", "text").
+            appendTo($buttons);
+        $("<button>").
+            attr("type", "button").
+            attr("placeholder", "Hex address").
+            text("Add Breakpoint").
+            click(function () {
+                if (g_ws) {
+                    var addr = parseInt($breakpoint_address.val(), 16);
+                    g_ws.send(JSON.stringify({Cmd: "add_breakpoint", Addr: addr}));
+                    $breakpoint_address.val("");
+                    $("#message").text("Breakpoint set at 0x" + addr.toString(16))
+                }
+            }).
+            appendTo($buttons);
+
+        $("<div>").
+            attr("id", "message").
+            appendTo($("body"));
+
         $("<div>").
             attr("id", "motor").
             appendTo($("body"));
@@ -65,6 +87,8 @@
             } else {
                 $motor.hide();
             }
+        } else if (cmd === "breakpoint") {
+            $("#message").text("Breakpoint at 0x" + msg.Addr.toString(16))
         } else {
             console.log("Unknown command \"" + cmd + "\"");
         }
@@ -189,6 +213,11 @@
         };
 
         var keyEvent = function (event, isPressed) {
+            // Don't send to virtual computer if a text input field is selected.
+            if ($(document.activeElement).attr("type") == "text") {
+                return;
+            }
+
             var key = eventToKey(event);
             console.log("Key is \"" + key + "\"");
 

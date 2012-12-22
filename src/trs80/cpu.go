@@ -73,6 +73,9 @@ type cpu struct {
 	// Queue of events to dispatch.
 	events events
 
+	// Breakpoints.
+	breakpoints breakpoints
+
 	previousDumpTime    time.Time
 	previousDumpClock   uint64
 	sleptSinceDump      time.Duration
@@ -84,6 +87,7 @@ type cpu struct {
 // Command to the CPU from the UI.
 type cpuCommand struct {
 	Cmd  string
+	Addr int
 	Data string
 }
 
@@ -104,6 +108,9 @@ func (cpu *cpu) run(cpuCommandCh <-chan cpuCommand) {
 			shutdown = true
 		case "press", "release":
 			cpu.keyEvent(msg.Data, msg.Cmd == "press")
+		case "add_breakpoint":
+			cpu.breakpoints.add(breakpoint{pc: word(msg.Addr), active: true})
+			log.Printf("Breakpoint added at %04X", msg.Addr)
 		default:
 			panic("Unknown CPU command " + msg.Cmd)
 		}
@@ -117,7 +124,17 @@ func (cpu *cpu) run(cpuCommandCh <-chan cpuCommand) {
 			case <-timerCh:
 				cpu.handleTimer()
 			default:
-				cpu.step()
+				// See if there's a breakpoint here.
+				bp := cpu.breakpoints.find(cpu.pc)
+				if bp != nil {
+					if cpu.cpuUpdateCh != nil {
+						cpu.cpuUpdateCh <- cpuUpdate{Cmd: "breakpoint", Addr: int(cpu.pc)}
+					}
+					log.Printf("Breakpoint at %04X", cpu.pc)
+					running = false
+				} else {
+					cpu.step()
+				}
 			}
 		} else {
 			handleCmd(<-cpuCommandCh)
