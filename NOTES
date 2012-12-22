@@ -1,7 +1,27 @@
 
 Next:
 
-    Implement read-only disk.
+    Figure out why we're resetting after boot.
+        4409 F5          PUSH AF
+        440A 3E 84       LD A,84
+        440C EF          RST 28H
+        0028 C3 0C 40    JP 400C
+        400C C3 82 4B    JP 4B82
+        4B82 E3          EX (SP),HL
+        4B83 E1          POP HL
+        4B84 B7          OR A
+        4B85 F2 AE 42    JP P,42AE
+        4B88 E5          PUSH HL
+        4B89 67          LD H,A
+        4B8A 3A 14 44    LD A,(4414)
+        4B8D AC          XOR H
+        4B8E E6 0F       A0FD 0F
+        4B90 7C          LD A,H
+        4B91 32 14 44    LD (4414),A
+        4B94 28 3C       JR Z,3C+2
+        4BD2 E1          POP HL
+        4BD3 3A 14 44    LD A,(4414)
+        4BD6 C3 00 00    JP 0000
     Deal with JSON send I/O timeouts.
         Detecting it and looping makes it lock up. Deadlock?
     Fix aspect ratio of display.

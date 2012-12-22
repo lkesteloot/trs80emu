@@ -8,6 +8,7 @@ import (
 
 const (
 	printDebug  = false
+	previousInstCount = 20
 	ramBegin    = 0x4000
 	cpuHz       = 2027520
 	cpuPeriodNs = 1000000000 / cpuHz
@@ -76,6 +77,11 @@ type cpu struct {
 	// Breakpoints.
 	breakpoints breakpoints
 
+	// Keep last "previousInstCount" instructions for debugging.
+	previousInst [previousInstCount]string
+	// Points to the most recent instruction added.
+	previousInstPtr int
+
 	previousDumpTime    time.Time
 	previousDumpClock   uint64
 	sleptSinceDump      time.Duration
@@ -131,6 +137,12 @@ func (cpu *cpu) run(cpuCommandCh <-chan cpuCommand) {
 						cpu.cpuUpdateCh <- cpuUpdate{Cmd: "breakpoint", Addr: int(cpu.pc)}
 					}
 					log.Printf("Breakpoint at %04X", cpu.pc)
+					for i := 0; i < previousInstCount; i++ {
+						line := cpu.previousInst[(cpu.previousInstPtr + i + 1) % previousInstCount]
+						if line != "" {
+							log.Print(line)
+						}
+					}
 					running = false
 				} else {
 					cpu.step()

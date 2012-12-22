@@ -563,6 +563,13 @@ func (inst *instruction) addInstruction(asm, cycles string, opcodes []string) {
 
 // Steps through one instruction.
 func (cpu *cpu) step() {
+	// Log instruction if necessary.
+	if previousInstCount > 0 {
+		line, _ := cpu.disasm(cpu.pc)
+		cpu.previousInstPtr = (cpu.previousInstPtr + 1) % previousInstCount
+		cpu.previousInst[cpu.previousInstPtr] = line
+	}
+
 	// Look up the instruction in the tree.
 	instPc := cpu.pc
 	inst, byteData, wordData := cpu.lookUpInst(&cpu.pc)
