@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+const (
+	dumpInstructionSet = false
+)
+
 // Copy and pasted from z80.txt (http://guide.ticalc.org/download/z80.txt)
 var instructionList string = `
 ADC A,(HL)    7     1   +0V+++  8E
@@ -438,6 +442,25 @@ func (inst *instruction) loadInstructions(instructionList string) {
 	for _, line := range lines {
 		inst.parseInstructionLine(line)
 	}
+
+	if dumpInstructionSet {
+		inst.dump("")
+	}
+}
+
+// Recursively dump the whole instruction tree.
+func (inst *instruction) dump(path string) {
+	if inst.asm != "" {
+		log.Printf("%-12s %s", path, inst.asm)
+	} else if inst.xx != nil {
+		inst.xx.dump(path + "XX ")
+	} else {
+		for b, child := range inst.imap {
+			if child != nil {
+				child.dump(path + fmt.Sprintf("%02X ", b))
+			}
+		}
+	}
 }
 
 func (inst *instruction) parseInstructionLine(line string) {
@@ -490,7 +513,9 @@ func (inst *instruction) addInstruction(asm, cycles string, opcodes []string) {
 
 		// See if it's user data.
 		if opcodeStr == "XX" {
-			inst.xx = &instruction{}
+			if inst.xx == nil {
+				inst.xx = &instruction{}
+			}
 			inst.xx.addInstruction(asm, cycles, opcodes[1:])
 		} else {
 			// Expand "8r" abbreviation to "80+r"
