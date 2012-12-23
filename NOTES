@@ -29,7 +29,7 @@ Next:
     Get Eliminator to work for Larry:
         http://www.trs-80.org/the-eliminator/
         http://www.trs-80.org/games-by-wayne-westmoreland-and-terry-gilman/
-        Needs disk reading.
+        Needs reading of JV1 disks.
     Replace NN and N in asm with real number.
     Replace instruction strings with integers for faster lookup.
 

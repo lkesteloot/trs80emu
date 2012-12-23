@@ -2,8 +2,12 @@ package main
 
 import (
 	"fmt"
-	"strings"
+	"regexp"
 )
+
+// Look for N and NN on word boundaries.
+var nRegExp = regexp.MustCompile(`\bN\b`)
+var nnRegExp = regexp.MustCompile(`\bNN\b`)
 
 func (cpu *cpu) disasm(pc word) (line string, nextPc word) {
 	instPc := pc
@@ -19,14 +23,10 @@ func (cpu *cpu) disasm(pc word) (line string, nextPc word) {
 		}
 	}
 
-	// Substitute N and NN. Not worth a complete tokenizing, just hack it.
+	// Substitute N and NN.
 	asm := inst.asm
-	asm = strings.Replace(asm, "NC", "!1", -1)
-	asm = strings.Replace(asm, "NZ", "!2", -1)
-	asm = strings.Replace(asm, "NN", fmt.Sprintf("%04X", wordData), -1)
-	asm = strings.Replace(asm, "N", fmt.Sprintf("%02X", byteData), -1)
-	asm = strings.Replace(asm, "!1", "NC", -1)
-	asm = strings.Replace(asm, "!2", "NZ", -1)
+	asm = nRegExp.ReplaceAllLiteralString(asm, fmt.Sprintf("%02X", byteData))
+	asm = nnRegExp.ReplaceAllLiteralString(asm, fmt.Sprintf("%04X", wordData))
 
 	line += asm
 	return
