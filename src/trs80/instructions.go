@@ -1105,6 +1105,18 @@ func (cpu *cpu) step() {
 		if printDebug {
 			cpu.logf("%02X >> 1 = %02X", origValue, cpu.a)
 		}
+	case "RRD":
+		// Rotate right decimal.
+		value := cpu.readMem(cpu.hl)
+
+		// Right-shift old value, add lower bits of A.
+		result := (value >> 4) | ((cpu.a & 0x0F) << 4)
+
+		// Rotate low bits of old value into low bits of A.
+		cpu.a = (cpu.a & 0xF0) | (value & 0x0F)
+
+		cpu.f.updateFromByte(cpu.a)
+		cpu.writeMem(cpu.hl, result)
 	case "RST":
 		addrStr := strings.Replace(subfields[0], "H", "", -1)
 		addr, _ := strconv.ParseUint(addrStr, 16, 8)

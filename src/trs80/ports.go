@@ -28,6 +28,18 @@ func (cpu *cpu) readPort(port byte) byte {
 	case 0xE4:
 		// NMI latch read.
 		return ^cpu.nmiLatch
+	case 0xE8:
+		// UART modem.
+		return 0xFF
+	case 0xE9:
+		// UART switches.
+		return 0xFF
+	case 0xEA:
+		// UART status.
+		return 0xFF
+	case 0xEB:
+		// UART data.
+		return 0xFF
 	case 0xEC, 0xED, 0xEE, 0xEF:
 		// Acknowledge timer.
 		cpu.timerInterrupt(false)
@@ -69,6 +81,14 @@ func (cpu *cpu) writePort(port byte, value byte) {
 	case 0xE4, 0xE5, 0xE6, 0xE7:
 		// NMI state.
 		cpu.setNmiMask(value)
+	case 0xE8:
+		// UART reset.
+	case 0xE9:
+		// UART baud.
+	case 0xEA:
+		// UART control.
+	case 0xEB:
+		// UART data.
 	case 0xEC, 0xED, 0xEE, 0xEF:
 		// Various controls.
 		cpu.modeImage = value
