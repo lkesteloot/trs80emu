@@ -44,6 +44,9 @@ func (cpu *cpu) readPort(port byte) byte {
 	case 0xF3:
 		// Disk data.
 		return cpu.readDiskData()
+	case 0xF8:
+		// Printer status. Printer selected, ready, with paper, not busy.
+		return 0x30
 	case 0xFF:
 		// Cassette and various flags.
 		cassetteStatus := byte(0)
@@ -88,6 +91,9 @@ func (cpu *cpu) writePort(port byte, value byte) {
 	case 0xF4, 0xF5, 0xF6, 0xF7:
 		// Disk select.
 		cpu.writeDiskSelect(value)
+    case 0xF8, 0xF9, 0xFA, 0xFB:
+		// Printer write.
+		log.Printf("Writing %02X on printer", value)
     case 0xFC, 0xFD, 0xFE, 0xFF:
 		if value & 0x20 != 0 {
 			// Model III Micro Labs graphics card.
