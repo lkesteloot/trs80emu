@@ -165,7 +165,7 @@ func (f *flags) setS(s bool) {
 }
 
 // Update simple flags (S, Z, P, and undoc) based on result of operation.
-// Carry is unaffected.
+// Carry is unaffected. XXX This probably shouldn't touch the N flag.
 func (f *flags) updateFromByte(value byte) {
 	*f &= carryMask
 	f.setS(value&0x80 != 0)

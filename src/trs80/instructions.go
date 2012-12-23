@@ -727,6 +727,43 @@ func (cpu *cpu) step() {
 		if printDebug {
 			cpu.logf("A complemented from %02X to %02X", a, cpu.a)
 		}
+	case "DAA":
+		// BCD add/subtract.
+		a := int(cpu.a)
+		f := cpu.f
+		aLow := a & 0x0F
+		carry := f.c()
+		halfCarry := f.h()
+		if f.n() {
+			// Subtract.
+			hd := carry || a > 0x99
+			if halfCarry || aLow > 9 {
+				if aLow > 5 {
+					halfCarry = false
+				}
+				a = (a - 6) & 0xFF
+			}
+			if hd {
+				a -= 0x160
+			}
+		} else {
+			// Add.
+			if halfCarry || aLow > 9 {
+				halfCarry = aLow > 9
+				a += 6
+			}
+			if carry || (a & 0x1F0) > 0x90 {
+				a += 0x60
+			}
+		}
+		if a & 0x100 != 0 {
+			carry = true
+		}
+		cpu.a = byte(a)
+		cpu.f.updateFromByte(cpu.a)
+		cpu.f.setN(f.n())
+		cpu.f.setH(halfCarry)
+		cpu.f.setC(carry)
 	case "DEC":
 		if isWordOperand(subfields[0]) {
 			value := cpu.getWordValue(subfields[0], byteData, wordData) - 1
@@ -1330,6 +1367,14 @@ func (cpu *cpu) setByte(ref string, value byte, byteData byte, wordData word) {
 		cpu.hl.setH(value)
 	case "L":
 		cpu.hl.setL(value)
+	case "LX":
+		cpu.ix.setL(value)
+	case "HX":
+		cpu.ix.setH(value)
+	case "LY":
+		cpu.iy.setL(value)
+	case "HY":
+		cpu.iy.setH(value)
 	case "(BC)":
 		cpu.writeMem(cpu.bc, value)
 		if printDebug {
