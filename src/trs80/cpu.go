@@ -12,6 +12,7 @@ const (
 	ramBegin        = 0x4000
 	cpuHz           = 2027520
 	cpuPeriodNs     = 1000000000 / cpuHz
+	crashOnRomWrite = false
 )
 
 type cpu struct {
@@ -137,11 +138,7 @@ func (cpu *cpu) run(cpuCommandCh <-chan cpuCommand) {
 						cpu.cpuUpdateCh <- cpuUpdate{Cmd: "breakpoint", Addr: int(cpu.pc)}
 					}
 					log.Printf("Breakpoint at %04X", cpu.pc)
-					for i := 0; i < historicalPcCount; i++ {
-						pc := cpu.historicalPc[(cpu.historicalPcPtr+i+1)%historicalPcCount]
-						line, _ := cpu.disasm(pc)
-						log.Print(line)
-					}
+					cpu.logHistoricalPc()
 					running = false
 				} else {
 					cpu.step()
@@ -156,6 +153,15 @@ func (cpu *cpu) run(cpuCommandCh <-chan cpuCommand) {
 
 	// No more updates.
 	close(cpu.cpuUpdateCh)
+}
+
+// Log the last historicalPcCount assembly instructions that we executed.
+func (cpu *cpu) logHistoricalPc() {
+	for i := 0; i < historicalPcCount; i++ {
+		pc := cpu.historicalPc[(cpu.historicalPcPtr+i+1)%historicalPcCount]
+		line, _ := cpu.disasm(pc)
+		log.Print(line)
+	}
 }
 
 func (cpu *cpu) reset(powerOn bool) {
@@ -189,7 +195,13 @@ func (cpu *cpu) writeMem(addr word, b byte) {
 	// Check ROM writing. Harmless in real life, but may indicate a bug here.
 	if addr < cpu.romSize {
 		// ROM.
-		panic(fmt.Sprintf("Tried to write %02X to ROM at %04X", b, addr))
+		msg := fmt.Sprintf("Tried to write %02X to ROM at %04X", b, addr)
+		if crashOnRomWrite {
+			cpu.logHistoricalPc()
+			panic(msg)
+		} else {
+			log.Print(msg)
+		}
 	} else if addr >= ramBegin {
 		// RAM.
 		cpu.memory[addr] = b
