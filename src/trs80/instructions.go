@@ -1167,6 +1167,13 @@ func (cpu *cpu) step() {
 		cpu.f.updateFromByte(result)
 		cpu.f.setC(value & 0x80 != 0)
 		cpu.setByte(subfields[0], result, byteData, wordData)
+	case "SRA":
+		// Shift right arithmetic.
+		value := cpu.getByteValue(subfields[0], byteData, wordData)
+		result := byte(int8(value) >> 1)
+		cpu.f.updateFromByte(result)
+		cpu.setByte(subfields[0], result, byteData, wordData)
+		cpu.f.setC(value & 0x01 != 0)
 	case "SRL":
 		// Shift right.
 		value := cpu.getByteValue(subfields[0], byteData, wordData)

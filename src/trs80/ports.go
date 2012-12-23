@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	/// "log"
+	"log"
 )
 
 // http://www.trs-80.com/trs80-zaps-internals.htm#portsm3
@@ -88,6 +88,15 @@ func (cpu *cpu) writePort(port byte, value byte) {
 	case 0xF4, 0xF5, 0xF6, 0xF7:
 		// Disk select.
 		cpu.writeDiskSelect(value)
+    case 0xFC, 0xFD, 0xFE, 0xFF:
+		if value & 0x20 != 0 {
+			// Model III Micro Labs graphics card.
+			log.Printf("Sending %02X to Micro Labs graphics card", value)
+		} else {
+			// Do cassette emulation.
+			log.Printf("Sending %02X to cassette", value)
+			/// trs_cassette_out(value & 3);
+		}
 	default:
 		panic(fmt.Sprintf("Can't write %02X to unknown port %02X", value, port))
 	}
