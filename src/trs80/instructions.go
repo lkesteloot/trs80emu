@@ -564,9 +564,9 @@ func (inst *instruction) addInstruction(asm, cycles string, opcodes []string) {
 // Steps through one instruction.
 func (cpu *cpu) step() {
 	// Log instruction if necessary.
-	if previousPcCount > 0 {
-		cpu.previousPcPtr = (cpu.previousPcPtr + 1) % previousPcCount
-		cpu.previousPc[cpu.previousPcPtr] = cpu.pc
+	if historicalPcCount > 0 {
+		cpu.historicalPcPtr = (cpu.historicalPcPtr + 1) % historicalPcCount
+		cpu.historicalPc[cpu.historicalPcPtr] = cpu.pc
 	}
 
 	// Look up the instruction in the tree.
@@ -728,6 +728,10 @@ func (cpu *cpu) step() {
 		if printDebug {
 			cpu.logf("%04X <--> %04X", value1, value2)
 		}
+	case "EXX":
+		cpu.bc, cpu.bcp = cpu.bcp, cpu.bc
+		cpu.de, cpu.dep = cpu.dep, cpu.de
+		cpu.hl, cpu.hlp = cpu.hlp, cpu.hl
 	case "IM":
 		// Interrupt mode. Ignore until we support interrupts.
 	case "IN":

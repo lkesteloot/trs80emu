@@ -24,13 +24,10 @@ Next:
         4BD6 C3 00 00    JP 0000
     Deal with JSON send I/O timeouts.
         Detecting it and looping makes it lock up. Deadlock?
-    Fix aspect ratio of display.
-        Use CSS?
     Get Eliminator to work for Larry:
         http://www.trs-80.org/the-eliminator/
         http://www.trs-80.org/games-by-wayne-westmoreland-and-terry-gilman/
         Needs reading of JV1 disks.
-    Replace NN and N in asm with real number.
     Replace instruction strings with integers for faster lookup.
 
 References:

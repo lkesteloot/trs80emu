@@ -11,6 +11,7 @@ import (
 
 const (
 	diskDebug = true
+	diskSortDebug = false
 )
 
 // Type I status bits.
@@ -233,6 +234,9 @@ func (id *jv3Sector) fillFromSlice(data []byte) {
 	id.track = data[0]
 	id.sector = data[1]
 	id.flags = data[2]
+	if diskSortDebug {
+		log.Printf("jv3 data: track %02X, sector %02X, flags %02X", id.track, id.sector, id.flags)
+	}
 }
 
 func (id *jv3Sector) side() (side side) {
@@ -315,7 +319,7 @@ func (disk *disk) recognizeDisk() {
 		disk.emulationType = emuNone
 	case 89600:
 		disk.emulationType = emuJv1
-	case 193024:
+	case 193024, 377344:
 		disk.emulationType = emuJv3
 		disk.loadJv3Data(0)
 	default:
@@ -450,7 +454,7 @@ func (cpu *cpu) diskFirstDrq(bits byte) {
 	cpu.diskDrqInterrupt(true)
 	// Evaluate this now, not when the callback is run.
 	currentCommand := cpu.fdc.currentCommand
-	cpu.addEvent(eventDiskLostData, func() { cpu.diskLostData(currentCommand) }, cpuHz*2)
+	cpu.addEvent(eventDiskLostData, func() { cpu.diskLostData(currentCommand) }, cpuHz/2)
 }
 
 func (cpu *cpu) checkDiskMotorOff() bool {
@@ -818,6 +822,8 @@ func (cpu *cpu) writeDiskCommand(cmd byte) {
 		if sectorIndex == -1 {
 			cpu.fdc.status |= diskBusy
 			cpu.addEvent(eventDiskDone, func() { cpu.diskDone(0) }, 512)
+			log.Printf("Didn't find sector %02X on track %02X",
+				cpu.fdc.sector, cpu.fdc.disk.physicalTrack)
 		} else {
 			disk := &cpu.fdc.disk
 			var newStatus byte = 0
@@ -1095,13 +1101,16 @@ func (jv3 *jv3) Len() int {
 func (jv3 *jv3) Less(i, j int) bool {
 	// Sort first by track, second by side, third by position in emulated-disk
 	// sector array (i.e., physical sector order on track).
-	if jv3.id[i].track < jv3.id[j].track {
+	si := jv3.sortedId[i]
+	sj := jv3.sortedId[j]
+
+	if jv3.id[si].track < jv3.id[sj].track {
 		return true
 	}
-	if jv3.id[i].side() < jv3.id[j].side() {
+	if jv3.id[si].side() < jv3.id[sj].side() {
 		return true
 	}
-	return i < j
+	return si < sj
 }
 func (jv3 *jv3) Swap(i, j int) {
 	jv3.sortedId[i], jv3.sortedId[j] = jv3.sortedId[j], jv3.sortedId[i]
@@ -1140,4 +1149,14 @@ func (jv3 *jv3) sortIds(drive int) {
 	}
 
 	jv3.sortedValid = true
+
+	if diskSortDebug {
+		for i := 0; i < jv3SectorsMax; i++ {
+			index := jv3.sortedId[i]
+			log.Printf("%04X -> %04X = %02X %02X %02X", i, index,
+				jv3.id[index].track,
+				jv3.id[index].sector,
+				jv3.id[index].flags)
+		}
+	}
 }
