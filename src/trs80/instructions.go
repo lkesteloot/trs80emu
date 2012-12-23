@@ -859,7 +859,24 @@ func (cpu *cpu) step() {
 				cpu.logf("%02X", value)
 			}
 		}
+	case "LDDR":
+		// Copy (HL) to (DE), decrement both, and decrement BC. If BC != 0, loop.
+		b := cpu.readMem(cpu.hl)
+		if printDebug {
+			cpu.logf("copying %02X from %04X to %04X", b, cpu.hl, cpu.de)
+		}
+		cpu.writeMem(cpu.de, b)
+		cpu.hl--
+		cpu.de--
+		cpu.bc--
+		if cpu.bc != 0 {
+			cpu.pc -= 2
+		}
+		cpu.f.setH(false)
+		cpu.f.setPv(false)
+		cpu.f.setN(false)
 	case "LDIR":
+		// Copy (HL) to (DE), increment both, and decrement BC. If BC != 0, loop.
 		b := cpu.readMem(cpu.hl)
 		if printDebug {
 			cpu.logf("copying %02X from %04X to %04X", b, cpu.hl, cpu.de)
@@ -977,6 +994,16 @@ func (cpu *cpu) step() {
 
 		cpu.f.updateFromByte(cpu.a)
 		cpu.writeMem(cpu.hl, newValue)
+	case "RR":
+		// Rotate right through carry.
+		before := cpu.getByteValue(subfields[0], byteData, wordData)
+		result := before >> 1
+		if cpu.f.c() {
+			result |= 0x80
+		}
+		cpu.f.updateFromByte(result)
+		cpu.f.setC(before & 0x01 != 0)
+		cpu.setByte(subfields[0], result, byteData, wordData)
 	case "RRA":
 		// Right rotate A through carry.
 		origValue := cpu.a
@@ -992,6 +1019,18 @@ func (cpu *cpu) step() {
 		cpu.f.setC(rightBit != 0)
 		cpu.f.setH(false)
 		cpu.f.setN(false)
+	case "RRC":
+		// Rotate right.
+		before := cpu.getByteValue(subfields[0], byteData, wordData)
+		result := before >> 1
+		if before & 0x01 != 0 {
+			result |= 0x80
+			cpu.f.setC(true)
+		} else {
+			cpu.f.setC(false)
+		}
+		cpu.f.updateFromByte(result)
+		cpu.setByte(subfields[0], result, byteData, wordData)
 	case "RRCA":
 		// Right rotate.
 		origValue := cpu.a
@@ -1058,6 +1097,13 @@ func (cpu *cpu) step() {
 			cpu.f.updateFromSubByte(before, value, result)
 			cpu.setByte(subfields[0], result, byteData, wordData)
 		}
+	case "SRL":
+		// Shift right.
+		before := cpu.getByteValue(subfields[0], byteData, wordData)
+		result := before >> 1
+		cpu.f.updateFromByte(result)
+		cpu.f.setC(before & 0x01 != 0)
+		cpu.setByte(subfields[0], result, byteData, wordData)
 	case "SUB":
 		// Always 8-bit, always to accumulator.
 		before := cpu.a
