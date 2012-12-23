@@ -203,6 +203,12 @@
             } else if (which == 27) {
                 // Escape.
                 key = "Break";
+            } else if (which == 9) {
+                // Tab.
+                key = "Clear";
+
+                // Don't move focus to next field.
+                event.preventDefault();
             } else {
                 // Ignore.
                 console.log(which);
