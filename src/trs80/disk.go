@@ -3,10 +3,10 @@ package main
 // This file borrows heavily from the xtrs file trs_disk.c.
 
 import (
-	"sort"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"sort"
 )
 
 const (
@@ -74,11 +74,11 @@ const (
 	jv1SectorsPerTrack = 10
 
 	// JV3 info.
-	jv3MaxSides = 2 // Number of sides supported by this format.
-	jv3IdStart = 0 // Where in file the IDs start.
-	jv3SectorStart = 34*256 // Start of sectors within file (end of IDs).
-	jv3SectorsPerBlock = jv3SectorStart / 3 // Number of jv3Sector structs per info block.
-	jv3SectorsMax = 2*jv3SectorsPerBlock // There are two info blocks maximum.
+	jv3MaxSides        = 2                      // Number of sides supported by this format.
+	jv3IdStart         = 0                      // Where in file the IDs start.
+	jv3SectorStart     = 34 * 256               // Start of sectors within file (end of IDs).
+	jv3SectorsPerBlock = jv3SectorStart / 3     // Number of jv3Sector structs per info block.
+	jv3SectorsMax      = 2 * jv3SectorsPerBlock // There are two info blocks maximum.
 )
 
 const (
@@ -136,25 +136,26 @@ const (
 
 // JV3 flags and constants.
 const (
-	jv3Density =   0x80  // 1=dden, 0=sden
-	jv3Dam =       0x60  // Data address mark; values follow.
-	jv3DamSdFB =   0x00
-	jv3DamSdFA =   0x20
-	jv3DamSdF9 =   0x40
-	jv3DamSdF8 =   0x60
-	jv3DamDdFB =   0x00
-	jv3DamDdF8 =   0x20
-	jv3Side =      0x10  // 0=side 0, 1=side 1
-	jv3Error =     0x08  // 0=ok, 1=CRC error
-	jv3NonIbm =    0x04  // 0=normal, 1=short (for VTOS 3.0, xtrs only)
-	jv3Size =      0x03  // See comment in getSizeCode().
+	jv3Density = 0x80 // 1=dden, 0=sden
+	jv3Dam     = 0x60 // Data address mark; values follow.
+	jv3DamSdFB = 0x00
+	jv3DamSdFA = 0x20
+	jv3DamSdF9 = 0x40
+	jv3DamSdF8 = 0x60
+	jv3DamDdFB = 0x00
+	jv3DamDdF8 = 0x20
+	jv3Side    = 0x10 // 0=side 0, 1=side 1
+	jv3Error   = 0x08 // 0=ok, 1=CRC error
+	jv3NonIbm  = 0x04 // 0=normal, 1=short (for VTOS 3.0, xtrs only)
+	jv3Size    = 0x03 // See comment in getSizeCode().
 
-	jv3Free =      0xff  // In track/sector fields
-	jv3FreeF =     0xfc  // In flags field, or'd with size code
+	jv3Free  = 0xff // In track/sector fields
+	jv3FreeF = 0xfc // In flags field, or'd with size code
 )
 
 // Emulation types.
 type emulationType uint
+
 const (
 	emuNone = emulationType(iota)
 	emuJv1
@@ -205,14 +206,14 @@ type disk struct {
 
 // JV3-specific data.
 type jv3 struct {
-	freeId [4]int // The first free id, if any, of each size.
-	lastUsedId int // Id of the last used sector.
-	blockCount int                    // Number of blocks of ids, 1 or 2.
-	sortedValid bool               // Whether the sortedId array is valid.
-	id [jv3SectorsMax + 1]jv3Sector   // Extra one is a loop sentinel.
-	offset [jv3SectorsMax + 1]int    // Offset into file for each id.
-	sortedId [jv3SectorsMax + 1]int // Mapping from sorted id[] to real one.
-	trackStart [maxTracks][jv3MaxSides]int // Where each side/side track starts in id.
+	freeId      [4]int                       // The first free id, if any, of each size.
+	lastUsedId  int                          // Id of the last used sector.
+	blockCount  int                          // Number of blocks of ids, 1 or 2.
+	sortedValid bool                         // Whether the sortedId array is valid.
+	id          [jv3SectorsMax + 1]jv3Sector // Extra one is a loop sentinel.
+	offset      [jv3SectorsMax + 1]int       // Offset into file for each id.
+	sortedId    [jv3SectorsMax + 1]int       // Mapping from sorted id[] to real one.
+	trackStart  [maxTracks][jv3MaxSides]int  // Where each side/side track starts in id.
 }
 
 // The first block of a JV3 file has jv3SectorsPerBlock of these.
@@ -235,12 +236,12 @@ func (id *jv3Sector) fillFromSlice(data []byte) {
 }
 
 func (id *jv3Sector) side() (side side) {
-	side.setFromBoolean(id.flags & jv3Side != 0)
+	side.setFromBoolean(id.flags&jv3Side != 0)
 	return
 }
 
 func (id *jv3Sector) doubleDensity() bool {
-	return id.flags & jv3Density != 0
+	return id.flags&jv3Density != 0
 }
 
 // Return the size of this sector in bytes.
@@ -343,7 +344,7 @@ func (disk *disk) loadJv3Data(drive int) {
 	}
 
 	disk.jv3.lastUsedId = -1
-	for idIndex:=0; idIndex<jv3SectorsMax; idIndex++ {
+	for idIndex := 0; idIndex < jv3SectorsMax; idIndex++ {
 		if disk.jv3.id[idIndex].track == jv3Free {
 			sizeCode := disk.jv3.id[idIndex].getSizeCode()
 			if disk.jv3.freeId[sizeCode] == jv3SectorsMax {
@@ -358,13 +359,13 @@ func (disk *disk) loadJv3Data(drive int) {
 
 func (disk *disk) loadJv3Block(idStart, blockStart int) int {
 	// Make sure there's enough there to read.
-	if blockStart + 3*jv3SectorsPerBlock <= len(disk.data) {
+	if blockStart+3*jv3SectorsPerBlock <= len(disk.data) {
 		disk.jv3.blockCount++
 
 		// Read the block into the sector info.
 		start := blockStart
 		for i := 0; i < jv3SectorsPerBlock; i++ {
-			disk.jv3.id[idStart + i].fillFromSlice(disk.data[start:start + 3])
+			disk.jv3.id[idStart+i].fillFromSlice(disk.data[start : start+3])
 			start += 3
 		}
 	}
@@ -372,8 +373,8 @@ func (disk *disk) loadJv3Block(idStart, blockStart int) int {
 	// Compute offsets of each sector.
 	offset := blockStart + jv3SectorStart
 	for i := 0; i < jv3SectorsPerBlock; i++ {
-		disk.jv3.offset[idStart + i] = offset
-		offset += disk.jv3.id[idStart + i].getSize()
+		disk.jv3.offset[idStart+i] = offset
+		offset += disk.jv3.id[idStart+i].getSize()
 	}
 
 	return offset
@@ -785,12 +786,12 @@ func (cpu *cpu) writeDiskCommand(cmd byte) {
 		if cpu.fdc.disk.physicalTrack <= 0 {
 			// cpu.fdc.track too?
 			cpu.fdc.disk.physicalTrack = 0
-			cpu.fdc.status = diskTrkZero|diskBusy
+			cpu.fdc.status = diskTrkZero | diskBusy
 		} else {
 			cpu.fdc.status = diskBusy
 		}
 		// Should this set lastDirection?
-		if cmd & diskVMask != 0 {
+		if cmd&diskVMask != 0 {
 			cpu.diskVerify()
 		}
 		cpu.addEvent(eventDiskDone, func() { cpu.diskDone(0) }, 2000)
@@ -828,9 +829,9 @@ func (cpu *cpu) writeDiskCommand(cmd byte) {
 				cpu.fdc.byteCount = jv1BytesPerSector
 				disk.dataOffset = disk.getDataOffset(sectorIndex)
 			case emuJv3:
-				if (!cpu.fdc.doubleDensity) {
+				if !cpu.fdc.doubleDensity {
 					// Single density 179x.
-					switch (disk.jv3.id[sectorIndex].flags & jv3Dam) {
+					switch disk.jv3.id[sectorIndex].flags & jv3Dam {
 					case jv3DamSdFB:
 						newStatus = disk1791FB
 						break
@@ -850,8 +851,8 @@ func (cpu *cpu) writeDiskCommand(cmd byte) {
 					}
 				} else {
 					// Double density 179x.
-					switch (disk.jv3.id[sectorIndex].flags & jv3Dam) {
-						default: /*impossible*/
+					switch disk.jv3.id[sectorIndex].flags & jv3Dam {
+					default: /*impossible*/
 					case jv3DamDdFB:
 						newStatus = disk1791FB
 						break
@@ -860,7 +861,7 @@ func (cpu *cpu) writeDiskCommand(cmd byte) {
 						break
 					}
 				}
-				if disk.jv3.id[sectorIndex].flags & jv3Error != 0 {
+				if disk.jv3.id[sectorIndex].flags&jv3Error != 0 {
 					newStatus |= diskCrcErr
 				}
 				cpu.fdc.byteCount = disk.jv3.id[sectorIndex].getSize()
@@ -1109,7 +1110,7 @@ func (jv3 *jv3) Swap(i, j int) {
 // (Re-)create the sortedId data structure for the given drive.
 func (jv3 *jv3) sortIds(drive int) {
 	// Start with one-to-one map.
-	for i:=0; i<=jv3SectorsMax; i++ {
+	for i := 0; i <= jv3SectorsMax; i++ {
 		jv3.sortedId[i] = i
 	}
 
@@ -1117,19 +1118,19 @@ func (jv3 *jv3) sortIds(drive int) {
 	sort.Sort(jv3)
 
 	// Figure out where each track starts.
-	for track:=0; track<maxTracks; track++ {
+	for track := 0; track < maxTracks; track++ {
 		jv3.trackStart[track][0] = -1
 		jv3.trackStart[track][1] = -1
 	}
 	track := -1
 	side := side(-1)
-	for i:=0; i<jv3SectorsMax; i++ {
+	for i := 0; i < jv3SectorsMax; i++ {
 		id := &jv3.id[jv3.sortedId[i]]
 
 		// See if it's a new track or side.
 		if int(id.track) != track || id.side() != side {
 			track = int(id.track)
-			if (track == jv3Free) {
+			if track == jv3Free {
 				// End of sectors.
 				break
 			}

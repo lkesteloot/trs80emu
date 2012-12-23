@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	printDebug  = false
+	printDebug      = false
 	previousPcCount = 20
-	ramBegin    = 0x4000
-	cpuHz       = 2027520
-	cpuPeriodNs = 1000000000 / cpuHz
+	ramBegin        = 0x4000
+	cpuHz           = 2027520
+	cpuPeriodNs     = 1000000000 / cpuHz
 )
 
 type cpu struct {
@@ -138,7 +138,7 @@ func (cpu *cpu) run(cpuCommandCh <-chan cpuCommand) {
 					}
 					log.Printf("Breakpoint at %04X", cpu.pc)
 					for i := 0; i < previousPcCount; i++ {
-						pc := cpu.previousPc[(cpu.previousPcPtr + i + 1) % previousPcCount]
+						pc := cpu.previousPc[(cpu.previousPcPtr+i+1)%previousPcCount]
 						line, _ := cpu.disasm(pc)
 						log.Print(line)
 					}

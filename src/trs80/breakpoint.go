@@ -1,7 +1,7 @@
 package main
 
 type breakpoint struct {
-	pc word
+	pc     word
 	active bool
 }
 
