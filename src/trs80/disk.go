@@ -11,7 +11,7 @@ import (
 
 const (
 	diskDebug = true
-	diskSortDebug = false
+	diskSortDebug = true
 )
 
 // Type I status bits.
@@ -1103,14 +1103,12 @@ func (jv3 *jv3) Less(i, j int) bool {
 	// sector array (i.e., physical sector order on track).
 	si := jv3.sortedId[i]
 	sj := jv3.sortedId[j]
+	idi := &jv3.id[si]
+	idj := &jv3.id[sj]
 
-	if jv3.id[si].track < jv3.id[sj].track {
-		return true
-	}
-	if jv3.id[si].side() < jv3.id[sj].side() {
-		return true
-	}
-	return si < sj
+	return idi.track < idj.track ||
+		(idi.track == idj.track && (idi.side() < idj.side() ||
+			(idi.side() == idj.side() && si < sj)))
 }
 func (jv3 *jv3) Swap(i, j int) {
 	jv3.sortedId[i], jv3.sortedId[j] = jv3.sortedId[j], jv3.sortedId[i]
