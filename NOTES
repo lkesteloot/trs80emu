@@ -1,33 +1,12 @@
 
 Next:
 
-    Figure out why we're resetting after boot.
-        4409 F5          PUSH AF
-        440A 3E 84       LD A,84
-        440C EF          RST 28H
-        0028 C3 0C 40    JP 400C
-        400C C3 82 4B    JP 4B82
-        4B82 E3          EX (SP),HL
-        4B83 E1          POP HL
-        4B84 B7          OR A
-        4B85 F2 AE 42    JP P,42AE
-        4B88 E5          PUSH HL
-        4B89 67          LD H,A
-        4B8A 3A 14 44    LD A,(4414)
-        4B8D AC          XOR H
-        4B8E E6 0F       A0FD 0F
-        4B90 7C          LD A,H
-        4B91 32 14 44    LD (4414),A
-        4B94 28 3C       JR Z,3C+2
-        4BD2 E1          POP HL
-        4BD3 3A 14 44    LD A,(4414)
-        4BD6 C3 00 00    JP 0000
-    Deal with JSON send I/O timeouts.
-        Detecting it and looping makes it lock up. Deadlock?
     Get Eliminator to work for Larry:
         http://www.trs-80.org/the-eliminator/
         http://www.trs-80.org/games-by-wayne-westmoreland-and-terry-gilman/
-        Needs reading of JV1 disks.
+        Needs handling of multiple drives.
+    Deal with JSON send I/O timeouts.
+        Detecting it and looping makes it lock up. Deadlock?
     Replace instruction strings with integers for faster lookup.
 
 References:
@@ -42,18 +21,6 @@ References:
         http://www.trs-80.com/trs80-zaps-internals.htm
         http://members.shaw.ca/gp2000/trsdisk/trsdisk.html
             Accessing host filesystem from emulation.
-
-I/O at boot:
-
-    2012/12/17 17:11:22 Writing 00 to port E4 // NMI Mask.
-    2012/12/17 17:11:22 Writing 20 to port EC // Mode image.
-    2012/12/17 17:11:22 Writing 81 to port F4 // Disk select (MFM, drive 0).
-    2012/12/17 17:11:22 Writing D0 to port F0 // Disk command (0xD0 = forceint, no interrupt).
-    2012/12/17 17:11:22 Writing 04 to port E0 // Interrupt mask. (timer)
-    2012/12/17 17:11:22 Writing 0B to port F0 // Disk command (0x00 = restore, heavy, 40ms).
-    2012/12/17 17:11:22 Writing 28 to port EC // Mode image.
-    2012/12/17 17:11:22 Reading port E0 // Clear IRQ.
-    2012/12/17 17:11:22 Reading port EC // Read mode image.
 
 Disk notes:
 

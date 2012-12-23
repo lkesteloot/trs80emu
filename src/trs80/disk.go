@@ -530,7 +530,7 @@ func (cpu *cpu) updateDiskStatus() {
 		return
 	}
 
-	if cpu.fdc.disk.data == nil {
+	if cpu.fdc.disk.data == nil || cpu.fdc.currentDrive >= cpu.fdc.driveCount {
 		cpu.fdc.status |= diskIndex
 	} else {
 		if cpu.diskAngle() < diskHoleWidth {
@@ -987,6 +987,7 @@ func (cpu *cpu) writeDiskSelect(value byte) {
 	// If a drive was selected, turn on its motor.
 	if cpu.fdc.status&diskNotRdy == 0 {
 		cpu.setDiskMotor(true)
+		// XXX Could replace this with an event.
 		cpu.fdc.motorTimeout = cpu.clock + motorTimeAfterSelect*cpuHz
 		cpu.diskMotorOffInterrupt(false)
 	}
@@ -997,6 +998,11 @@ func (cpu *cpu) writeDiskSelect(value byte) {
 // no such sector.  If sector == -1, return the first sector found if any.  If
 // side == 0 or 1, perform side compare against sector ID; if -1, don't.
 func (cpu *cpu) searchSector(sector int, side side) int {
+	if cpu.fdc.disk.data == nil || cpu.fdc.currentDrive >= cpu.fdc.driveCount {
+		cpu.fdc.status |= diskNotFound
+		return -1
+	}
+
 	disk := &cpu.fdc.disk
 
 	switch disk.emulationType {
