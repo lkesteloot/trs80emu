@@ -23,11 +23,14 @@ func (cpu *cpu) disasm(pc word) (line string, nextPc word) {
 		}
 	}
 
-	// Substitute N and NN.
-	asm := inst.asm
-	asm = nRegExp.ReplaceAllLiteralString(asm, fmt.Sprintf("%02X", byteData))
-	asm = nnRegExp.ReplaceAllLiteralString(asm, fmt.Sprintf("%04X", wordData))
-
-	line += asm
+	if inst == nil {
+		line += "Unknown instruction"
+	} else {
+		// Substitute N and NN.
+		asm := inst.asm
+		asm = nRegExp.ReplaceAllLiteralString(asm, fmt.Sprintf("%02X", byteData))
+		asm = nnRegExp.ReplaceAllLiteralString(asm, fmt.Sprintf("%04X", wordData))
+		line += asm
+	}
 	return
 }

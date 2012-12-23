@@ -572,6 +572,10 @@ func (cpu *cpu) step() {
 	// Look up the instruction in the tree.
 	instPc := cpu.pc
 	inst, byteData, wordData := cpu.lookUpInst(&cpu.pc)
+	if inst == nil {
+		cpu.logHistoricalPc()
+		panic("Don't know how to handle opcode")
+	}
 	nextInstPc := cpu.pc
 	avoidHandlingIrq := false
 
@@ -1167,6 +1171,11 @@ func (cpu *cpu) getWordValue(ref string, byteData byte, wordData word) word {
 		w.setH(cpu.a)
 		w.setL(byte(cpu.f))
 		return w
+	case "AF'":
+		var w word
+		w.setH(cpu.ap)
+		w.setL(byte(cpu.fp))
+		return w
 	case "BC":
 		return cpu.bc
 	case "DE":
@@ -1259,6 +1268,9 @@ func (cpu *cpu) setWord(ref string, value word, byteData byte, wordData word) {
 	case "AF":
 		cpu.a = value.h()
 		cpu.f = flags(value.l())
+	case "AF'":
+		cpu.ap = value.h()
+		cpu.fp = flags(value.l())
 	case "BC":
 		cpu.bc = value
 	case "DE":
@@ -1314,7 +1326,8 @@ func (cpu *cpu) lookUpInst(pc *word) (inst *instruction, byteData byte, wordData
 			// Keep fetching as long as it's an extended instruction.
 			inst = inst.imap[opcode]
 			if inst == nil {
-				panic("Don't know how to handle opcode")
+				// Unknown instruction.
+				return nil, 0, 0
 			}
 		}
 	}
