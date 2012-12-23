@@ -706,6 +706,18 @@ func (cpu *cpu) step() {
 		if printDebug {
 			cpu.logf("%02X - %02X = %02X", cpu.a, value, result)
 		}
+	case "CPIR":
+		oldCarry := cpu.f.c()
+		value := cpu.readMem(cpu.hl)
+		result := cpu.a - value
+		cpu.hl++
+		cpu.bc--
+		if cpu.bc != 0 && result != 0 {
+			cpu.pc -= 2
+		}
+		cpu.f.updateFromSubByte(cpu.a, value, result)
+		cpu.f.setC(oldCarry)
+		cpu.f.setPv(cpu.bc != 0)
 	case "CPL":
 		// Complement A.
 		a := cpu.a
@@ -891,6 +903,10 @@ func (cpu *cpu) step() {
 		cpu.f.setH(false)
 		cpu.f.setPv(false)
 		cpu.f.setN(false)
+	case "NEG":
+		value := cpu.a
+		cpu.a = -value
+		cpu.f.updateFromSubByte(0, value, cpu.a)
 	case "NOP":
 		// Nothing to do!
 		/// panic("Probably a bug")
@@ -944,6 +960,16 @@ func (cpu *cpu) step() {
 				cpu.log("return skipped")
 			}
 		}
+	case "RL":
+		// Rotate left through carry.
+		value := cpu.getByteValue(subfields[0], byteData, wordData)
+		result := value << 1
+		if cpu.f.c() {
+			result |= 0x01
+		}
+		cpu.f.updateFromByte(result)
+		cpu.f.setC(value & 0x80 != 0)
+		cpu.setByte(subfields[0], result, byteData, wordData)
 	case "RLA":
 		// Left rotate A through carry.
 		origValue := cpu.a
@@ -1097,12 +1123,19 @@ func (cpu *cpu) step() {
 			cpu.f.updateFromSubByte(before, value, result)
 			cpu.setByte(subfields[0], result, byteData, wordData)
 		}
+	case "SLA":
+		// Shift left into carry.
+		value := cpu.getByteValue(subfields[0], byteData, wordData)
+		result := value << 1
+		cpu.f.updateFromByte(result)
+		cpu.f.setC(value & 0x80 != 0)
+		cpu.setByte(subfields[0], result, byteData, wordData)
 	case "SRL":
 		// Shift right.
-		before := cpu.getByteValue(subfields[0], byteData, wordData)
-		result := before >> 1
+		value := cpu.getByteValue(subfields[0], byteData, wordData)
+		result := value >> 1
 		cpu.f.updateFromByte(result)
-		cpu.f.setC(before & 0x01 != 0)
+		cpu.f.setC(value & 0x01 != 0)
 		cpu.setByte(subfields[0], result, byteData, wordData)
 	case "SUB":
 		// Always 8-bit, always to accumulator.
