@@ -19,6 +19,9 @@ var ports = map[byte]string{
 func (cpu *cpu) readPort(port byte) byte {
 	/// log.Printf("Reading port %02X", port)
 	switch port {
+	case 0x3F:
+		// Unmapped, don't crash.
+		return 0xFF
 	case 0xE0:
 		// IRQ latch read.
 		return ^cpu.irqLatch
@@ -53,6 +56,10 @@ func (cpu *cpu) readPort(port byte) byte {
 func (cpu *cpu) writePort(port byte, value byte) {
 	/// log.Printf("Writing %02X to port %02X", value, port)
 	switch port {
+    case 0x84, 0x85, 0x86, 0x87:
+		// Model 4 video page, etc. Ignore.
+	case 0x1F:
+		// Don't know. Don't crash.
 	case 0xE0:
 		// Set interrupt mask.
 		cpu.setIrqMask(value)
