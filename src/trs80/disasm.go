@@ -9,15 +9,15 @@ import (
 var nRegExp = regexp.MustCompile(`\bN\b`)
 var nnRegExp = regexp.MustCompile(`\bNN\b`)
 
-func (cpu *cpu) disasm(pc word) (line string, nextPc word) {
+func (vm *vm) disasm(pc word) (line string, nextPc word) {
 	instPc := pc
-	inst, byteData, wordData := cpu.lookUpInst(&pc)
+	inst, byteData, wordData := vm.lookUpInst(&pc)
 	nextPc = pc
 
 	line = fmt.Sprintf("%04X ", instPc)
 	for pc = instPc; pc < instPc+4; pc++ {
 		if pc < nextPc {
-			line += fmt.Sprintf("%02X ", cpu.memory[pc])
+			line += fmt.Sprintf("%02X ", vm.memory[pc])
 		} else {
 			line += fmt.Sprint("   ")
 		}

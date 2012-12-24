@@ -1,0 +1,183 @@
+package main
+
+import (
+	"io/ioutil"
+	"log"
+	"time"
+)
+
+const (
+	historicalPcCount = 20
+)
+
+type vm struct {
+	// The CPU state.
+	cpu cpu
+
+	// ROM and RAM.
+	memory  []byte
+	romSize word
+
+	// Simulated keyboard.
+	keyboard keyboard
+
+	// Floppy disk controller.
+	fdc fdc
+
+	// Breakpoints.
+	breakpoints breakpoints
+
+	// Queued up events.
+	events events
+
+	// Clock from boot, in cycles.
+	clock uint64
+
+	// Various I/O settings.
+	modeImage byte
+
+	// Channel to get updates from.
+	vmUpdateCh chan<- vmUpdate
+
+	// Keep last "historicalPcCount" PCs for debugging.
+	historicalPc [historicalPcCount]word
+	// Points to the most recent instruction added.
+	historicalPcPtr int
+
+	previousDumpTime    time.Time
+	previousDumpClock   uint64
+	sleptSinceDump      time.Duration
+	previousYieldClock  uint64
+	startTime           int64
+	previousAdjustClock uint64
+}
+
+// Command to the VM from the UI.
+type vmCommand struct {
+	Cmd  string
+	Addr int
+	Data string
+}
+
+func createVm(vmUpdateCh chan<- vmUpdate) *vm {
+	// Allocate memory.
+	memorySize := 1024 * 64
+	memory := make([]byte, memorySize)
+	log.Printf("Memory has %d bytes", len(memory))
+
+	// Load ROM into memory.
+	romFilename := "roms/model3.rom"
+	rom, err := ioutil.ReadFile(romFilename)
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("ROM has %d bytes", len(rom))
+
+	// Copy ROM into memory.
+	copy(memory, rom)
+
+	// Make a CPU.
+	vm := &vm{
+		memory:     memory,
+		romSize:    word(len(rom)),
+		vmUpdateCh: vmUpdateCh,
+		modeImage:  0x80,
+	}
+	vm.cpu.initialize()
+
+	/// err = vm.loadDisk("disks/aigames1.dsk")
+	// err = vm.loadDisk("disks/tdos13a.dsk")
+	// err = vm.loadDisk("disks/lescrp3.dsk")
+	// err = vm.loadDisk("disks/ldos513.dsk")
+	// err = vm.loadDisk("disks/LDOS-DOT.DSK")
+	err = vm.loadDisk("disks/visicalc.dsk")
+	if err != nil {
+		panic(err)
+	}
+
+	return vm
+}
+
+func (vm *vm) run(vmCommandCh <-chan vmCommand) {
+	running := false
+	shutdown := false
+
+	timerCh := getTimerCh()
+
+	handleCmd := func(msg vmCommand) {
+		switch msg.Cmd {
+		case "boot":
+			vm.reset(true)
+			running = true
+		case "reset":
+			vm.reset(false)
+		case "shutdown":
+			shutdown = true
+		case "press", "release":
+			vm.keyboard.keyEvent(msg.Data, msg.Cmd == "press")
+		case "add_breakpoint":
+			vm.breakpoints.add(breakpoint{pc: word(msg.Addr), active: true})
+			log.Printf("Breakpoint added at %04X", msg.Addr)
+		default:
+			panic("Unknown CPU command " + msg.Cmd)
+		}
+	}
+
+	for !shutdown {
+		if running {
+			select {
+			case msg := <-vmCommandCh:
+				handleCmd(msg)
+			case <-timerCh:
+				vm.handleTimer()
+			default:
+				// See if there's a breakpoint here.
+				bp := vm.breakpoints.find(vm.cpu.pc)
+				if bp != nil {
+					if vm.vmUpdateCh != nil {
+						vm.vmUpdateCh <- vmUpdate{Cmd: "breakpoint", Addr: int(vm.cpu.pc)}
+					}
+					log.Printf("Breakpoint at %04X", vm.cpu.pc)
+					vm.logHistoricalPc()
+					running = false
+				} else {
+					vm.step()
+				}
+			}
+		} else {
+			handleCmd(<-vmCommandCh)
+		}
+	}
+
+	log.Print("CPU shut down")
+
+	// No more updates.
+	close(vm.vmUpdateCh)
+}
+
+// Log the last historicalPcCount assembly instructions that we executed.
+func (vm *vm) logHistoricalPc() {
+	for i := 0; i < historicalPcCount; i++ {
+		pc := vm.historicalPc[(vm.historicalPcPtr+i+1)%historicalPcCount]
+		line, _ := vm.disasm(pc)
+		log.Print(line)
+	}
+}
+
+func (vm *vm) reset(powerOn bool) {
+	/// trs_cassette_reset()
+	/// trs_timer_speed(0)
+	vm.diskInit(powerOn)
+	/// trs_hard_out(TRS_HARD_CONTROL, TRS_HARD_SOFTWARE_RESET|TRS_HARD_DEVICE_ENABLE)
+	vm.cpu.setIrqMask(0)
+	vm.cpu.setNmiMask(0)
+	vm.keyboard.clearKeyboard()
+	vm.cpu.timerInterrupt(false)
+
+	if powerOn {
+		vm.cpu.reset()
+		vm.startTime = time.Now().UnixNano()
+	} else {
+		vm.cpu.resetButtonInterrupt(true)
+	}
+}

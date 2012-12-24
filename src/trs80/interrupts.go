@@ -34,16 +34,16 @@ func (cpu *cpu) updateNmiSeen() {
 	}
 }
 
-func (cpu *cpu) handleIrq() {
-	cpu.pushWord(cpu.pc)
-	cpu.iff1 = false
-	cpu.pc = 0x38
+func (vm *vm) handleIrq() {
+	vm.pushWord(vm.cpu.pc)
+	vm.cpu.iff1 = false
+	vm.cpu.pc = 0x38
 }
 
-func (cpu *cpu) handleNmi() {
-	cpu.pushWord(cpu.pc)
-	cpu.iff1 = false
-	cpu.pc = 0x66
+func (vm *vm) handleNmi() {
+	vm.pushWord(vm.cpu.pc)
+	vm.cpu.iff1 = false
+	vm.cpu.pc = 0x66
 }
 
 func (cpu *cpu) resetButtonInterrupt(state bool) {

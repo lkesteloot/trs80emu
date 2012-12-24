@@ -1,7 +1,7 @@
 package main
 
 // Information about changes to the CPU or computer.
-type cpuUpdate struct {
+type vmUpdate struct {
 	Cmd  string
 	Reg  string
 	Addr int
@@ -9,15 +9,15 @@ type cpuUpdate struct {
 }
 
 type startUpdates struct {
-	updateCh chan<- cpuUpdate
+	updateCh chan<- vmUpdate
 }
 
 type stopUpdates struct {
 }
 
-func dispatchUpdates(updateCh <-chan cpuUpdate, updateCmdCh <-chan interface{}) {
-	var dispatchedUpdateCh chan<- cpuUpdate
-	var data cpuUpdate
+func dispatchUpdates(updateCh <-chan vmUpdate, updateCmdCh <-chan interface{}) {
+	var dispatchedUpdateCh chan<- vmUpdate
+	var data vmUpdate
 	var cmd interface{}
 
 	for {

@@ -74,9 +74,9 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Goroutine to read from the ws and send us the commands.
-func readWs(ws *websocket.Conn, cpuCommandCh chan<- cpuCommand) {
+func readWs(ws *websocket.Conn, vmCommandCh chan<- vmCommand) {
 	for {
-		var message cpuCommand
+		var message vmCommand
 
 		err := websocket.JSON.Receive(ws, &message)
 		if err != nil {
@@ -86,33 +86,33 @@ func readWs(ws *websocket.Conn, cpuCommandCh chan<- cpuCommand) {
 				continue
 			}
 			log.Printf("websocket.JSON.Receive: %s", err)
-			cpuCommandCh <- cpuCommand{Cmd: "shutdown"}
+			vmCommandCh <- vmCommand{Cmd: "shutdown"}
 			return
 		}
 		log.Printf("Got command %s", message)
-		cpuCommandCh <- message
+		vmCommandCh <- message
 	}
 }
 
 func wsHandler(ws *websocket.Conn) {
-	cpuCommandCh := make(chan cpuCommand)
-	cpuUpdateCh := make(chan cpuUpdate)
-	go readWs(ws, cpuCommandCh)
-	cpu := createComputer(cpuUpdateCh)
-	go cpu.run(cpuCommandCh)
+	vmCommandCh := make(chan vmCommand)
+	vmUpdateCh := make(chan vmUpdate)
+	go readWs(ws, vmCommandCh)
+	vm := createVm(vmUpdateCh)
+	go vm.run(vmCommandCh)
 
 	// Batch updates.
-	var cpuUpdates []cpuUpdate
+	var vmUpdates []vmUpdate
 	flushUpdates := func() bool {
-		if len(cpuUpdates) > 0 {
-			/// log.Printf("Flushing %d updates", len(cpuUpdates))
-			err := websocket.JSON.Send(ws, cpuUpdates)
+		if len(vmUpdates) > 0 {
+			/// log.Printf("Flushing %d updates", len(vmUpdates))
+			err := websocket.JSON.Send(ws, vmUpdates)
 			if err != nil {
 				log.Printf("websocket.JSON.Send: %s", err)
 				return false
 			}
 			// Clear queue.
-			cpuUpdates = cpuUpdates[:0]
+			vmUpdates = vmUpdates[:0]
 		}
 
 		return true
@@ -122,8 +122,8 @@ func wsHandler(ws *websocket.Conn) {
 	receiving := true
 	for receiving {
 		select {
-		case update := <-cpuUpdateCh:
-			cpuUpdates = append(cpuUpdates, update)
+		case update := <-vmUpdateCh:
+			vmUpdates = append(vmUpdates, update)
 		case <-tickerCh:
 			receiving = flushUpdates()
 		}

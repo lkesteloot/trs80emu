@@ -33,8 +33,8 @@ type events struct {
 
 // Queue up an event to happen at clock, using a delta clock relative to the
 // current time.
-func (cpu *cpu) addEvent(eventType eventType, callback eventCallback, deltaClock uint64) {
-	cpu.events.add(eventType, callback, cpu.clock+deltaClock)
+func (vm *vm) addEvent(eventType eventType, callback eventCallback, deltaClock uint64) {
+	vm.events.add(eventType, callback, vm.clock+deltaClock)
 }
 
 // Queue up an event to happen at clock.

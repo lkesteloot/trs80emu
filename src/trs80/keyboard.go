@@ -14,6 +14,15 @@ const (
 	shiftForceUp
 )
 
+type keyboard struct {
+	// 8 bytes, each a bitfield of keys currently pressed.
+	keys               [8]byte
+	shiftForce         uint
+	keyQueue           [16]keyActivity
+	keyQueueSize       int
+	keyProcessMinClock uint64
+}
+
 type keyInfo struct {
 	byteIndex, bitNumber, shiftForce uint
 }
@@ -128,29 +137,29 @@ var keyMap = map[string]keyInfo{
 	"Shift": {7, 0, shiftNeutral},
 }
 
-func (cpu *cpu) clearKeyboard() {
-	for i := 0; i < len(cpu.keyboard); i++ {
-		cpu.keyboard[i] = 0
+func (kb *keyboard) clearKeyboard() {
+	for i := 0; i < len(kb.keys); i++ {
+		kb.keys[i] = 0
 	}
-	cpu.shiftForce = shiftNeutral
+	kb.shiftForce = shiftNeutral
 }
 
-func (cpu *cpu) readKeyboard(addr word) byte {
+func (vm *vm) readKeyboard(addr word) byte {
 	addr -= keyboardBegin
 
 	var b byte
 
-	if cpu.clock > cpu.keyProcessMinClock {
-		if cpu.processKeyQueue() {
-			cpu.keyProcessMinClock = cpu.clock + keyDelayClockCycles
+	if vm.clock > vm.keyboard.keyProcessMinClock {
+		if vm.keyboard.processKeyQueue() {
+			vm.keyboard.keyProcessMinClock = vm.clock + keyDelayClockCycles
 		}
 	}
 
-	for i, keys := range cpu.keyboard {
+	for i, keys := range vm.keyboard.keys {
 		if addr&(1<<uint(i)) != 0 {
 			if i == 7 {
 				// Modify keys based on the shift force.
-				switch cpu.shiftForce {
+				switch vm.keyboard.shiftForce {
 				case shiftNeutral:
 					// Nothing.
 				case shiftForceUp:
@@ -169,7 +178,7 @@ func (cpu *cpu) readKeyboard(addr word) byte {
 	return b
 }
 
-func (cpu *cpu) keyEvent(key string, isPressed bool) {
+func (kb *keyboard) keyEvent(key string, isPressed bool) {
 	/// log.Printf("Key %s is %v\n", key, isPressed)
 	keyInfo, ok := keyMap[key]
 	if !ok {
@@ -178,28 +187,28 @@ func (cpu *cpu) keyEvent(key string, isPressed bool) {
 	}
 
 	// Append key to queue.
-	if cpu.keyQueueSize < len(cpu.keyQueue) {
-		cpu.keyQueue[cpu.keyQueueSize] = keyActivity{keyInfo, isPressed}
-		cpu.keyQueueSize++
+	if kb.keyQueueSize < len(kb.keyQueue) {
+		kb.keyQueue[kb.keyQueueSize] = keyActivity{keyInfo, isPressed}
+		kb.keyQueueSize++
 	}
 }
 
 // Return whether a key was processed.
-func (cpu *cpu) processKeyQueue() bool {
-	if cpu.keyQueueSize == 0 {
+func (kb *keyboard) processKeyQueue() bool {
+	if kb.keyQueueSize == 0 {
 		return false
 	}
 
-	keyActivity := cpu.keyQueue[0]
-	cpu.keyQueueSize--
-	copy(cpu.keyQueue[:], cpu.keyQueue[1:1+cpu.keyQueueSize])
+	keyActivity := kb.keyQueue[0]
+	kb.keyQueueSize--
+	copy(kb.keyQueue[:], kb.keyQueue[1:1+kb.keyQueueSize])
 
-	cpu.shiftForce = keyActivity.shiftForce
+	kb.shiftForce = keyActivity.shiftForce
 	bit := byte(1 << keyActivity.bitNumber)
 	if keyActivity.isPressed {
-		cpu.keyboard[keyActivity.byteIndex] |= bit
+		kb.keys[keyActivity.byteIndex] |= bit
 	} else {
-		cpu.keyboard[keyActivity.byteIndex] &^= bit
+		kb.keys[keyActivity.byteIndex] &^= bit
 	}
 
 	return true

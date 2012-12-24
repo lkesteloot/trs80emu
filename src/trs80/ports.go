@@ -16,7 +16,7 @@ var ports = map[byte]string{
 	0xFF: "cassette port",
 }
 
-func (cpu *cpu) readPort(port byte) byte {
+func (vm *vm) readPort(port byte) byte {
 	/// log.Printf("Reading port %02X", port)
 	switch port {
 	case 0x3F:
@@ -24,10 +24,10 @@ func (cpu *cpu) readPort(port byte) byte {
 		return 0xFF
 	case 0xE0:
 		// IRQ latch read.
-		return ^cpu.irqLatch
+		return ^vm.cpu.irqLatch
 	case 0xE4:
 		// NMI latch read.
-		return ^cpu.nmiLatch
+		return ^vm.cpu.nmiLatch
 	case 0xE8:
 		// UART modem.
 		return 0xFF
@@ -42,45 +42,45 @@ func (cpu *cpu) readPort(port byte) byte {
 		return 0xFF
 	case 0xEC, 0xED, 0xEE, 0xEF:
 		// Acknowledge timer.
-		cpu.timerInterrupt(false)
+		vm.cpu.timerInterrupt(false)
 		return 0xFF
 	case 0xF0:
 		// Disk status.
-		return cpu.readDiskStatus()
+		return vm.readDiskStatus()
 	case 0xF1:
 		// Disk track.
-		return cpu.readDiskTrack()
+		return vm.readDiskTrack()
 	case 0xF2:
 		// Disk sector.
-		return cpu.readDiskSector()
+		return vm.readDiskSector()
 	case 0xF3:
 		// Disk data.
-		return cpu.readDiskData()
+		return vm.readDiskData()
 	case 0xF8:
 		// Printer status. Printer selected, ready, with paper, not busy.
 		return 0x30
 	case 0xFF:
 		// Cassette and various flags.
 		cassetteStatus := byte(0)
-		return (cpu.modeImage & 0x7E) | cassetteStatus
+		return (vm.modeImage & 0x7E) | cassetteStatus
 	}
 
 	panic(fmt.Sprintf("Can't read from unknown port %02X", port))
 }
 
-func (cpu *cpu) writePort(port byte, value byte) {
+func (vm *vm) writePort(port byte, value byte) {
 	/// log.Printf("Writing %02X to port %02X", value, port)
 	switch port {
-    case 0x84, 0x85, 0x86, 0x87:
+	case 0x84, 0x85, 0x86, 0x87:
 		// Model 4 video page, etc. Ignore.
 	case 0x1F:
 		// Don't know. Don't crash.
 	case 0xE0:
 		// Set interrupt mask.
-		cpu.setIrqMask(value)
+		vm.cpu.setIrqMask(value)
 	case 0xE4, 0xE5, 0xE6, 0xE7:
 		// NMI state.
-		cpu.setNmiMask(value)
+		vm.cpu.setNmiMask(value)
 	case 0xE8:
 		// UART reset.
 	case 0xE9:
@@ -91,31 +91,31 @@ func (cpu *cpu) writePort(port byte, value byte) {
 		// UART data.
 	case 0xEC, 0xED, 0xEE, 0xEF:
 		// Various controls.
-		cpu.modeImage = value
+		vm.modeImage = value
 		/// trs_cassette_motor((value & 0x02) >> 1)
 		/// trs_screen_expanded((value & 0x04) >> 2)
 		/// trs_screen_alternate(!((value & 0x08) >> 3))
 		/// trs_timer_speed((value & 0x40) >> 6)
 	case 0xF0:
 		// Disk command.
-		cpu.writeDiskCommand(value)
+		vm.writeDiskCommand(value)
 	case 0xF1:
 		// Disk track.
-		cpu.writeDiskTrack(value)
+		vm.writeDiskTrack(value)
 	case 0xF2:
 		// Disk sector.
-		cpu.writeDiskSector(value)
+		vm.writeDiskSector(value)
 	case 0xF3:
 		// Disk data.
-		cpu.writeDiskData(value)
+		vm.writeDiskData(value)
 	case 0xF4, 0xF5, 0xF6, 0xF7:
 		// Disk select.
-		cpu.writeDiskSelect(value)
-    case 0xF8, 0xF9, 0xFA, 0xFB:
+		vm.writeDiskSelect(value)
+	case 0xF8, 0xF9, 0xFA, 0xFB:
 		// Printer write.
 		log.Printf("Writing %02X on printer", value)
-    case 0xFC, 0xFD, 0xFE, 0xFF:
-		if value & 0x20 != 0 {
+	case 0xFC, 0xFD, 0xFE, 0xFF:
+		if value&0x20 != 0 {
 			// Model III Micro Labs graphics card.
 			log.Printf("Sending %02X to Micro Labs graphics card", value)
 		} else {
