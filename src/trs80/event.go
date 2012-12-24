@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	eventDebug = true
+	eventDebug = false
 )
 
 const (

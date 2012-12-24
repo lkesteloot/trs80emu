@@ -15,6 +15,150 @@ const (
 	dumpInstructionSet = false
 )
 
+// Constants for each instruction type, so we can dispatch faster.
+const (
+	instAdc = iota
+	instAdd
+	instAnd
+	instBit
+	instCall
+	instCcf
+	instCp
+	instCpd
+	instCpdr
+	instCpi
+	instCpir
+	instCpl
+	instDaa
+	instDec
+	instDi
+	instDjnz
+	instEi
+	instEx
+	instExx
+	instHalt
+	instIm
+	instIn
+	instInc
+	instInd
+	instIndr
+	instIni
+	instInir
+	instJp
+	instJr
+	instLd
+	instLdd
+	instLddr
+	instLdi
+	instLdir
+	instNeg
+	instNop
+	instOr
+	instOtdr
+	instOtir
+	instOut
+	instOutd
+	instOuti
+	instPop
+	instPush
+	instRes
+	instRet
+	instReti
+	instRetn
+	instRl
+	instRla
+	instRlc
+	instRlca
+	instRld
+	instRr
+	instRra
+	instRrc
+	instRrca
+	instRrd
+	instRst
+	instSbc
+	instScf
+	instSet
+	instSla
+	instSll
+	instSra
+	instSrl
+	instSub
+	instXor
+)
+
+// Look-up table from instruction string to type.
+var instToInstInt = map[string]int{
+	"ADC":  instAdc,
+	"ADD":  instAdd,
+	"AND":  instAnd,
+	"BIT":  instBit,
+	"CALL": instCall,
+	"CCF":  instCcf,
+	"CP":   instCp,
+	"CPD":  instCpd,
+	"CPDR": instCpdr,
+	"CPI":  instCpi,
+	"CPIR": instCpir,
+	"CPL":  instCpl,
+	"DAA":  instDaa,
+	"DEC":  instDec,
+	"DI":   instDi,
+	"DJNZ": instDjnz,
+	"EI":   instEi,
+	"EX":   instEx,
+	"EXX":  instExx,
+	"HALT": instHalt,
+	"IM":   instIm,
+	"IN":   instIn,
+	"INC":  instInc,
+	"IND":  instInd,
+	"INDR": instIndr,
+	"INI":  instIni,
+	"INIR": instInir,
+	"JP":   instJp,
+	"JR":   instJr,
+	"LD":   instLd,
+	"LDD":  instLdd,
+	"LDDR": instLddr,
+	"LDI":  instLdi,
+	"LDIR": instLdir,
+	"NEG":  instNeg,
+	"NOP":  instNop,
+	"OR":   instOr,
+	"OTDR": instOtdr,
+	"OTIR": instOtir,
+	"OUT":  instOut,
+	"OUTD": instOutd,
+	"OUTI": instOuti,
+	"POP":  instPop,
+	"PUSH": instPush,
+	"RES":  instRes,
+	"RET":  instRet,
+	"RETI": instReti,
+	"RETN": instRetn,
+	"RL":   instRl,
+	"RLA":  instRla,
+	"RLC":  instRlc,
+	"RLCA": instRlca,
+	"RLD":  instRld,
+	"RR":   instRr,
+	"RRA":  instRra,
+	"RRC":  instRrc,
+	"RRCA": instRrca,
+	"RRD":  instRrd,
+	"RST":  instRst,
+	"SBC":  instSbc,
+	"SCF":  instScf,
+	"SET":  instSet,
+	"SLA":  instSla,
+	"SLL":  instSll,
+	"SRA":  instSra,
+	"SRL":  instSrl,
+	"SUB":  instSub,
+	"XOR":  instXor,
+}
+
 // Copy and pasted from z80.txt (http://guide.ticalc.org/download/z80.txt)
 var instructionList string = `
 ADC A,(HL)    7     1   +0V+++  8E
@@ -421,6 +565,7 @@ type instruction struct {
 	cycles, jumpPenalty uint64
 	fields              []string
 	subfields           []string
+	instInt             int
 
 	// For XX data byte.
 	xx *instruction
@@ -510,6 +655,7 @@ func (inst *instruction) addInstruction(asm, cycles string, opcodes []string) {
 		default:
 			panic(fmt.Sprintf("Unknown number of fields %d", len(inst.fields)))
 		}
+		inst.instInt = instToInstInt[inst.fields[0]]
 	} else {
 		opcodeStr := opcodes[0]
 
@@ -622,8 +768,8 @@ func (vm *vm) step() {
 	}
 
 	subfields := inst.subfields
-	switch inst.fields[0] {
-	case "ADC":
+	switch inst.instInt {
+	case instAdc:
 		if isWordOperand(subfields[0]) || isWordOperand(subfields[1]) {
 			value1 := vm.getWordValue(subfields[0], byteData, wordData)
 			value2 := vm.getWordValue(subfields[1], byteData, wordData)
@@ -649,7 +795,7 @@ func (vm *vm) step() {
 			}
 			cpu.f.updateFromAddByte(value1, value2, result)
 		}
-	case "ADD":
+	case instAdd:
 		if isWordOperand(subfields[0]) || isWordOperand(subfields[1]) {
 			value1 := vm.getWordValue(subfields[0], byteData, wordData)
 			value2 := vm.getWordValue(subfields[1], byteData, wordData)
@@ -669,18 +815,18 @@ func (vm *vm) step() {
 			}
 			cpu.f.updateFromAddByte(value1, value2, result)
 		}
-	case "AND", "XOR", "OR":
+	case instAnd, instXor, instOr:
 		value := vm.getByteValue(subfields[0], byteData, wordData)
 		before := cpu.a
 		var symbol string
-		switch inst.fields[0] {
-		case "AND":
+		switch inst.instInt {
+		case instAnd:
 			cpu.a &= value
 			symbol = "&"
-		case "XOR":
+		case instXor:
 			cpu.a ^= value
 			symbol = "^"
-		case "OR":
+		case instOr:
 			cpu.a |= value
 			symbol = "|"
 		}
@@ -688,14 +834,14 @@ func (vm *vm) step() {
 		if printDebug {
 			cpu.logf("%02X %s %02X = %02X", before, symbol, value, cpu.a)
 		}
-	case "BIT":
+	case instBit:
 		b, _ := strconv.ParseUint(subfields[0], 10, 8)
 		value := vm.getByteValue(subfields[1], byteData, wordData)
 		isOn := (byte(1<<b) & value) != 0
 		cpu.f.setZ(!isOn)
 		cpu.f.setH(true)
 		cpu.f.setN(false)
-	case "CCF":
+	case instCcf:
 		// Complement carry.
 		carry := cpu.f.c()
 		cpu.f.setH(carry)
@@ -704,14 +850,14 @@ func (vm *vm) step() {
 		if printDebug {
 			cpu.logf("Carry flipped from %s to %s", carry, !carry)
 		}
-	case "CP":
+	case instCp:
 		value := vm.getByteValue(subfields[0], byteData, wordData)
 		result := cpu.a - value
 		cpu.f.updateFromSubByte(cpu.a, value, result)
 		if printDebug {
 			cpu.logf("%02X - %02X = %02X", cpu.a, value, result)
 		}
-	case "CPIR":
+	case instCpir:
 		oldCarry := cpu.f.c()
 		value := vm.readMem(cpu.hl)
 		result := cpu.a - value
@@ -723,7 +869,7 @@ func (vm *vm) step() {
 		cpu.f.updateFromSubByte(cpu.a, value, result)
 		cpu.f.setC(oldCarry)
 		cpu.f.setPv(cpu.bc != 0)
-	case "CPL":
+	case instCpl:
 		// Complement A.
 		a := cpu.a
 		cpu.f.setH(true)
@@ -732,7 +878,7 @@ func (vm *vm) step() {
 		if printDebug {
 			cpu.logf("A complemented from %02X to %02X", a, cpu.a)
 		}
-	case "DAA":
+	case instDaa:
 		// BCD add/subtract.
 		a := int(cpu.a)
 		f := cpu.f
@@ -769,7 +915,7 @@ func (vm *vm) step() {
 		cpu.f.setN(f.n())
 		cpu.f.setH(halfCarry)
 		cpu.f.setC(carry)
-	case "DEC":
+	case instDec:
 		if isWordOperand(subfields[0]) {
 			value := vm.getWordValue(subfields[0], byteData, wordData) - 1
 			if printDebug {
@@ -785,9 +931,9 @@ func (vm *vm) step() {
 			vm.setByte(subfields[0], value, byteData, wordData)
 			cpu.f.updateFromDecByte(value)
 		}
-	case "DI":
+	case instDi:
 		cpu.iff1 = false
-	case "DJNZ":
+	case instDjnz:
 		rel := signExtend(byteData)
 		cpu.bc.setH(cpu.bc.h() - 1)
 		if cpu.bc.h() != 0 {
@@ -800,10 +946,10 @@ func (vm *vm) step() {
 				cpu.log("jump skipped")
 			}
 		}
-	case "EI":
+	case instEi:
 		cpu.iff1 = true
 		avoidHandlingIrq = true
-	case "EX":
+	case instEx:
 		value1 := vm.getWordValue(subfields[0], byteData, wordData)
 		value2 := vm.getWordValue(subfields[1], byteData, wordData)
 		vm.setWord(subfields[0], value2, byteData, wordData)
@@ -811,13 +957,13 @@ func (vm *vm) step() {
 		if printDebug {
 			cpu.logf("%04X <--> %04X", value1, value2)
 		}
-	case "EXX":
+	case instExx:
 		cpu.bc, cpu.bcp = cpu.bcp, cpu.bc
 		cpu.de, cpu.dep = cpu.dep, cpu.de
 		cpu.hl, cpu.hlp = cpu.hlp, cpu.hl
-	case "IM":
+	case instIm:
 		// Interrupt mode. Ignore until we support interrupts.
-	case "IN":
+	case instIn:
 		var port byte
 		source := subfields[len(subfields)-1]
 		affectFlags := false
@@ -844,7 +990,7 @@ func (vm *vm) step() {
 			}
 			cpu.logf("%02X <- %02X (%s)", value, port, portDescription)
 		}
-	case "INC":
+	case instInc:
 		if isWordOperand(subfields[0]) {
 			value := vm.getWordValue(subfields[0], byteData, wordData) + 1
 			if printDebug {
@@ -860,7 +1006,7 @@ func (vm *vm) step() {
 			vm.setByte(subfields[0], value, byteData, wordData)
 			cpu.f.updateFromIncByte(value)
 		}
-	case "INI":
+	case instIni:
 		value := vm.readPort(cpu.bc.l())
 		vm.writeMem(cpu.hl, value)
 		cpu.hl++
@@ -868,7 +1014,7 @@ func (vm *vm) step() {
 		cpu.bc.setH(b)
 		cpu.f.setZ(b == 0)
 		cpu.f.setN(true)
-	case "JP", "CALL":
+	case instJp, instCall:
 		addr := vm.getWordValue(subfields[len(subfields)-1], byteData, wordData)
 		if len(subfields) == 1 || cpu.conditionSatisfied(subfields[0]) {
 			if inst.fields[0] == "CALL" {
@@ -883,7 +1029,7 @@ func (vm *vm) step() {
 				cpu.log("jump skipped")
 			}
 		}
-	case "JR":
+	case instJr:
 		if subfields[len(subfields)-1] != "N+2" {
 			panic("Can only handle relative jumps to N, not " + subfields[len(subfields)-1])
 		}
@@ -899,7 +1045,7 @@ func (vm *vm) step() {
 				cpu.log("jump skipped")
 			}
 		}
-	case "LD":
+	case instLd:
 		if isWordOperand(subfields[0]) || isWordOperand(subfields[1]) {
 			value := vm.getWordValue(subfields[1], byteData, wordData)
 			vm.setWord(subfields[0], value, byteData, wordData)
@@ -913,7 +1059,7 @@ func (vm *vm) step() {
 				cpu.logf("%02X", value)
 			}
 		}
-	case "LDDR":
+	case instLddr:
 		// Copy (HL) to (DE), decrement both, and decrement BC. If BC != 0, loop.
 		b := vm.readMem(cpu.hl)
 		if printDebug {
@@ -929,7 +1075,7 @@ func (vm *vm) step() {
 		cpu.f.setH(false)
 		cpu.f.setPv(false)
 		cpu.f.setN(false)
-	case "LDIR":
+	case instLdir:
 		// Copy (HL) to (DE), increment both, and decrement BC. If BC != 0, loop.
 		b := vm.readMem(cpu.hl)
 		if printDebug {
@@ -945,14 +1091,14 @@ func (vm *vm) step() {
 		cpu.f.setH(false)
 		cpu.f.setPv(false)
 		cpu.f.setN(false)
-	case "NEG":
+	case instNeg:
 		value := cpu.a
 		cpu.a = -value
 		cpu.f.updateFromSubByte(0, value, cpu.a)
-	case "NOP":
+	case instNop:
 		// Nothing to do!
 		/// panic("Probably a bug")
-	case "OUT":
+	case instOut:
 		var port byte
 		value := vm.getByteValue(subfields[1], byteData, wordData)
 		switch subfields[0] {
@@ -971,19 +1117,19 @@ func (vm *vm) step() {
 			}
 			cpu.logf("%02X (%s) <- %02X", port, portDescription, value)
 		}
-	case "POP":
+	case instPop:
 		value := vm.popWord()
 		vm.setWord(subfields[0], value, byteData, wordData)
 		if printDebug {
 			cpu.logf("%04X", value)
 		}
-	case "PUSH":
+	case instPush:
 		value := vm.getWordValue(subfields[0], byteData, wordData)
 		vm.pushWord(value)
 		if printDebug {
 			cpu.logf("%04X", value)
 		}
-	case "RES":
+	case instRes:
 		b, _ := strconv.ParseUint(subfields[0], 10, 8)
 		origValue := vm.getByteValue(subfields[1], byteData, wordData)
 		value := origValue &^ (1 << b)
@@ -991,7 +1137,7 @@ func (vm *vm) step() {
 		if printDebug {
 			cpu.logf("%02X &^ %02X = %02X", origValue, 1<<b, value)
 		}
-	case "RET":
+	case instRet:
 		if subfields == nil || cpu.conditionSatisfied(subfields[0]) {
 			cpu.pc = vm.popWord()
 			if printDebug {
@@ -1002,7 +1148,7 @@ func (vm *vm) step() {
 				cpu.log("return skipped")
 			}
 		}
-	case "RL":
+	case instRl:
 		// Rotate left through carry.
 		value := vm.getByteValue(subfields[0], byteData, wordData)
 		result := value << 1
@@ -1012,7 +1158,7 @@ func (vm *vm) step() {
 		cpu.f.updateFromByte(result)
 		cpu.f.setC(value&0x80 != 0)
 		vm.setByte(subfields[0], result, byteData, wordData)
-	case "RLA":
+	case instRla:
 		// Left rotate A through carry.
 		origValue := cpu.a
 		leftBit := origValue >> 7
@@ -1027,7 +1173,7 @@ func (vm *vm) step() {
 		cpu.f.setC(leftBit != 0)
 		cpu.f.setH(false)
 		cpu.f.setN(false)
-	case "RLC":
+	case instRlc:
 		// Left rotate. We can't combine this with RLCA because the resulting condition
 		// bits are different.
 		origValue := vm.getByteValue(subfields[0], byteData, wordData)
@@ -1039,7 +1185,7 @@ func (vm *vm) step() {
 		if printDebug {
 			cpu.logf("%02X << 1 = %02X", origValue, result)
 		}
-	case "RLCA":
+	case instRlca:
 		// Left rotate.
 		origValue := cpu.a
 		leftBit := origValue >> 7
@@ -1050,7 +1196,7 @@ func (vm *vm) step() {
 		if printDebug {
 			cpu.logf("%02X << 1 = %02X", origValue, cpu.a)
 		}
-	case "RLD":
+	case instRld:
 		// Left rotate decimal.
 		origValue := vm.readMem(cpu.hl)
 
@@ -1062,7 +1208,7 @@ func (vm *vm) step() {
 
 		cpu.f.updateFromByte(cpu.a)
 		vm.writeMem(cpu.hl, newValue)
-	case "RR":
+	case instRr:
 		// Rotate right through carry.
 		before := vm.getByteValue(subfields[0], byteData, wordData)
 		result := before >> 1
@@ -1072,7 +1218,7 @@ func (vm *vm) step() {
 		cpu.f.updateFromByte(result)
 		cpu.f.setC(before&0x01 != 0)
 		vm.setByte(subfields[0], result, byteData, wordData)
-	case "RRA":
+	case instRra:
 		// Right rotate A through carry.
 		origValue := cpu.a
 		rightBit := origValue & 1
@@ -1087,7 +1233,7 @@ func (vm *vm) step() {
 		cpu.f.setC(rightBit != 0)
 		cpu.f.setH(false)
 		cpu.f.setN(false)
-	case "RRC":
+	case instRrc:
 		// Rotate right.
 		before := vm.getByteValue(subfields[0], byteData, wordData)
 		result := before >> 1
@@ -1099,7 +1245,7 @@ func (vm *vm) step() {
 		}
 		cpu.f.updateFromByte(result)
 		vm.setByte(subfields[0], result, byteData, wordData)
-	case "RRCA":
+	case instRrca:
 		// Right rotate.
 		origValue := cpu.a
 		rightBit := origValue & 1
@@ -1110,7 +1256,7 @@ func (vm *vm) step() {
 		if printDebug {
 			cpu.logf("%02X >> 1 = %02X", origValue, cpu.a)
 		}
-	case "RRD":
+	case instRrd:
 		// Rotate right decimal.
 		value := vm.readMem(cpu.hl)
 
@@ -1122,7 +1268,7 @@ func (vm *vm) step() {
 
 		cpu.f.updateFromByte(cpu.a)
 		vm.writeMem(cpu.hl, result)
-	case "RST":
+	case instRst:
 		addrStr := strings.Replace(subfields[0], "H", "", -1)
 		addr, _ := strconv.ParseUint(addrStr, 16, 8)
 		vm.pushWord(cpu.pc)
@@ -1131,7 +1277,7 @@ func (vm *vm) step() {
 		if printDebug {
 			cpu.logf("%04X", cpu.pc)
 		}
-	case "SCF":
+	case instScf:
 		// Set carry.
 		cpu.f.setH(false)
 		cpu.f.setN(false)
@@ -1139,7 +1285,7 @@ func (vm *vm) step() {
 		if printDebug {
 			cpu.logf("Carry set")
 		}
-	case "SET":
+	case instSet:
 		b, _ := strconv.ParseUint(subfields[0], 10, 8)
 		origValue := vm.getByteValue(subfields[1], byteData, wordData)
 		value := origValue | (1 << b)
@@ -1147,7 +1293,7 @@ func (vm *vm) step() {
 		if printDebug {
 			cpu.logf("%02X | %02X = %02X", origValue, 1<<b, value)
 		}
-	case "SBC":
+	case instSbc:
 		// Subtract with carry.
 		if len(subfields) == 1 {
 			panic("Can't handle SBC with one parameter")
@@ -1177,28 +1323,28 @@ func (vm *vm) step() {
 			cpu.f.updateFromSubByte(before, value, result)
 			vm.setByte(subfields[0], result, byteData, wordData)
 		}
-	case "SLA":
+	case instSla:
 		// Shift left into carry.
 		value := vm.getByteValue(subfields[0], byteData, wordData)
 		result := value << 1
 		cpu.f.updateFromByte(result)
 		cpu.f.setC(value&0x80 != 0)
 		vm.setByte(subfields[0], result, byteData, wordData)
-	case "SRA":
+	case instSra:
 		// Shift right arithmetic.
 		value := vm.getByteValue(subfields[0], byteData, wordData)
 		result := byte(int8(value) >> 1)
 		cpu.f.updateFromByte(result)
 		vm.setByte(subfields[0], result, byteData, wordData)
 		cpu.f.setC(value&0x01 != 0)
-	case "SRL":
+	case instSrl:
 		// Shift right.
 		value := vm.getByteValue(subfields[0], byteData, wordData)
 		result := value >> 1
 		cpu.f.updateFromByte(result)
 		cpu.f.setC(value&0x01 != 0)
 		vm.setByte(subfields[0], result, byteData, wordData)
-	case "SUB":
+	case instSub:
 		// Always 8-bit, always to accumulator.
 		before := cpu.a
 		value := vm.getByteValue(subfields[0], byteData, wordData)
@@ -1261,7 +1407,7 @@ func (vm *vm) step() {
 	}
 
 	// Slow down CPU if we're going too fast.
-	if vm.clock > vm.previousAdjustClock+1000 {
+	if !profiling && vm.clock > vm.previousAdjustClock+1000 {
 		now := time.Now().UnixNano()
 		elapsedReal := time.Duration(now - vm.startTime)
 		elapsedFake := time.Duration(vm.clock * cpuPeriodNs)
