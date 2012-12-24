@@ -88,11 +88,11 @@ func createVm(vmUpdateCh chan<- vmUpdate) *vm {
 	vm.cpu.initialize()
 
 	/// err = vm.loadDisk("disks/aigames1.dsk")
-	// err = vm.loadDisk("disks/tdos13a.dsk")
 	// err = vm.loadDisk("disks/lescrp3.dsk")
 	// err = vm.loadDisk("disks/ldos513.dsk")
 	// err = vm.loadDisk("disks/LDOS-DOT.DSK")
-	err = vm.loadDisk("disks/visicalc.dsk")
+	err = vm.loadDisk(1, "disks/tdos13a.dsk")
+	err = vm.loadDisk(0, "disks/visicalc.dsk")
 	if err != nil {
 		panic(err)
 	}

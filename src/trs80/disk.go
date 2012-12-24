@@ -14,6 +14,39 @@ import (
 const (
 	diskDebug     = true
 	diskSortDebug = true
+
+	// How many physical drives in the machine.
+	driveCount = 4
+
+	// How long the disk motor stays on after drive selected (in seconds).
+	motorTimeAfterSelect = 2
+
+	// Width of the index hole as a fraction of the entire circumference.
+	diskHoleWidth = 0.01
+
+	// Speed of disk.
+	diskRpm             = 300
+	clocksPerRevolution = cpuHz * 60 / diskRpm
+
+	// Whether disks are write-protected.
+	writeProtection = true
+
+	// Never have more than this many tracks.
+	maxTracks = 255
+
+	// I don't know what this is but it defaults to false on xtrs.
+	diskTrueDam = false
+
+	// JV1 info.
+	jv1BytesPerSector  = 256
+	jv1SectorsPerTrack = 10
+
+	// JV3 info.
+	jv3MaxSides        = 2                      // Number of sides supported by this format.
+	jv3IdStart         = 0                      // Where in file the IDs start.
+	jv3SectorStart     = 34 * 256               // Start of sectors within file (end of IDs).
+	jv3SectorsPerBlock = jv3SectorStart / 3     // Number of jv3Sector structs per info block.
+	jv3SectorsMax      = 2 * jv3SectorsPerBlock // There are two info blocks maximum.
 )
 
 // Type I status bits.
@@ -50,38 +83,6 @@ const (
 	diskMfm  // Double density.
 
 	diskDriveMask = diskDrive0 | diskDrive1 | diskDrive2 | diskDrive3
-)
-
-const (
-	// How long the disk motor stays on after drive selected (in seconds).
-	motorTimeAfterSelect = 2
-
-	// Width of the index hole as a fraction of the entire circumference.
-	diskHoleWidth = 0.01
-
-	// Speed of disk.
-	diskRpm             = 300
-	clocksPerRevolution = cpuHz * 60 / diskRpm
-
-	// Whether disks are write-protected.
-	writeProtection = true
-
-	// Never have more than this many tracks.
-	maxTracks = 255
-
-	// I don't know what this is but it defaults to false on xtrs.
-	diskTrueDam = false
-
-	// JV1 info.
-	jv1BytesPerSector  = 256
-	jv1SectorsPerTrack = 10
-
-	// JV3 info.
-	jv3MaxSides        = 2                      // Number of sides supported by this format.
-	jv3IdStart         = 0                      // Where in file the IDs start.
-	jv3SectorStart     = 34 * 256               // Start of sectors within file (end of IDs).
-	jv3SectorsPerBlock = jv3SectorStart / 3     // Number of jv3Sector structs per info block.
-	jv3SectorsMax      = 2 * jv3SectorsPerBlock // There are two info blocks maximum.
 )
 
 const (
@@ -185,8 +186,7 @@ type fdc struct {
 	lastReadAdr    int // Id index found by last readadr.
 
 	// Disks themselves.
-	driveCount int
-	disk       disk
+	disks [driveCount]disk
 }
 
 // Data about the floppy that has been inserted.
@@ -293,8 +293,8 @@ func (side *side) setFromBoolean(value bool) {
 	}
 }
 
-func (vm *vm) loadDisk(filename string) error {
-	return vm.fdc.disk.load(filename)
+func (vm *vm) loadDisk(drive int, filename string) error {
+	return vm.fdc.disks[drive].load(filename)
 }
 
 func (disk *disk) load(filename string) error {
@@ -387,34 +387,40 @@ func (disk *disk) loadJv3Block(idStart, blockStart int) int {
 }
 
 func (vm *vm) diskInit(powerOn bool) {
+	fdc := &vm.fdc
+
 	if diskDebug {
 		log.Printf("diskInit(%v)", powerOn)
 	}
 
 	// Registers.
-	vm.fdc.status = diskNotRdy | diskTrkZero
-	vm.fdc.track = 0
-	vm.fdc.sector = 0
-	vm.fdc.data = 0
+	fdc.status = diskNotRdy | diskTrkZero
+	fdc.track = 0
+	fdc.sector = 0
+	fdc.data = 0
 
 	// Various state.
-	vm.fdc.currentCommand = diskRestore
-	vm.fdc.byteCount = 0
-	vm.fdc.side = 0
-	vm.fdc.doubleDensity = false
-	vm.fdc.currentDrive = 0
-	vm.fdc.motorIsOn = false
-	vm.fdc.motorTimeout = 0
+	fdc.currentCommand = diskRestore
+	fdc.byteCount = 0
+	fdc.side = 0
+	fdc.doubleDensity = false
+	fdc.currentDrive = 0
+	fdc.motorIsOn = false
+	fdc.motorTimeout = 0
 	vm.fdc.lastReadAdr = -1
 
-	if powerOn {
-		vm.fdc.disk.physicalTrack = 0
+	for i := 0; i < len(fdc.disks); i++ {
+		fdc.disks[i].init(powerOn)
 	}
 
 	// Cancel any pending disk event.
 	vm.events.cancelEvents(eventDisk)
+}
 
-	vm.fdc.driveCount = 1
+func (disk *disk) init(powerOn bool) {
+	if powerOn {
+		disk.physicalTrack = 0
+	}
 }
 
 // Event used for delayed command completion.  Clears BUSY,
@@ -527,12 +533,14 @@ func commandType(cmd byte) int {
 }
 
 func (vm *vm) updateDiskStatus() {
+	disk := &vm.fdc.disks[vm.fdc.currentDrive]
+
 	if isReadWriteCommand(vm.fdc.currentCommand) {
 		// Don't modify status.
 		return
 	}
 
-	if vm.fdc.disk.data == nil || vm.fdc.currentDrive >= vm.fdc.driveCount {
+	if disk.data == nil {
 		vm.fdc.status |= diskIndex
 	} else {
 		if vm.diskAngle() < diskHoleWidth {
@@ -548,7 +556,7 @@ func (vm *vm) updateDiskStatus() {
 		}
 	}
 
-	if vm.fdc.disk.physicalTrack == 0 {
+	if disk.physicalTrack == 0 {
 		vm.fdc.status |= diskTrkZero
 	} else {
 		vm.fdc.status &^= diskTrkZero
@@ -563,7 +571,7 @@ func (vm *vm) updateDiskStatus() {
 }
 
 func (vm *vm) readDiskStatus() byte {
-	if vm.fdc.driveCount == 0 {
+	if driveCount == 0 {
 		return 0xFF
 	}
 
@@ -603,7 +611,7 @@ func (vm *vm) readDiskSector() byte {
 }
 
 func (vm *vm) readDiskData() byte {
-	disk := &vm.fdc.disk
+	disk := &vm.fdc.disks[vm.fdc.currentDrive]
 
 	switch vm.fdc.currentCommand & diskCommandMask {
 	case diskRead:
@@ -764,6 +772,8 @@ func (vm *vm) readDiskData() byte {
 }
 
 func (vm *vm) writeDiskCommand(cmd byte) {
+	disk := &vm.fdc.disks[vm.fdc.currentDrive]
+
 	if diskDebug {
 		log.Printf("writeDiskCommand(%02X)", cmd)
 	}
@@ -778,7 +788,7 @@ func (vm *vm) writeDiskCommand(cmd byte) {
 	switch cmd & diskCommandMask {
 	case diskRestore:
 		vm.fdc.lastReadAdr = -1
-		vm.fdc.disk.physicalTrack = 0
+		disk.physicalTrack = 0
 		vm.fdc.track = 0
 		vm.fdc.status = diskTrkZero | diskBusy
 		if cmd&diskVMask != 0 {
@@ -787,11 +797,11 @@ func (vm *vm) writeDiskCommand(cmd byte) {
 		vm.addEvent(eventDiskDone, func() { vm.diskDone(0) }, 2000)
 	case diskSeek:
 		vm.fdc.lastReadAdr = -1
-		vm.fdc.disk.physicalTrack += vm.fdc.data - vm.fdc.track
+		disk.physicalTrack += vm.fdc.data - vm.fdc.track
 		vm.fdc.track = vm.fdc.data
-		if vm.fdc.disk.physicalTrack <= 0 {
+		if disk.physicalTrack <= 0 {
 			// vm.fdc.track too?
-			vm.fdc.disk.physicalTrack = 0
+			disk.physicalTrack = 0
 			vm.fdc.status = diskTrkZero | diskBusy
 		} else {
 			vm.fdc.status = diskBusy
@@ -825,9 +835,8 @@ func (vm *vm) writeDiskCommand(cmd byte) {
 			vm.fdc.status |= diskBusy
 			vm.addEvent(eventDiskDone, func() { vm.diskDone(0) }, 512)
 			log.Printf("Didn't find sector %02X on track %02X",
-				vm.fdc.sector, vm.fdc.disk.physicalTrack)
+				vm.fdc.sector, disk.physicalTrack)
 		} else {
-			disk := &vm.fdc.disk
 			var newStatus byte = 0
 			switch disk.emulationType {
 			case emuJv1:
@@ -980,12 +989,6 @@ func (vm *vm) writeDiskSelect(value byte) {
 		panic("Disk not handled")
 	}
 
-	// Sanity check.
-	if vm.fdc.currentDrive >= vm.fdc.driveCount {
-		// XXX?
-		log.Printf("Drive too high (%d >= %d)", vm.fdc.currentDrive, vm.fdc.driveCount)
-	}
-
 	// If a drive was selected, turn on its motor.
 	if vm.fdc.status&diskNotRdy == 0 {
 		vm.setDiskMotor(true)
@@ -1000,12 +1003,12 @@ func (vm *vm) writeDiskSelect(value byte) {
 // no such sector.  If sector == -1, return the first sector found if any.  If
 // side == 0 or 1, perform side compare against sector ID; if -1, don't.
 func (vm *vm) searchSector(sector int, side side) int {
-	if vm.fdc.disk.data == nil || vm.fdc.currentDrive >= vm.fdc.driveCount {
+	disk := &vm.fdc.disks[vm.fdc.currentDrive]
+
+	if disk.data == nil {
 		vm.fdc.status |= diskNotFound
 		return -1
 	}
-
-	disk := &vm.fdc.disk
 
 	switch disk.emulationType {
 	case emuNone:
@@ -1082,7 +1085,7 @@ func (disk *disk) getDataOffset(index int) int {
 
 // Verify that head is on the expected track.
 func (vm *vm) diskVerify() {
-	disk := &vm.fdc.disk
+	disk := &vm.fdc.disks[vm.fdc.currentDrive]
 
 	switch disk.emulationType {
 	case emuNone:
