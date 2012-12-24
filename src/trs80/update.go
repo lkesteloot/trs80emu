@@ -1,3 +1,5 @@
+// Copyright 2012 Lawrence Kesteloot
+
 package main
 
 // Information about changes to the CPU or computer.

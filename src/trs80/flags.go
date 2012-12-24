@@ -1,3 +1,5 @@
+// Copyright 2012 Lawrence Kesteloot
+
 package main
 
 // http://www.zilog.com/docs/z80/um0080.pdf page 76

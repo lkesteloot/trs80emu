@@ -1,3 +1,5 @@
+// Copyright 2012 Lawrence Kesteloot
+
 package main
 
 // This file borrows heavily from the xtrs file trs_disk.c.
