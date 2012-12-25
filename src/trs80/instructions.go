@@ -957,7 +957,7 @@ func (vm *vm) step() {
 				vm.msg += fmt.Sprintf("%02X - 1 = %02X", value, result)
 			}
 			vm.setByte(subfields[0], result, byteData, wordData)
-			cpu.f.updateFromDecByte(value)
+			cpu.f.updateFromDecByte(result)
 		}
 	case instDi: // Verified correct.
 		cpu.iff1 = false
@@ -1039,7 +1039,7 @@ func (vm *vm) step() {
 				vm.msg += fmt.Sprintf("%02X + 1 = %02X", value, result)
 			}
 			vm.setByte(subfields[0], result, byteData, wordData)
-			cpu.f.updateFromIncByte(value)
+			cpu.f.updateFromIncByte(result)
 		}
 	case instIni: // Verified correct.
 		value := vm.readPort(cpu.bc.l())
