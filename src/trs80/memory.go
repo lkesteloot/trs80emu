@@ -18,8 +18,8 @@ func (vm *vm) writeMem(addr word, b byte) {
 	if addr < vm.romSize {
 		// ROM.
 		msg := fmt.Sprintf("Tried to write %02X to ROM at %04X", b, addr)
+		vm.logHistoricalPc()
 		if crashOnRomWrite {
-			vm.logHistoricalPc()
 			panic(msg)
 		} else {
 			log.Print(msg)
