@@ -12,9 +12,6 @@ import (
 )
 
 const (
-	diskDebug     = false
-	diskSortDebug = false
-
 	// How many physical drives in the machine.
 	driveCount = 4
 

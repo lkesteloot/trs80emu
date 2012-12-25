@@ -7,9 +7,12 @@ import (
 )
 
 // http://www.trs-80.com/trs80-zaps-internals.htm#keyboard13
-const keyboardBegin = 0x3800
-const keyboardEnd = keyboardBegin + 256
-const keyDelayClockCycles = 40000
+const (
+	keyboardBegin = 0x3800
+	keyboardEnd = keyboardBegin + 256
+	keyDelayClockCycles = 40000
+)
+
 const (
 	shiftNeutral = iota
 	shiftForceDown

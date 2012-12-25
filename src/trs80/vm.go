@@ -46,6 +46,9 @@ type vm struct {
 	// Points to the most recent instruction added.
 	historicalPcPtr int
 
+	// Debug message.
+	msg string
+
 	previousDumpTime    time.Time
 	previousDumpClock   uint64
 	sleptSinceDump      time.Duration
@@ -119,6 +122,15 @@ func (vm *vm) run(vmCommandCh <-chan vmCommand) {
 		case "add_breakpoint":
 			vm.breakpoints.add(breakpoint{pc: word(msg.Addr), active: true})
 			log.Printf("Breakpoint added at %04X", msg.Addr)
+		case "tron":
+			printDebug = !printDebug
+			if vm.vmUpdateCh != nil {
+				if printDebug {
+					vm.vmUpdateCh <- vmUpdate{Cmd: "message", Msg: "Trace is on"}
+				} else {
+					vm.vmUpdateCh <- vmUpdate{Cmd: "message", Msg: "Trace is off"}
+				}
+			}
 		default:
 			panic("Unknown CPU command " + msg.Cmd)
 		}

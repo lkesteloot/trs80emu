@@ -41,6 +41,16 @@
             }).
             appendTo($buttons);
 
+        $("<button>").
+            attr("type", "button").
+            text("Trace").
+            click(function () {
+                if (g_ws) {
+                    g_ws.send(JSON.stringify({Cmd: "tron"}));
+                }
+            }).
+            appendTo($buttons);
+
         var $breakpoint_address = $("<input>").
             attr("id", "breakpoint_address").
             attr("type", "text").
@@ -89,6 +99,8 @@
             }
         } else if (cmd === "breakpoint") {
             $("#message").text("Breakpoint at 0x" + msg.Addr.toString(16))
+        } else if (cmd === "message") {
+            $("#message").text(msg.Msg);
         } else {
             console.log("Unknown command \"" + cmd + "\"");
         }

@@ -29,10 +29,15 @@ func (vm *vm) disasm(pc word) (line string, nextPc word) {
 		line += "Unknown instruction"
 	} else {
 		// Substitute N and NN.
-		asm := inst.asm
-		asm = nRegExp.ReplaceAllLiteralString(asm, fmt.Sprintf("%02X", byteData))
-		asm = nnRegExp.ReplaceAllLiteralString(asm, fmt.Sprintf("%04X", wordData))
-		line += asm
+		line += substituteData(inst.asm, byteData, wordData)
 	}
 	return
+}
+
+// Fills the N and NN parts of assembly instructions with their real value.
+func substituteData(asm string, byteData byte, wordData word) string {
+	asm = nRegExp.ReplaceAllLiteralString(asm, fmt.Sprintf("%02X", byteData))
+	asm = nnRegExp.ReplaceAllLiteralString(asm, fmt.Sprintf("%04X", wordData))
+
+	return asm
 }

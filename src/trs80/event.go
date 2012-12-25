@@ -7,10 +7,6 @@ import (
 )
 
 const (
-	eventDebug = false
-)
-
-const (
 	eventDiskDone = eventType(1 << iota)
 	eventDiskLostData
 	eventDiskFirstDrq

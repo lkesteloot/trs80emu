@@ -11,10 +11,6 @@ import (
 	"time"
 )
 
-const (
-	dumpInstructionSet = false
-)
-
 // Constants for each instruction type, so we can dispatch faster.
 const (
 	instAdc = iota
@@ -765,17 +761,17 @@ func (vm *vm) step() {
 	nextInstPc := cpu.pc
 	avoidHandlingIrq := false
 
+	vm.msg = ""
 	if printDebug {
-		msg := fmt.Sprintf("%10d %04X ", vm.clock, instPc)
+		vm.msg += fmt.Sprintf("%10d %04X ", vm.clock, instPc)
 		for pc := instPc; pc < instPc+4; pc++ {
 			if pc < nextInstPc {
-				msg += fmt.Sprintf("%02X ", vm.memory[pc])
+				vm.msg += fmt.Sprintf("%02X ", vm.memory[pc])
 			} else {
-				msg += "   "
+				vm.msg += "   "
 			}
 		}
-		msg += fmt.Sprintf("%-15s ", inst.asm)
-		log.Print(msg)
+		vm.msg += fmt.Sprintf("%-15s ", substituteData(inst.asm, byteData, wordData))
 	}
 
 	// Dispatch on instruction.
@@ -792,7 +788,7 @@ func (vm *vm) step() {
 			}
 			vm.setWord(subfields[0], result, byteData, wordData)
 			if printDebug {
-				cpu.logf("%04X + %04X + %v = %04X", value1, value2, cpu.f.c(), result)
+				vm.msg += fmt.Sprintf("%04X + %04X + %v = %04X", value1, value2, cpu.f.c(), result)
 			}
 			cpu.f.updateFromAdcWord(value1, value2, result)
 		} else {
@@ -804,7 +800,7 @@ func (vm *vm) step() {
 			}
 			vm.setByte(subfields[0], result, byteData, wordData)
 			if printDebug {
-				cpu.logf("%02X + %02X + %v = %02X", value1, value2, cpu.f.c(), result)
+				vm.msg += fmt.Sprintf("%02X + %02X + %v = %02X", value1, value2, cpu.f.c(), result)
 			}
 			cpu.f.updateFromAddByte(value1, value2, result)
 		}
@@ -815,7 +811,7 @@ func (vm *vm) step() {
 			result := value1 + value2
 			vm.setWord(subfields[0], result, byteData, wordData)
 			if printDebug {
-				cpu.logf("%04X + %04X = %04X", value1, value2, result)
+				vm.msg += fmt.Sprintf("%04X + %04X = %04X", value1, value2, result)
 			}
 			cpu.f.updateFromAddWord(value1, value2, result)
 		} else {
@@ -824,7 +820,7 @@ func (vm *vm) step() {
 			result := value1 + value2
 			vm.setByte(subfields[0], result, byteData, wordData)
 			if printDebug {
-				cpu.logf("%02X + %02X = %02X", value1, value2, result)
+				vm.msg += fmt.Sprintf("%02X + %02X = %02X", value1, value2, result)
 			}
 			cpu.f.updateFromAddByte(value1, value2, result)
 		}
@@ -845,7 +841,7 @@ func (vm *vm) step() {
 		}
 		cpu.f.updateFromLogicByte(cpu.a, inst.instInt == instAnd)
 		if printDebug {
-			cpu.logf("%02X %s %02X = %02X", before, symbol, value, cpu.a)
+			vm.msg += fmt.Sprintf("%02X %s %02X = %02X", before, symbol, value, cpu.a)
 		}
 	case instBit: // Verified correct.
 		// Test bit.
@@ -867,14 +863,14 @@ func (vm *vm) step() {
 		cpu.f.setC(!carry)
 		cpu.f.setUndoc(cpu.a)
 		if printDebug {
-			cpu.logf("Carry flipped from %s to %s", carry, !carry)
+			vm.msg += fmt.Sprintf("Carry flipped from %s to %s", carry, !carry)
 		}
 	case instCp: // Verified correct.
 		value := vm.getByteValue(subfields[0], byteData, wordData)
 		result := cpu.a - value
 		cpu.f.updateFromSubByte(cpu.a, value, result)
 		if printDebug {
-			cpu.logf("%02X - %02X = %02X", cpu.a, value, result)
+			vm.msg += fmt.Sprintf("%02X - %02X = %02X", cpu.a, value, result)
 		}
 	case instCpir: // Verified correct.
 		// Look for A at (HL) for at most BC bytes.
@@ -907,7 +903,7 @@ func (vm *vm) step() {
 		cpu.f.setN(true)
 		cpu.f.setUndoc(cpu.a)
 		if printDebug {
-			cpu.logf("A complemented from %02X to %02X", a, cpu.a)
+			vm.msg += fmt.Sprintf("A complemented from %02X to %02X", a, cpu.a)
 		}
 	case instDaa: // Verified correct.
 		// BCD add/subtract.
@@ -950,7 +946,7 @@ func (vm *vm) step() {
 			value := vm.getWordValue(subfields[0], byteData, wordData)
 			result := value - 1
 			if printDebug {
-				cpu.logf("%04X - 1 = %04X", value, result)
+				vm.msg += fmt.Sprintf("%04X - 1 = %04X", value, result)
 			}
 			vm.setWord(subfields[0], result, byteData, wordData)
 			// Flags are not affected.
@@ -958,7 +954,7 @@ func (vm *vm) step() {
 			value := vm.getByteValue(subfields[0], byteData, wordData)
 			result := value - 1
 			if printDebug {
-				cpu.logf("%02X - 1 = %02X", value, result)
+				vm.msg += fmt.Sprintf("%02X - 1 = %02X", value, result)
 			}
 			vm.setByte(subfields[0], result, byteData, wordData)
 			cpu.f.updateFromDecByte(value)
@@ -972,11 +968,11 @@ func (vm *vm) step() {
 		if cpu.bc.h() != 0 {
 			cpu.pc += rel
 			if printDebug {
-				cpu.logf("%04X (%d), b = %02X", cpu.pc, int16(rel), cpu.bc.h())
+				vm.msg += fmt.Sprintf("%04X (%d), b = %02X", cpu.pc, int16(rel), cpu.bc.h())
 			}
 		} else {
 			if printDebug {
-				cpu.log("jump skipped")
+				vm.msg += "jump skipped"
 			}
 		}
 	case instEi: // Verified correct.
@@ -989,7 +985,7 @@ func (vm *vm) step() {
 		vm.setWord(subfields[0], value2, byteData, wordData)
 		vm.setWord(subfields[1], value1, byteData, wordData)
 		if printDebug {
-			cpu.logf("%04X <--> %04X", value1, value2)
+			vm.msg += fmt.Sprintf("%04X <--> %04X", value1, value2)
 		}
 	case instExx: // Verified correct.
 		cpu.bc, cpu.bcp = cpu.bcp, cpu.bc
@@ -1025,14 +1021,14 @@ func (vm *vm) step() {
 			if !ok {
 				panic(fmt.Sprintf("Unknown port %02X", port))
 			}
-			cpu.logf("%02X <- %02X (%s)", value, port, portDescription)
+			vm.msg += fmt.Sprintf("%02X <- %02X (%s)", value, port, portDescription)
 		}
 	case instInc: // Verified correct.
 		if isWordOperand(subfields[0]) {
 			value := vm.getWordValue(subfields[0], byteData, wordData)
 			result := value + 1
 			if printDebug {
-				cpu.logf("%04X + 1 = %04X", value, result)
+				vm.msg += fmt.Sprintf("%04X + 1 = %04X", value, result)
 			}
 			vm.setWord(subfields[0], result, byteData, wordData)
 			// Flags are not affected.
@@ -1040,7 +1036,7 @@ func (vm *vm) step() {
 			value := vm.getByteValue(subfields[0], byteData, wordData)
 			result := value + 1
 			if printDebug {
-				cpu.logf("%02X + 1 = %02X", value, result)
+				vm.msg += fmt.Sprintf("%02X + 1 = %02X", value, result)
 			}
 			vm.setByte(subfields[0], result, byteData, wordData)
 			cpu.f.updateFromIncByte(value)
@@ -1061,11 +1057,11 @@ func (vm *vm) step() {
 			}
 			cpu.pc = addr
 			if printDebug {
-				cpu.logf("%04X", addr)
+				vm.msg += fmt.Sprintf("%04X", addr)
 			}
 		} else {
 			if printDebug {
-				cpu.log("jump skipped")
+				vm.msg += "jump skipped"
 			}
 		}
 	case instJr: // Verified correct.
@@ -1077,11 +1073,11 @@ func (vm *vm) step() {
 		if len(subfields) == 1 || cpu.conditionSatisfied(subfields[0]) {
 			cpu.pc += rel
 			if printDebug {
-				cpu.logf("%04X (%d)", cpu.pc, int16(rel))
+				vm.msg += fmt.Sprintf("%04X (%d)", cpu.pc, int16(rel))
 			}
 		} else {
 			if printDebug {
-				cpu.log("jump skipped")
+				vm.msg += "jump skipped"
 			}
 		}
 	case instLd: // Verified correct.
@@ -1089,20 +1085,20 @@ func (vm *vm) step() {
 			value := vm.getWordValue(subfields[1], byteData, wordData)
 			vm.setWord(subfields[0], value, byteData, wordData)
 			if printDebug {
-				cpu.logf("%04X", value)
+				vm.msg += fmt.Sprintf("%04X", value)
 			}
 		} else {
 			value := vm.getByteValue(subfields[1], byteData, wordData)
 			vm.setByte(subfields[0], value, byteData, wordData)
 			if printDebug {
-				cpu.logf("%02X", value)
+				vm.msg += fmt.Sprintf("%02X", value)
 			}
 		}
 	case instLddr: // Verified correct.
 		// Copy (HL) to (DE), decrement both, and decrement BC. If BC != 0, loop.
 		b := vm.readMem(cpu.hl)
 		if printDebug {
-			cpu.logf("copying %02X from %04X to %04X", b, cpu.hl, cpu.de)
+			vm.msg += fmt.Sprintf("copying %02X from %04X to %04X", b, cpu.hl, cpu.de)
 		}
 		vm.writeMem(cpu.de, b)
 		cpu.hl--
@@ -1120,7 +1116,7 @@ func (vm *vm) step() {
 		// Copy (HL) to (DE), increment both, and decrement BC. If BC != 0, loop.
 		b := vm.readMem(cpu.hl)
 		if printDebug {
-			cpu.logf("copying %02X from %04X to %04X", b, cpu.hl, cpu.de)
+			vm.msg += fmt.Sprintf("copying %02X from %04X to %04X", b, cpu.hl, cpu.de)
 		}
 		vm.writeMem(cpu.de, b)
 		cpu.hl++
@@ -1157,19 +1153,19 @@ func (vm *vm) step() {
 			if !ok {
 				panic(fmt.Sprintf("Unknown port %02X", port))
 			}
-			cpu.logf("%02X (%s) <- %02X", port, portDescription, value)
+			vm.msg += fmt.Sprintf("%02X (%s) <- %02X", port, portDescription, value)
 		}
 	case instPop: // Verified correct.
 		value := vm.popWord()
 		vm.setWord(subfields[0], value, byteData, wordData)
 		if printDebug {
-			cpu.logf("%04X", value)
+			vm.msg += fmt.Sprintf("%04X", value)
 		}
 	case instPush: // Verified correct.
 		value := vm.getWordValue(subfields[0], byteData, wordData)
 		vm.pushWord(value)
 		if printDebug {
-			cpu.logf("%04X", value)
+			vm.msg += fmt.Sprintf("%04X", value)
 		}
 	case instRes: // Verified correct.
 		// Reset bit.
@@ -1178,17 +1174,17 @@ func (vm *vm) step() {
 		value := origValue &^ (1 << b)
 		vm.setByte(subfields[1], value, byteData, wordData)
 		if printDebug {
-			cpu.logf("%02X &^ %02X = %02X", origValue, 1<<b, value)
+			vm.msg += fmt.Sprintf("%02X &^ %02X = %02X", origValue, 1<<b, value)
 		}
 	case instRet: // Verified correct.
 		if subfields == nil || cpu.conditionSatisfied(subfields[0]) {
 			cpu.pc = vm.popWord()
 			if printDebug {
-				cpu.logf("%04X", cpu.pc)
+				vm.msg += fmt.Sprintf("%04X", cpu.pc)
 			}
 		} else {
 			if printDebug {
-				cpu.log("return skipped")
+				vm.msg += "return skipped"
 			}
 		}
 	case instRl: // Verified correct.
@@ -1209,7 +1205,7 @@ func (vm *vm) step() {
 			result |= 1
 		}
 		if printDebug {
-			cpu.logf("%02X << 1 (%v) = %02X", value, cpu.f.c(), result)
+			vm.msg += fmt.Sprintf("%02X << 1 (%v) = %02X", value, cpu.f.c(), result)
 		}
 		cpu.a = result
 		cpu.f.setC(value & 0x80 != 0)
@@ -1228,7 +1224,7 @@ func (vm *vm) step() {
 		cpu.f.setH(false)
 		cpu.f.setN(false)
 		if printDebug {
-			cpu.logf("%02X << 1 = %02X", value, result)
+			vm.msg += fmt.Sprintf("%02X << 1 = %02X", value, result)
 		}
 	case instRlca: // Verified correct.
 		// Left rotate.
@@ -1240,7 +1236,7 @@ func (vm *vm) step() {
 		cpu.f.setC(leftBit == 1)
 		cpu.f.setUndoc(cpu.a)
 		if printDebug {
-			cpu.logf("%02X << 1 = %02X", value, cpu.a)
+			vm.msg += fmt.Sprintf("%02X << 1 = %02X", value, cpu.a)
 		}
 	case instRld: // Verified correct.
 		// Left rotate decimal.
@@ -1278,7 +1274,7 @@ func (vm *vm) step() {
 			result |= 0x80
 		}
 		if printDebug {
-			cpu.logf("%02X >> 1 (%v) = %02X", value, cpu.f.c(), result)
+			vm.msg += fmt.Sprintf("%02X >> 1 (%v) = %02X", value, cpu.f.c(), result)
 		}
 		cpu.a = result
 		cpu.f.setC(value & 1 != 0)
@@ -1308,7 +1304,7 @@ func (vm *vm) step() {
 		cpu.f.setC(rightBit == 1)
 		cpu.f.setUndoc(cpu.a)
 		if printDebug {
-			cpu.logf("%02X >> 1 = %02X", value, cpu.a)
+			vm.msg += fmt.Sprintf("%02X >> 1 = %02X", value, cpu.a)
 		}
 	case instRrd: // Verified correct.
 		// Rotate right decimal.
@@ -1330,7 +1326,7 @@ func (vm *vm) step() {
 		cpu.pc.setH(0)
 		cpu.pc.setL(addr)
 		if printDebug {
-			cpu.logf("%04X", cpu.pc)
+			vm.msg += fmt.Sprintf("%04X", cpu.pc)
 		}
 	case instScf: // Verified correct.
 		// Set carry.
@@ -1339,7 +1335,7 @@ func (vm *vm) step() {
 		cpu.f.setC(true)
 		cpu.f.setUndoc(cpu.a)
 		if printDebug {
-			cpu.logf("Carry set")
+			vm.msg += fmt.Sprintf("Carry set")
 		}
 	case instSet: // Verified correct.
 		// Set bit.
@@ -1348,7 +1344,7 @@ func (vm *vm) step() {
 		result := value | (1 << b)
 		vm.setByte(subfields[1], result, byteData, wordData)
 		if printDebug {
-			cpu.logf("%02X | %02X = %02X", value, 1<<b, result)
+			vm.msg += fmt.Sprintf("%02X | %02X = %02X", value, 1<<b, result)
 		}
 	case instSbc: // Verified correct.
 		// Subtract with carry.
@@ -1363,7 +1359,7 @@ func (vm *vm) step() {
 				result--
 			}
 			if printDebug {
-				cpu.logf("%04X - %04X - %v = %04X", before, value, cpu.f.c(), result)
+				vm.msg += fmt.Sprintf("%04X - %04X - %v = %04X", before, value, cpu.f.c(), result)
 			}
 			cpu.f.updateFromSbcWord(before, value, result)
 			vm.setWord(subfields[0], result, byteData, wordData)
@@ -1375,7 +1371,7 @@ func (vm *vm) step() {
 				result--
 			}
 			if printDebug {
-				cpu.logf("%02X - %02X - %v = %02X", before, value, cpu.f.c(), result)
+				vm.msg += fmt.Sprintf("%02X - %02X - %v = %02X", before, value, cpu.f.c(), result)
 			}
 			cpu.f.updateFromSubByte(before, value, result)
 			vm.setByte(subfields[0], result, byteData, wordData)
@@ -1413,7 +1409,7 @@ func (vm *vm) step() {
 		value := vm.getByteValue(subfields[0], byteData, wordData)
 		cpu.a -= value
 		if printDebug {
-			cpu.logf("%02X - %02X = %02X", before, value, cpu.a)
+			vm.msg += fmt.Sprintf("%02X - %02X = %02X", before, value, cpu.a)
 		}
 		cpu.f.updateFromSubByte(before, value, cpu.a)
 	default:
@@ -1421,8 +1417,8 @@ func (vm *vm) step() {
 			inst.asm, instPc))
 	}
 
-	if printDebug {
-		cpu.logln()
+	if vm.msg != "" {
+		log.Print(vm.msg)
 	}
 
 	// Dispatch scheduled events.

@@ -124,36 +124,36 @@ func (vm *vm) getByteValue(ref string, byteData byte, wordData word) byte {
 		return cpu.hl.l()
 	case "(BC)":
 		if printDebug {
-			cpu.logf("(BC = %04X) ", cpu.bc)
+			vm.msg += fmt.Sprintf("(BC = %04X) ", cpu.bc)
 		}
 		return vm.readMem(cpu.bc)
 	case "(DE)":
 		if printDebug {
-			cpu.logf("(DE = %04X) ", cpu.de)
+			vm.msg += fmt.Sprintf("(DE = %04X) ", cpu.de)
 		}
 		return vm.readMem(cpu.de)
 	case "(HL)":
 		if printDebug {
-			cpu.logf("(HL = %04X) ", cpu.hl)
+			vm.msg += fmt.Sprintf("(HL = %04X) ", cpu.hl)
 		}
 		return vm.readMem(cpu.hl)
 	case "(IX+N)":
 		addr := cpu.ix + signExtend(byteData)
 		if printDebug {
-			cpu.logf("(IX = %04X + %02X = %04X) ", cpu.ix, byteData, addr)
+			vm.msg += fmt.Sprintf("(IX = %04X + %02X = %04X) ", cpu.ix, byteData, addr)
 		}
 		return vm.readMem(addr)
 	case "(IY+N)":
 		addr := cpu.iy + signExtend(byteData)
 		if printDebug {
-			cpu.logf("(IY = %04X + %02X = %04X) ", cpu.iy, byteData, addr)
+			vm.msg += fmt.Sprintf("(IY = %04X + %02X = %04X) ", cpu.iy, byteData, addr)
 		}
 		return vm.readMem(addr)
 	case "N":
 		return byteData
 	case "(NN)":
 		if printDebug {
-			cpu.logf("(NN = %04X) ", wordData)
+			vm.msg += fmt.Sprintf("(NN = %04X) ", wordData)
 		}
 		return vm.readMem(wordData)
 	}
@@ -191,17 +191,17 @@ func (vm *vm) getWordValue(ref string, byteData byte, wordData word) word {
 		return wordData
 	case "(NN)":
 		if printDebug {
-			cpu.logf("(NN = %04X) ", wordData)
+			vm.msg += fmt.Sprintf("(NN = %04X) ", wordData)
 		}
 		return vm.readMemWord(wordData)
 	case "(HL)":
 		if printDebug {
-			cpu.logf("(HL = %04X) ", cpu.hl)
+			vm.msg += fmt.Sprintf("(HL = %04X) ", cpu.hl)
 		}
 		return vm.readMemWord(cpu.hl)
 	case "(SP)":
 		if printDebug {
-			cpu.logf("(SP = %04X) ", cpu.sp)
+			vm.msg += fmt.Sprintf("(SP = %04X) ", cpu.sp)
 		}
 		return vm.readMemWord(cpu.sp)
 	}
@@ -238,34 +238,34 @@ func (vm *vm) setByte(ref string, value byte, byteData byte, wordData word) {
 	case "(BC)":
 		vm.writeMem(cpu.bc, value)
 		if printDebug {
-			cpu.logf("(BC = %04X) ", cpu.bc)
+			vm.msg += fmt.Sprintf("(BC = %04X) ", cpu.bc)
 		}
 	case "(DE)":
 		vm.writeMem(cpu.de, value)
 		if printDebug {
-			cpu.logf("(DE = %04X) ", cpu.de)
+			vm.msg += fmt.Sprintf("(DE = %04X) ", cpu.de)
 		}
 	case "(HL)":
 		vm.writeMem(cpu.hl, value)
 		if printDebug {
-			cpu.logf("(HL = %04X) ", cpu.hl)
+			vm.msg += fmt.Sprintf("(HL = %04X) ", cpu.hl)
 		}
 	case "(IX+N)":
 		addr := cpu.ix + signExtend(byteData)
 		vm.writeMem(addr, value)
 		if printDebug {
-			cpu.logf("(IX = %04X + %02X = %04X) ", cpu.ix, byteData, addr)
+			vm.msg += fmt.Sprintf("(IX = %04X + %02X = %04X) ", cpu.ix, byteData, addr)
 		}
 	case "(IY+N)":
 		addr := cpu.iy + signExtend(byteData)
 		vm.writeMem(addr, value)
 		if printDebug {
-			cpu.logf("(IY = %04X + %02X = %04X) ", cpu.iy, byteData, addr)
+			vm.msg += fmt.Sprintf("(IY = %04X + %02X = %04X) ", cpu.iy, byteData, addr)
 		}
 	case "(NN)":
 		vm.writeMem(wordData, value)
 		if printDebug {
-			cpu.logf("(NN = %04X) ", wordData)
+			vm.msg += fmt.Sprintf("(NN = %04X) ", wordData)
 		}
 	default:
 		panic("Can't handle destination of " + ref)
@@ -297,12 +297,12 @@ func (vm *vm) setWord(ref string, value word, byteData byte, wordData word) {
 	case "(NN)":
 		vm.writeMemWord(wordData, value)
 		if printDebug {
-			cpu.logf("(NN = %04X) ", wordData)
+			vm.msg += fmt.Sprintf("(NN = %04X) ", wordData)
 		}
 	case "(SP)":
 		vm.writeMemWord(cpu.sp, value)
 		if printDebug {
-			cpu.logf("(SP = %04X) ", cpu.sp)
+			vm.msg += fmt.Sprintf("(SP = %04X) ", cpu.sp)
 		}
 	default:
 		panic("Can't handle destination of " + ref)

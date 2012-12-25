@@ -2,12 +2,7 @@
 
 package main
 
-import (
-	"fmt"
-)
-
 const (
-	printDebug  = false
 	cpuHz       = 2027520
 	cpuPeriodNs = 1000000000 / cpuHz
 )
@@ -96,16 +91,4 @@ func isWordOperand(op string) bool {
 
 func signExtend(b byte) word {
 	return word(int8(b))
-}
-
-func (cpu *cpu) log(s string) {
-	fmt.Print(s)
-}
-
-func (cpu *cpu) logf(format string, arg ...interface{}) {
-	fmt.Printf(format, arg...)
-}
-
-func (cpu *cpu) logln() {
-	fmt.Println()
 }
