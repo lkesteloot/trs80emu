@@ -7,6 +7,7 @@ const (
 	diskDebug     = false
 	diskSortDebug = false
 	eventDebug = false
+	warnUninitMemRead = true
 )
 
 var printDebug = false

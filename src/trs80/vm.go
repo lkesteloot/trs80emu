@@ -16,8 +16,13 @@ type vm struct {
 	// The CPU state.
 	cpu cpu
 
-	// ROM and RAM.
+	// RAM.
 	memory  []byte
+
+	// Whether each byte of RAM has been initialized.
+	memInit []bool
+
+	// Size of ROM.
 	romSize word
 
 	// Simulated keyboard.
@@ -68,6 +73,7 @@ func createVm(vmUpdateCh chan<- vmUpdate) *vm {
 	// Allocate memory.
 	memorySize := 1024 * 64
 	memory := make([]byte, memorySize)
+	memInit := make([]bool, memorySize)
 	log.Printf("Memory has %d bytes", len(memory))
 
 	// Load ROM into memory.
@@ -84,6 +90,7 @@ func createVm(vmUpdateCh chan<- vmUpdate) *vm {
 	// Make a CPU.
 	vm := &vm{
 		memory:     memory,
+		memInit:    memInit,
 		romSize:    word(len(rom)),
 		vmUpdateCh: vmUpdateCh,
 		modeImage:  0x80,

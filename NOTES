@@ -1,6 +1,8 @@
 
 Next:
 
+    Clock interrupts are happening in real time but should happen in Z80 time
+        so that when we're dumping assembly instructions they don't happen too often.
     Copyright notice on home screen appears twice.
     VisiCalc (visicalc.dsk) has major issues, probably with Z80 instructions.
     Get Eliminator to work for Larry:

@@ -17,7 +17,7 @@ func (vm *vm) writeMem(addr word, b byte) {
 	// Check ROM writing. Harmless in real life, but may indicate a bug here.
 	if addr < vm.romSize {
 		// ROM.
-		msg := fmt.Sprintf("Tried to write %02X to ROM at %04X", b, addr)
+		msg := fmt.Sprintf("Warning: Tried to write %02X to ROM at %04X", b, addr)
 		vm.logHistoricalPc()
 		if crashOnRomWrite {
 			panic(msg)
@@ -27,6 +27,7 @@ func (vm *vm) writeMem(addr word, b byte) {
 	} else if addr >= ramBegin {
 		// RAM.
 		vm.memory[addr] = b
+		vm.memInit[addr] = true
 	} else if addr >= screenBegin && addr < screenEnd {
 		// Screen.
 		vm.memory[addr] = b
@@ -52,6 +53,9 @@ func (vm *vm) readMem(addr word) (b byte) {
 	// xtrs:trs_memory.c
 	if addr >= ramBegin {
 		// RAM.
+		if warnUninitMemRead && !vm.memInit[addr] {
+			log.Printf("Warning: Uninitialized read of RAM at %04X", addr)
+		}
 		b = vm.memory[addr]
 	} else if addr == 0x37E8 {
 		// Printer. 0x30 = Printer selected, ready, with paper, not busy.
