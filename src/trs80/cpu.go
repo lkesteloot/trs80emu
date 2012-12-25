@@ -9,7 +9,7 @@ const (
 
 type cpu struct {
 	// Registers:
-	a, i, r    byte
+	a          byte
 	f          flags
 	bc, de, hl word
 
@@ -51,7 +51,6 @@ func (cpu *cpu) initialize() {
 
 func (cpu *cpu) reset() {
 	cpu.pc = 0
-	// cpu.i = 0
 	cpu.iff1 = false
 	cpu.iff2 = false
 }
