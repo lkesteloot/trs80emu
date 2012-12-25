@@ -196,7 +196,6 @@ func (f *flags) updateFromByte(value byte) {
 	f.setUndoc(value)
 }
 
-// Verified correct.
 func (f *flags) updateFromAddByte(value1, value2, result byte) {
 	index := (value1&0x88)>>1 | (value2&0x88)>>2 | (result&0x88)>>3
 	*f = halfCarryTable[index&7] |
@@ -208,7 +207,6 @@ func (f *flags) updateFromAddByte(value1, value2, result byte) {
 	}
 }
 
-// Verified correct.
 func (f *flags) updateFromAddWord(value1, value2, result word) {
 	index := (value1&0x8800)>>9 | (value2&0x8800)>>10 | (result&0x8800)>>11
 	*f = halfCarryTable[index&7] |
@@ -217,7 +215,6 @@ func (f *flags) updateFromAddWord(value1, value2, result word) {
 		flags(result.h()&undocMasks)
 }
 
-// Verified correct.
 func (f *flags) updateFromAdcWord(value1, value2, result word) {
 	index := (value1&0x8800)>>9 | (value2&0x8800)>>10 | (result&0x8800)>>11
 	*f = halfCarryTable[index&7] |
@@ -229,7 +226,6 @@ func (f *flags) updateFromAdcWord(value1, value2, result word) {
 	}
 }
 
-// Verified correct.
 func (f *flags) updateFromSubByte(value1, value2, result byte) {
 	index := (value1&0x88)>>1 | (value2&0x88)>>2 | (result&0x88)>>3
 	*f = subtractMask |
@@ -242,7 +238,6 @@ func (f *flags) updateFromSubByte(value1, value2, result byte) {
 	}
 }
 
-// Verified correct.
 func (f *flags) updateFromSbcWord(value1, value2, result word) {
 	index := (value1&0x8800)>>9 | (value2&0x8800)>>10 | (result&0x8800)>>11
 	*f = subtractMask |
@@ -255,7 +250,6 @@ func (f *flags) updateFromSbcWord(value1, value2, result word) {
 	}
 }
 
-// Verified correct.
 func (f *flags) updateFromLogicByte(result byte, isAnd bool) {
 	if isAnd {
 		*f = halfCarryMask
@@ -274,7 +268,6 @@ func (f *flags) updateFromLogicByte(result byte, isAnd bool) {
 	f.setUndoc(result)
 }
 
-// Verified correct.
 func (f *flags) updateFromDecByte(result byte) {
 	*f = (*f & carryMask) | subtractMask
 
@@ -294,7 +287,6 @@ func (f *flags) updateFromDecByte(result byte) {
 	f.setUndoc(result)
 }
 
-// Verified correct.
 func (f *flags) updateFromIncByte(result byte) {
 	*f &= carryMask
 	f.setPv(result == 0x80)
@@ -304,7 +296,6 @@ func (f *flags) updateFromIncByte(result byte) {
 	f.setUndoc(result)
 }
 
-// Verified correct.
 func (f *flags) updateFromInByte(result byte) {
 	*f &^= signMask | zeroMask | halfCarryMask | parityOverflowMask | subtractMask
 

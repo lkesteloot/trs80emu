@@ -56,7 +56,6 @@ func (cpu *cpu) reset() {
 	cpu.iff2 = false
 }
 
-// Verified correct.
 func (cpu *cpu) conditionSatisfied(cond string) bool {
 	switch cond {
 	case "C":
@@ -67,10 +66,10 @@ func (cpu *cpu) conditionSatisfied(cond string) bool {
 		return cpu.f.z()
 	case "NZ":
 		return !cpu.f.z()
-	case "P": // Positive (plus).
-		return !cpu.f.s()
 	case "M": // Negative (minus).
 		return cpu.f.s()
+	case "P": // Positive (plus).
+		return !cpu.f.s()
 	case "PE":
 		return cpu.f.pv()
 	case "PO":

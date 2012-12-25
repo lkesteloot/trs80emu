@@ -1,10 +1,7 @@
 
 Next:
 
-    TRS-DOS no longer accepts date.
-        Do code review again of diffs.
-        Add button on interface to start/stop recording instructions.
-        Pick through instructions to see which one fails. Ugh.
+    Copyright notice on home screen appears twice.
     VisiCalc (visicalc.dsk) has major issues, probably with Z80 instructions.
     Get Eliminator to work for Larry:
         http://www.trs-80.org/the-eliminator/
