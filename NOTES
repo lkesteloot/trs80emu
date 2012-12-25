@@ -1,17 +1,20 @@
 
 Next:
 
+    TRS-DOS no longer accepts date.
+        Do code review again of diffs.
+        Add button on interface to start/stop recording instructions.
+        Pick through instructions to see which one fails. Ugh.
+    VisiCalc (visicalc.dsk) has major issues, probably with Z80 instructions.
     Get Eliminator to work for Larry:
         http://www.trs-80.org/the-eliminator/
         http://www.trs-80.org/games-by-wayne-westmoreland-and-terry-gilman/
         Needs handling of multiple drives.
-    VisiCalc (visicalc.dsk) has major issues, probably with Z80 instructions.
     Deal with JSON send I/O timeouts.
         Detecting it and looping makes it lock up. Deadlock?
         Maybe just massively reduce bytes used per update.
             Use simple "c,addr,byte" format with one-letter command, like "p,15360,191".
             Would still need bulk commands, maybe separated by semicolon.
-    Replace instruction strings with integers for faster lookup.
 
 References:
 

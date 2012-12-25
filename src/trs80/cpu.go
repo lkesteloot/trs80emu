@@ -26,8 +26,9 @@ type cpu struct {
 	// 16-bit registers:
 	sp, pc, ix, iy word
 
-	// Interrupt flag.
+	// Interrupt flags.
 	iff1 bool
+	iff2 bool
 
 	// Which IRQs should be handled.
 	irqMask byte
@@ -57,9 +58,10 @@ func (cpu *cpu) reset() {
 	cpu.pc = 0
 	// cpu.i = 0
 	cpu.iff1 = false
-	// cpu.iff2 = false
+	cpu.iff2 = false
 }
 
+// Verified correct.
 func (cpu *cpu) conditionSatisfied(cond string) bool {
 	switch cond {
 	case "C":
@@ -70,9 +72,9 @@ func (cpu *cpu) conditionSatisfied(cond string) bool {
 		return cpu.f.z()
 	case "NZ":
 		return !cpu.f.z()
-	case "P": // Positive.
+	case "P": // Positive (plus).
 		return !cpu.f.s()
-	case "M": // Negative.
+	case "M": // Negative (minus).
 		return cpu.f.s()
 	case "PE":
 		return cpu.f.pv()

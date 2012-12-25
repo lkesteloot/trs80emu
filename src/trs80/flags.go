@@ -166,16 +166,37 @@ func (f *flags) setS(s bool) {
 	}
 }
 
+// Set the undoc flags from a byte.
+func (f *flags) setUndoc(v byte) {
+	*f = (*f &^ undocMasks) | (flags(v) & undocMasks)
+}
+
+// Useful function.
+func boolToInt(value bool) int {
+	if value {
+		return 1
+	}
+	return 0
+}
+
+// Useful function.
+func boolToFlags(value bool) flags {
+	if value {
+		return 1
+	}
+	return 0
+}
+
 // Update simple flags (S, Z, P, and undoc) based on result of operation.
-// Carry is unaffected. XXX This probably shouldn't touch the N flag.
+// Carry, half carry, and subtract are unaffected.
 func (f *flags) updateFromByte(value byte) {
-	*f &= carryMask
 	f.setS(value&0x80 != 0)
 	f.setZ(value == 0)
 	f.setPv(parityTable[value] == 1)
-	*f |= flags(value & undocMasks)
+	f.setUndoc(value)
 }
 
+// Verified correct.
 func (f *flags) updateFromAddByte(value1, value2, result byte) {
 	index := (value1&0x88)>>1 | (value2&0x88)>>2 | (result&0x88)>>3
 	*f = halfCarryTable[index&7] |
@@ -187,6 +208,7 @@ func (f *flags) updateFromAddByte(value1, value2, result byte) {
 	}
 }
 
+// Verified correct.
 func (f *flags) updateFromAddWord(value1, value2, result word) {
 	index := (value1&0x8800)>>9 | (value2&0x8800)>>10 | (result&0x8800)>>11
 	*f = halfCarryTable[index&7] |
@@ -195,6 +217,19 @@ func (f *flags) updateFromAddWord(value1, value2, result word) {
 		flags(result.h()&undocMasks)
 }
 
+// Verified correct.
+func (f *flags) updateFromAdcWord(value1, value2, result word) {
+	index := (value1&0x8800)>>9 | (value2&0x8800)>>10 | (result&0x8800)>>11
+	*f = halfCarryTable[index&7] |
+		signCarryOverflowTable[index>>4] |
+		flags(result.h()&undocMasks)
+
+	if result == 0 {
+		*f |= zeroMask
+	}
+}
+
+// Verified correct.
 func (f *flags) updateFromSubByte(value1, value2, result byte) {
 	index := (value1&0x88)>>1 | (value2&0x88)>>2 | (result&0x88)>>3
 	*f = subtractMask |
@@ -207,6 +242,7 @@ func (f *flags) updateFromSubByte(value1, value2, result byte) {
 	}
 }
 
+// Verified correct.
 func (f *flags) updateFromSbcWord(value1, value2, result word) {
 	index := (value1&0x8800)>>9 | (value2&0x8800)>>10 | (result&0x8800)>>11
 	*f = subtractMask |
@@ -219,8 +255,9 @@ func (f *flags) updateFromSbcWord(value1, value2, result word) {
 	}
 }
 
-func (f *flags) updateFromLogicByte(result byte, isAdd bool) {
-	if isAdd {
+// Verified correct.
+func (f *flags) updateFromLogicByte(result byte, isAnd bool) {
+	if isAnd {
 		*f = halfCarryMask
 	} else {
 		*f = 0
@@ -234,9 +271,10 @@ func (f *flags) updateFromLogicByte(result byte, isAdd bool) {
 		*f |= signMask
 	}
 
-	*f |= flags(result & undocMasks)
+	f.setUndoc(result)
 }
 
+// Verified correct.
 func (f *flags) updateFromDecByte(result byte) {
 	*f = (*f & carryMask) | subtractMask
 
@@ -253,28 +291,20 @@ func (f *flags) updateFromDecByte(result byte) {
 		*f |= signMask
 	}
 
-	*f |= flags(result & undocMasks)
+	f.setUndoc(result)
 }
 
+// Verified correct.
 func (f *flags) updateFromIncByte(result byte) {
 	*f &= carryMask
-
-	if result == 0x80 {
-		*f |= parityOverflowMask
-	}
-	if result&0x0F == 0 {
-		*f |= halfCarryMask
-	}
-	if result == 0 {
-		*f |= zeroMask
-	}
-	if result&0x80 != 0 {
-		*f |= signMask
-	}
-
-	*f |= flags(result & undocMasks)
+	f.setPv(result == 0x80)
+	f.setH(result & 0x0F == 0)
+	f.setZ(result == 0)
+	f.setS(result&0x80 != 0)
+	f.setUndoc(result)
 }
 
+// Verified correct.
 func (f *flags) updateFromInByte(result byte) {
 	*f &^= signMask | zeroMask | halfCarryMask | parityOverflowMask | subtractMask
 
@@ -284,5 +314,5 @@ func (f *flags) updateFromInByte(result byte) {
 	if result == 0 {
 		*f |= zeroMask
 	}
-	*f |= flags(parityTable[result] << parityOverflowShift)
+	*f |= flags(parityTable[result]) << parityOverflowShift
 }

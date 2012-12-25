@@ -95,10 +95,6 @@ func createVm(vmUpdateCh chan<- vmUpdate) *vm {
 	if err != nil {
 		panic(err)
 	}
-	err = vm.loadDisk(1, "disks/aigames1.dsk")
-	if err != nil {
-		panic(err)
-	}
 
 	return vm
 }
