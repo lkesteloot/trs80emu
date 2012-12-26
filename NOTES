@@ -1,6 +1,7 @@
 
 Next:
 
+    Run a few more programs to see which instructions aren't done.
     Clock interrupts are happening in real time but should happen in Z80 time
         so that when we're dumping assembly instructions they don't happen too often.
     Get Eliminator to work for Larry:

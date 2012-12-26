@@ -11,6 +11,7 @@ import (
 
 // Constants for each instruction type, so we can dispatch faster.
 const (
+	// 53 of 68 implemented.
 	instAdc = iota
 	instAdd
 	instAnd
@@ -18,9 +19,9 @@ const (
 	instCall
 	instCcf
 	instCp
-	instCpd
-	instCpdr
-	instCpi
+	instCpd  // Not yet implemented.
+	instCpdr // Not yet implemented.
+	instCpi  // Not yet implemented.
 	instCpir
 	instCpl
 	instDaa
@@ -30,35 +31,35 @@ const (
 	instEi
 	instEx
 	instExx
-	instHalt
+	instHalt // Not yet implemented.
 	instIm
 	instIn
 	instInc
-	instInd
-	instIndr
+	instInd  // Not yet implemented.
+	instIndr // Not yet implemented.
 	instIni
-	instInir
+	instInir // Not yet implemented.
 	instJp
 	instJr
 	instLd
 	instLdd
 	instLddr
-	instLdi
+	instLdi // Not yet implemented.
 	instLdir
 	instNeg
 	instNop
 	instOr
-	instOtdr
-	instOtir
+	instOtdr // Not yet implemented.
+	instOtir // Not yet implemented.
 	instOut
-	instOutd
-	instOuti
+	instOutd // Not yet implemented.
+	instOuti // Not yet implemented.
 	instPop
 	instPush
 	instRes
 	instRet
-	instReti
-	instRetn
+	instReti // Not yet implemented.
+	instRetn // Not yet implemented.
 	instRl
 	instRla
 	instRlc
@@ -74,7 +75,7 @@ const (
 	instScf
 	instSet
 	instSla
-	instSll
+	instSll // Not yet implemented.
 	instSra
 	instSrl
 	instSub
@@ -485,6 +486,8 @@ RRC (IY+N)    23    4   +0P0++  FD CB XX 0E
 RRC r         8     2   +0P0++  CB 08+r
 RRCA          4     1   +0-0--  0F
 RRD           18    2   -0P0++  ED 67
+# The real instructions are "RST 8H" and "RST 28H" and so on, but removing the "H"
+# and making the addresses two characters makes parsing easier.
 RST 00        11    1   ------  C7
 RST 08        11    1   ------  CF
 RST 10        11    1   ------  D7
