@@ -57,7 +57,6 @@ type vm struct {
 	previousDumpTime    time.Time
 	previousDumpClock   uint64
 	sleptSinceDump      time.Duration
-	previousYieldClock  uint64
 	startTime           int64
 	previousAdjustClock uint64
 }
@@ -97,11 +96,11 @@ func createVm(vmUpdateCh chan<- vmUpdate) *vm {
 	}
 	vm.cpu.initialize()
 
-	/// err = vm.loadDisk("disks/aigames1.dsk")
-	// err = vm.loadDisk("disks/lescrp3.dsk")
-	// err = vm.loadDisk("disks/ldos513.dsk")
-	// err = vm.loadDisk("disks/LDOS-DOT.DSK")
-	err = vm.loadDisk(0, "disks/visicalc.dsk")
+	// err = vm.loadDisk(0, "disks/aigames1.dsk")
+	// err = vm.loadDisk(0, "disks/lescrp3.dsk")
+	// err = vm.loadDisk(0, "disks/ldos513.dsk")
+	err = vm.loadDisk(0, "disks/LDOS-DOT.DSK")
+	// err = vm.loadDisk(0, "disks/visicalc.dsk")
 	if err != nil {
 		panic(err)
 	}
