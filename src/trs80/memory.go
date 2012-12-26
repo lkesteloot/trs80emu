@@ -30,6 +30,11 @@ func (vm *vm) writeMem(addr word, b byte) {
 		vm.memInit[addr] = true
 	} else if addr >= screenBegin && addr < screenEnd {
 		// Screen.
+		if enableDebugOnScreenWrite && b != 0x20 {
+			printDebug = true
+			log.Printf("Writing %02X '%c' to screen at line %d, column %d (%04X)",
+				b, b, (addr - screenBegin)/64, (addr - screenBegin)%64, addr)
+		}
 		vm.memory[addr] = b
 		if vm.vmUpdateCh != nil {
 			vm.vmUpdateCh <- vmUpdate{Cmd: "poke", Addr: int(addr), Data: int(b)}

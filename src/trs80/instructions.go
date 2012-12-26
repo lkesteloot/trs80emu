@@ -763,6 +763,7 @@ func (vm *vm) step() {
 
 	vm.msg = ""
 	if printDebug {
+		vm.explainLine(instPc, cpu.hl, cpu.a)
 		vm.msg += fmt.Sprintf("%10d %04X ", vm.clock, instPc)
 		for pc := instPc; pc < instPc+4; pc++ {
 			if pc < nextInstPc {

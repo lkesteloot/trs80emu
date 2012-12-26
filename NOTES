@@ -1,10 +1,13 @@
 
 Next:
 
+    Move step() to cpu.go (or step.go) so we can avoid syntax coloring problems.
     Clock interrupts are happening in real time but should happen in Z80 time
         so that when we're dumping assembly instructions they don't happen too often.
-    Copyright notice on home screen appears twice.
+    Getting uninitialized memory reads and writing to ROM.
+        Run VC and dump assembly to see what's happening.
     VisiCalc (visicalc.dsk) has major issues, probably with Z80 instructions.
+    Copyright notice on home screen appears twice.
     Get Eliminator to work for Larry:
         http://www.trs-80.org/the-eliminator/
         http://www.trs-80.org/games-by-wayne-westmoreland-and-terry-gilman/
