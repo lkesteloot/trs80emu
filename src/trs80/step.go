@@ -143,43 +143,34 @@ func (vm *vm) step() {
 		if printDebug {
 			vm.msg += fmt.Sprintf("%02X - %02X = %02X", cpu.a, value, result)
 		}
-	case instCpi:
-		// Look for A at (HL)
+	case instCpi, instCpir, instCpd, instCpdr:
+		// Look for A at (HL) for at most BC bytes or until \0.
 		oldCarry := cpu.f.c()
 		value := vm.readMem(cpu.hl)
-		a := cpu.a
 		result := cpu.a - value
-		cpu.hl++
+		switch inst.instInt {
+		case instCpi, instCpir:
+			cpu.hl++
+		case instCpd, instCpdr:
+			cpu.hl--
+		default:
+			panic("Logic error")
+		}
 		cpu.bc--
-		cpu.f.updateFromSubByte(a, value, result)
+		switch inst.instInt {
+		case instCpir:
+		case instCpdr:
+			if cpu.bc != 0 && result != 0 {
+				// Start instructions again.
+				cpu.pc -= 2
+			}
+		}
+		cpu.f.updateFromSubByte(cpu.a, value, result)
 		cpu.f = (cpu.f &^ undoc5Mask) |
 			(((flags(result) - ((cpu.f & halfCarryMask) >> halfCarryShift)) & 2) << 4)
 		cpu.f.setC(oldCarry)
 		cpu.f.setPv(cpu.bc != 0)
-		if result & 15 == 8 && cpu.f & halfCarryMask != 0 {
-			cpu.f &^= undoc3Mask
-		}
-	case instCpir:
-		// Look for A at (HL) for at most BC bytes.
-		oldCarry := cpu.f.c()
-		value := vm.readMem(cpu.hl)
-		result := cpu.a - value
-		cpu.hl++
-		cpu.bc--
-		if cpu.bc != 0 && result != 0 {
-			cpu.pc -= 2
-		}
-		cpu.f.updateFromSubByte(cpu.a, value, result)
-		cpu.f.setC(oldCarry)
-		cpu.f.setPv(cpu.bc != 0)
-
-		// Undoc craziness.
-		if (int(result)-boolToInt(cpu.f.h()))&2 != 0 {
-			cpu.f |= undoc5Mask
-		} else {
-			cpu.f &^= undoc5Mask
-		}
-		if (result&0x0F) == 0x08 && cpu.f.h() {
+		if result & 15 == 8 && cpu.f.h() {
 			cpu.f &^= undoc3Mask
 		}
 	case instCpl:
