@@ -143,6 +143,22 @@ func (vm *vm) step() {
 		if printDebug {
 			vm.msg += fmt.Sprintf("%02X - %02X = %02X", cpu.a, value, result)
 		}
+	case instCpi:
+		// Look for A at (HL)
+		oldCarry := cpu.f.c()
+		value := vm.readMem(cpu.hl)
+		a := cpu.a
+		result := cpu.a - value
+		cpu.hl++
+		cpu.bc--
+		cpu.f.updateFromSubByte(a, value, result)
+		cpu.f = (cpu.f &^ undoc5Mask) |
+			(((flags(result) - ((cpu.f & halfCarryMask) >> halfCarryShift)) & 2) << 4)
+		cpu.f.setC(oldCarry)
+		cpu.f.setPv(cpu.bc != 0)
+		if result & 15 == 8 && cpu.f & halfCarryMask != 0 {
+			cpu.f &^= undoc3Mask
+		}
 	case instCpir:
 		// Look for A at (HL) for at most BC bytes.
 		oldCarry := cpu.f.c()

@@ -21,7 +21,7 @@ const (
 	instCp
 	instCpd  // Not yet implemented.
 	instCpdr // Not yet implemented.
-	instCpi  // Not yet implemented.
+	instCpi
 	instCpir
 	instCpl
 	instDaa
