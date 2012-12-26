@@ -290,7 +290,7 @@ func (f *flags) updateFromDecByte(result byte) {
 func (f *flags) updateFromIncByte(result byte) {
 	*f &= carryMask
 	f.setPv(result == 0x80)
-	f.setH(result & 0x0F == 0)
+	f.setH(result&0x0F == 0)
 	f.setZ(result == 0)
 	f.setS(result&0x80 != 0)
 	f.setUndoc(result)

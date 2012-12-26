@@ -17,7 +17,7 @@ type vm struct {
 	cpu cpu
 
 	// RAM.
-	memory  []byte
+	memory []byte
 
 	// Whether each byte of RAM has been initialized.
 	memInit []bool

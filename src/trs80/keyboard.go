@@ -8,8 +8,8 @@ import (
 
 // http://www.trs-80.com/trs80-zaps-internals.htm#keyboard13
 const (
-	keyboardBegin = 0x3800
-	keyboardEnd = keyboardBegin + 256
+	keyboardBegin       = 0x3800
+	keyboardEnd         = keyboardBegin + 256
 	keyDelayClockCycles = 40000
 )
 

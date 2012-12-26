@@ -36,6 +36,8 @@ func (vm *vm) disasm(pc word) (line string, nextPc word) {
 
 // Fills the N and NN parts of assembly instructions with their real value.
 func substituteData(asm string, byteData byte, wordData word) string {
+	// This does the wrong thing when the instruction has two byte N parameters.
+	// See instLd for more info.
 	asm = nRegExp.ReplaceAllLiteralString(asm, fmt.Sprintf("%02X", byteData))
 	asm = nnRegExp.ReplaceAllLiteralString(asm, fmt.Sprintf("%04X", wordData))
 

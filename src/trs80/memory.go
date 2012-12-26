@@ -26,6 +26,11 @@ func (vm *vm) writeMem(addr word, b byte) {
 		}
 	} else if addr >= ramBegin {
 		// RAM.
+		if addr == 0x5049 && false {
+			// Hack to catch problem writing serial number. Can remove this.
+			log.Print("Writing to serial number space")
+			printDebug = true
+		}
 		vm.memory[addr] = b
 		vm.memInit[addr] = true
 	} else if addr >= screenBegin && addr < screenEnd {
@@ -33,7 +38,7 @@ func (vm *vm) writeMem(addr word, b byte) {
 		if enableDebugOnScreenWrite && b != 0x20 {
 			printDebug = true
 			log.Printf("Writing %02X '%c' to screen at line %d, column %d (%04X)",
-				b, b, (addr - screenBegin)/64, (addr - screenBegin)%64, addr)
+				b, b, (addr-screenBegin)/64, (addr-screenBegin)%64, addr)
 		}
 		vm.memory[addr] = b
 		if vm.vmUpdateCh != nil {

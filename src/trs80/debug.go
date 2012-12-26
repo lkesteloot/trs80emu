@@ -8,17 +8,18 @@ import (
 )
 
 const (
-	dumpInstructionSet = false
-	diskDebug     = false
-	diskSortDebug = false
-	eventDebug = false
-	warnUninitMemRead = true
-	enableDebugOnScreenWrite = true
-	supportTimer = false
+	dumpInstructionSet       = false
+	diskDebug                = false
+	diskSortDebug            = false
+	eventDebug               = false
+	warnUninitMemRead        = false
+	enableDebugOnScreenWrite = false
+	disableTimer             = false
 )
 
 var printDebug = false
 
+// Map from PC to the ROM routine stored there.
 var romRoutines = map[word]string{
 	0x02A1: "$CLKOFF: Disable clock display",
 	0x0298: "$CLKON: Enable clock display",
@@ -38,7 +39,7 @@ var romRoutines = map[word]string{
 	0x01D9: "$PRSCN: Prints screen to printer",
 	0x1A19: "$READY: Print Ready prompt (jump, don't call)",
 	0x0000: "$RESET: Reset computer (jump, don't call)",
-	0x006C: "$ROUTE: Route device at 3222 to one at 4220 (KI, DO, RI, RO, PR)",
+	0x006C: "$ROUTE: Route device at 4222 to one at 4220 (KI, DO, RI, RO, PR)",
 	0x005A: "$RSINIT: Initialize RS-232",
 	0x0050: "$RSRCV: Receive RS-232 character",
 	0x0055: "$RSTX: Transmit RS-232 character",
@@ -47,7 +48,6 @@ var romRoutines = map[word]string{
 	0x0033: "$VDCHAR: Display character A at current position",
 	0x01C9: "$VDCLS: Clear the screen",
 	0x021B: "$VDLINE: Display (HL), terminated by 03 (not printed) or 0D (printed)",
-
 }
 
 // Log interesting information about the instruction we're about to execute.
@@ -56,7 +56,7 @@ func (vm *vm) explainLine(pc, hl word, a byte) {
 	if ok {
 		log.Print(explanation)
 		if pc == 0x021B {
-			// Print line.
+			// $VDLINE.
 			msg := ""
 			addr := hl
 			for {
@@ -70,11 +70,13 @@ func (vm *vm) explainLine(pc, hl word, a byte) {
 			}
 			log.Printf("(HL) = \"%s\"", msg)
 		} else if pc == 0x0033 {
+			// $VDCHAR.
 			log.Printf("A = %02X \"%s\"", a, printableChar(a))
 		}
 	}
 }
 
+// Convert a byte to a string meaningful to a human.
 func printableChar(ch byte) string {
 	if ch == 0x0A {
 		return `\n`

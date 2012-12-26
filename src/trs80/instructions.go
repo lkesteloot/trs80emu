@@ -888,12 +888,12 @@ func (vm *vm) step() {
 		cpu.f.setPv(cpu.bc != 0)
 
 		// Undoc craziness.
-		if (int(result) - boolToInt(cpu.f.h())) & 2 != 0 {
+		if (int(result)-boolToInt(cpu.f.h()))&2 != 0 {
 			cpu.f |= undoc5Mask
 		} else {
 			cpu.f &^= undoc5Mask
 		}
-		if (result & 0x0F) == 0x08 && cpu.f.h() {
+		if (result&0x0F) == 0x08 && cpu.f.h() {
 			cpu.f &^= undoc3Mask
 		}
 	case instCpl:
@@ -1089,7 +1089,18 @@ func (vm *vm) step() {
 				vm.msg += fmt.Sprintf("%04X", value)
 			}
 		} else {
-			value := vm.getByteValue(subfields[1], byteData, wordData)
+			// This is a horrific hack, but two instructions have two byte operands.
+			// These are LD (IX+N),N and LD (IY+N),N. We store the first N into
+			// byteData and the second N into the high byte of wordData when reading
+			// the instructions. We have to hack this in here otherwise the getByteValue()
+			// function will re-use the byte data. Note that the disassembled instruction
+			// will be wrong for that.
+			var value byte
+			if strings.HasSuffix(inst.fields[1], "N),N") {
+				value = byte(wordData >> 8)
+			} else {
+				value = vm.getByteValue(subfields[1], byteData, wordData)
+			}
 			vm.setByte(subfields[0], value, byteData, wordData)
 			if printDebug {
 				vm.msg += fmt.Sprintf("%02X", value)
@@ -1209,7 +1220,7 @@ func (vm *vm) step() {
 			vm.msg += fmt.Sprintf("%02X << 1 (%v) = %02X", value, cpu.f.c(), result)
 		}
 		cpu.a = result
-		cpu.f.setC(value & 0x80 != 0)
+		cpu.f.setC(value&0x80 != 0)
 		cpu.f.setH(false)
 		cpu.f.setN(false)
 		cpu.f.setUndoc(result)
@@ -1278,7 +1289,7 @@ func (vm *vm) step() {
 			vm.msg += fmt.Sprintf("%02X >> 1 (%v) = %02X", value, cpu.f.c(), result)
 		}
 		cpu.a = result
-		cpu.f.setC(value & 1 != 0)
+		cpu.f.setC(value&1 != 0)
 		cpu.f.setH(false)
 		cpu.f.setN(false)
 		cpu.f.setUndoc(cpu.a)
@@ -1293,7 +1304,7 @@ func (vm *vm) step() {
 		cpu.f.updateFromByte(result)
 		cpu.f.setH(false)
 		cpu.f.setN(false)
-		cpu.f.setC(result & 0x80 != 0)
+		cpu.f.setC(result&0x80 != 0)
 		vm.setByte(subfields[0], result, byteData, wordData)
 	case instRrca:
 		// Rotate right.

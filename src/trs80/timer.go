@@ -21,7 +21,7 @@ func (cpu *cpu) timerInterrupt(state bool) {
 }
 
 func (vm *vm) handleTimer() {
-	if supportTimer {
+	if !disableTimer {
 		vm.cpu.timerInterrupt(true)
 		vm.cpu.diskMotorOffInterrupt(vm.checkDiskMotorOff())
 	}
