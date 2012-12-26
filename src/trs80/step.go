@@ -511,6 +511,22 @@ func (vm *vm) step() {
 				vm.msg += "return skipped"
 			}
 		}
+	case instReti:
+		// Return from IRQ.  We're supposed to signal I/O devices that we're
+		// done with handling their interrupt, but I don't know how to do that,
+		// the Z80 manual doesn't give specifics, and xtrs does nothing too.
+		cpu.pc = vm.popWord()
+		if printDebug {
+			vm.msg += fmt.Sprintf("%04X", cpu.pc)
+		}
+	case instRetn:
+		// Return from NMI.
+		cpu.pc = vm.popWord()
+		// Restore the IFF state.
+		cpu.iff1 = cpu.iff2
+		if printDebug {
+			vm.msg += fmt.Sprintf("%04X", cpu.pc)
+		}
 	case instRl:
 		// Rotate left through carry.
 		value := vm.getByteValue(subfields[0], byteData, wordData)

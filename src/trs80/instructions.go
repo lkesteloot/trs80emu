@@ -11,7 +11,6 @@ import (
 
 // Constants for each instruction type, so we can dispatch faster.
 const (
-	// 65 of 68 implemented.
 	instAdc = iota
 	instAdd
 	instAnd
@@ -58,8 +57,8 @@ const (
 	instPush
 	instRes
 	instRet
-	instReti // Not yet implemented.
-	instRetn // Not yet implemented.
+	instReti
+	instRetn
 	instRl
 	instRla
 	instRlc
