@@ -452,6 +452,33 @@ func (vm *vm) step() {
 			}
 			vm.msg += fmt.Sprintf("%02X (%s) <- %02X", port, portDescription, value)
 		}
+	case instOutdr, instOutir, instOutd, instOuti:
+		// Send (HL) to port C, increment/decrement HL, decrement B. If
+		// repeating, loop if B != 0.
+		value := vm.readMem(cpu.hl)
+		port := cpu.bc.l()
+		vm.writePort(port, value)
+
+		switch inst.instInt {
+		case instOutd, instOutdr:
+			cpu.hl--
+		case instOuti, instOutir:
+			cpu.hl++
+		}
+
+		// Decrement B.
+		b := cpu.bc.h() - 1
+		cpu.bc.setH(b)
+
+		switch inst.instInt {
+		case instOutdr, instOutir:
+			if b != 0 {
+				cpu.pc -= 2
+			}
+		}
+
+		cpu.f.setZ(b == 0)
+		cpu.f.setN(true)
 	case instPop:
 		value := vm.popWord()
 		vm.setWord(subfields[0], value, byteData, wordData)

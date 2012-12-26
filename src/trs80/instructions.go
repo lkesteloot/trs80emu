@@ -11,7 +11,7 @@ import (
 
 // Constants for each instruction type, so we can dispatch faster.
 const (
-	// 60 of 68 implemented.
+	// 64 of 68 implemented.
 	instAdc = iota
 	instAdd
 	instAnd
@@ -49,11 +49,11 @@ const (
 	instNeg
 	instNop
 	instOr
-	instOtdr // Not yet implemented.
-	instOtir // Not yet implemented.
+	instOutdr
+	instOutir
 	instOut
-	instOutd // Not yet implemented.
-	instOuti // Not yet implemented.
+	instOutd
+	instOuti
 	instPop
 	instPush
 	instRes
@@ -121,8 +121,8 @@ var instToInstInt = map[string]int{
 	"NEG":  instNeg,
 	"NOP":  instNop,
 	"OR":   instOr,
-	"OTDR": instOtdr,
-	"OTIR": instOtir,
+	"OUTDR": instOutdr,
+	"OUTIR": instOutir,
 	"OUT":  instOut,
 	"OUTD": instOutd,
 	"OUTI": instOuti,
@@ -424,8 +424,9 @@ OR HY               2   00P0++  FD B4
 OR LX               2   00P0++  DD B5
 OR LY               2   00P0++  FD B5
 OR N          7     2   00P0++  F6 XX
-OTDR          21/16 2   -1  1   ED BB
-OTIR          21/16 2   -1  1   ED B3
+# These were originally called OTDR and OTIR:
+OUTDR         21/16 2   -1  1   ED BB
+OUTIR         21/16 2   -1  1   ED B3
 OUT (C),A     12    2   ------  ED 79
 OUT (C),B     12    2   ------  ED 41
 OUT (C),C     12    2   ------  ED 49
