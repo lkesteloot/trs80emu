@@ -383,53 +383,35 @@ func (vm *vm) step() {
 				vm.msg += fmt.Sprintf("%02X", value)
 			}
 		}
-	case instLdd:
+	case instLdi, instLdir, instLdd, instLddr:
+		// Copy (HL) to (DE), increment/decrement both, and decrement BC. If
+		// repeating and BC != 0, loop.
 		value := vm.readMem(cpu.hl)
 		vm.writeMem(cpu.de, value)
-		cpu.de--
-		cpu.hl--
+		switch inst.instInt {
+		case instLdi, instLdir:
+			cpu.hl++
+			cpu.de++
+		case instLdd, instLddr:
+			cpu.hl--
+			cpu.de--
+		}
 		cpu.bc--
+		switch inst.instInt {
+		case instLdir, instLddr:
+			if cpu.bc != 0 {
+				cpu.pc -= 2
+			}
+		}
+
+		// Carry, zero, and sign are unaffected.
 		cpu.f.setPv(cpu.bc != 0)
+		cpu.f.setH(false)
+		cpu.f.setN(false)
+
+		// Undoc craziness.
 		undoc := flags(cpu.a + value)
-		cpu.f = (cpu.f &^ (undocMasks | halfCarryMask | subtractMask)) |
-			(undoc & undoc3Mask) |
-			((undoc & 2) << 3)
-	case instLddr:
-		// Copy (HL) to (DE), decrement both, and decrement BC. If BC != 0, loop.
-		b := vm.readMem(cpu.hl)
-		if printDebug {
-			vm.msg += fmt.Sprintf("copying %02X from %04X to %04X", b, cpu.hl, cpu.de)
-		}
-		vm.writeMem(cpu.de, b)
-		cpu.hl--
-		cpu.de--
-		cpu.bc--
-		if cpu.bc != 0 {
-			cpu.pc -= 2
-		}
-		cpu.f.setH(false)
-		cpu.f.setPv(false)
-		cpu.f.setN(false)
-		// We don't set undocMasks properly here. We'd have to implement
-		// this differently since we'd have to know how many bytes were moved.
-	case instLdir:
-		// Copy (HL) to (DE), increment both, and decrement BC. If BC != 0, loop.
-		b := vm.readMem(cpu.hl)
-		if printDebug {
-			vm.msg += fmt.Sprintf("copying %02X from %04X to %04X", b, cpu.hl, cpu.de)
-		}
-		vm.writeMem(cpu.de, b)
-		cpu.hl++
-		cpu.de++
-		cpu.bc--
-		if cpu.bc != 0 {
-			cpu.pc -= 2
-		}
-		cpu.f.setH(false)
-		cpu.f.setPv(false)
-		cpu.f.setN(false)
-		// We don't set undocMasks properly here. We'd have to implement
-		// this differently since we'd have to know how many bytes were moved.
+		cpu.f = (cpu.f &^ undocMasks) | (undoc & undoc3Mask) | ((undoc & 2) << 3)
 	case instNeg:
 		value := cpu.a
 		cpu.a = -value
