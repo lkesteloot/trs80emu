@@ -319,12 +319,27 @@ func (vm *vm) step() {
 			vm.setByte(subfields[0], result, byteData, wordData)
 			cpu.f.updateFromIncByte(result)
 		}
-	case instIni:
+	case instIni, instInir, instInd, instIndr:
+		// Input from port C, store in (HL), increment/decrement HL, and decrement B.
+		// If repeating and B != 0, loop.
 		value := vm.readPort(cpu.bc.l())
 		vm.writeMem(cpu.hl, value)
-		cpu.hl++
+		switch inst.instInt {
+		case instIni, instInir:
+			cpu.hl++
+		case instInd, instIndr:
+			cpu.hl--
+		}
+		// Decrement B.
 		b := cpu.bc.h() - 1
 		cpu.bc.setH(b)
+		// Repeat.
+		switch inst.instInt {
+		case instInir, instIndr:
+			if b != 0 {
+				cpu.pc -= 2
+			}
+		}
 		cpu.f.setZ(b == 0)
 		cpu.f.setN(true)
 	case instJp, instCall:
