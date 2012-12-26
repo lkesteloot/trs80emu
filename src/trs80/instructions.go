@@ -1106,6 +1106,17 @@ func (vm *vm) step() {
 				vm.msg += fmt.Sprintf("%02X", value)
 			}
 		}
+	case instLdd:
+		value := vm.readMem(cpu.hl)
+		vm.writeMem(cpu.de, value)
+		cpu.de--
+		cpu.hl--
+		cpu.bc--
+		cpu.f.setPv(cpu.bc != 0)
+		undoc := flags(cpu.a + value)
+		cpu.f = (cpu.f &^ (undocMasks|halfCarryMask|subtractMask)) |
+			(undoc & undoc3Mask) |
+			((undoc & 2) << 3)
 	case instLddr:
 		// Copy (HL) to (DE), decrement both, and decrement BC. If BC != 0, loop.
 		b := vm.readMem(cpu.hl)
