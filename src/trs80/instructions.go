@@ -11,7 +11,7 @@ import (
 
 // Constants for each instruction type, so we can dispatch faster.
 const (
-	// 64 of 68 implemented.
+	// 65 of 68 implemented.
 	instAdc = iota
 	instAdd
 	instAnd
@@ -75,7 +75,7 @@ const (
 	instScf
 	instSet
 	instSla
-	instSll // Not yet implemented.
+	instSll
 	instSra
 	instSrl
 	instSub
@@ -519,6 +519,7 @@ SLA (HL)      15    2   +0P0++  CB 26
 SLA (IX+N)    23    4   +0P0++  DD CB XX 26
 SLA (IY+N)    23    4   +0P0++  FD CB XX 26
 SLA r         8     2   +0P0++  CB 2r
+# xtrs claims that SLL is undocumented, and calls it SLIA:
 SLL (HL)      15    2   +0P0++  CB 36
 SLL (IX+N)    23    4   +0P0++  DD CB XX 36
 SLL (IY+N)    23    4   +0P0++  FD CB XX 36

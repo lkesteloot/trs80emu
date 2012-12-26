@@ -709,6 +709,15 @@ func (vm *vm) step() {
 		cpu.f.setN(false)
 		cpu.f.setC(value&0x80 != 0)
 		vm.setByte(subfields[0], result, byteData, wordData)
+	case instSll:
+		// Shift left and increment. xtrs calls this SLIA and says that it's undocumented.
+		value := vm.getByteValue(subfields[0], byteData, wordData)
+		result := (value << 1) | 1
+		cpu.f.updateFromByte(result)
+		cpu.f.setC(value&0x80 != 0)
+		cpu.f.setH(false)
+		cpu.f.setN(false)
+		vm.setByte(subfields[0], result, byteData, wordData)
 	case instSra:
 		// Shift right arithmetic.
 		value := vm.getByteValue(subfields[0], byteData, wordData)
