@@ -52,7 +52,7 @@ func generateFontCss(w http.ResponseWriter, r *http.Request) {
 		display: inline-block;
 		width: 8px;
 		height: 24px;
-		background-image: url("static/TRS80CharacterGen.png");
+		background-image: url("static/font.png");
 		/* background-position: -248px -24px;*/ /* ? = 31*8, 1*24 */
 		background-position: 0 0; /* Blank */
 		background-repeat: no-repeat;
