@@ -3,6 +3,7 @@
 package main
 
 import (
+	"flag"
 	"io/ioutil"
 	"log"
 	"time"
@@ -96,13 +97,12 @@ func createVm(vmUpdateCh chan<- vmUpdate) *vm {
 	}
 	vm.cpu.initialize()
 
-	// err = vm.loadDisk(0, "disks/aigames1.dsk")
-	// err = vm.loadDisk(0, "disks/lescrp3.dsk")
-	// err = vm.loadDisk(0, "disks/ldos513.dsk")
-	err = vm.loadDisk(0, "disks/LDOS-DOT.DSK")
-	// err = vm.loadDisk(0, "disks/visicalc.dsk")
-	if err != nil {
-		panic(err)
+	// Specify the disks in the drive.
+	for drive, filename := range flag.Args() {
+		err = vm.loadDisk(drive, filename)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return vm

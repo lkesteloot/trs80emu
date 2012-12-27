@@ -1,8 +1,12 @@
 
 Next:
 
+    Do a thorough commenting pass.
+    Remove dependency on private com.headcode package, use public one instead.
+    Why does refreshing page not bring up a new machine?
     Clock interrupts are happening in real time but should happen in Z80 time
         so that when we're dumping assembly instructions they don't happen too often.
+    Implement cassette reading.
     Get Eliminator to work for Larry:
         http://www.trs-80.org/the-eliminator/
         http://www.trs-80.org/games-by-wayne-westmoreland-and-terry-gilman/
