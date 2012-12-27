@@ -171,7 +171,7 @@ func (vm *vm) step() {
 			(((flags(result) - ((cpu.f & halfCarryMask) >> halfCarryShift)) & 2) << 4)
 		cpu.f.setC(oldCarry)
 		cpu.f.setPv(cpu.bc != 0)
-		if result & 15 == 8 && cpu.f.h() {
+		if result&15 == 8 && cpu.f.h() {
 			cpu.f &^= undoc3Mask
 		}
 	case instCpl:
