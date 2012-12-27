@@ -6,7 +6,7 @@ import (
 	"bufio"
 	"code.google.com/p/go.net/websocket"
 	"fmt"
-	"headcode.com/webutil"
+	"github.com/lkesteloot/goutil/webutil"
 	"log"
 	"net/http"
 	"time"
