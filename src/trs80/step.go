@@ -30,6 +30,7 @@ func (vm *vm) step() {
 	}
 	nextInstPc := cpu.pc
 	avoidHandlingIrq := false
+	isHalting := false
 
 	vm.msg = ""
 	if printDebug {
@@ -269,6 +270,13 @@ func (vm *vm) step() {
 		cpu.bc, cpu.bcp = cpu.bcp, cpu.bc
 		cpu.de, cpu.dep = cpu.dep, cpu.de
 		cpu.hl, cpu.hlp = cpu.hlp, cpu.hl
+	case instHalt:
+		// Wait for interrupt. The real Z80 executes NOPs internally until an
+		// interrupt is triggered, but here we copy xtrs's behavior and just
+		// back up to execute the HALT again. If an interrupt does come in, we
+		// move the PC past the HALT (see use of isHalting below).
+		cpu.pc--
+		isHalting = true
 	case instIm:
 		// Interrupt mode.
 		if subfields[0] != "1" {
@@ -775,6 +783,10 @@ func (vm *vm) step() {
 
 	// Handle non-maskable interrupts.
 	if (cpu.nmiLatch&cpu.nmiMask) != 0 && !cpu.nmiSeen {
+		if isHalting {
+			// Skip past HALT.
+			cpu.pc++
+		}
 		vm.handleNmi()
 		cpu.nmiSeen = true
 
@@ -784,6 +796,10 @@ func (vm *vm) step() {
 
 	// Handle interrupts.
 	if (cpu.irqLatch&cpu.irqMask) != 0 && cpu.iff1 && !avoidHandlingIrq {
+		if isHalting {
+			// Skip past HALT.
+			cpu.pc++
+		}
 		vm.handleIrq()
 	}
 

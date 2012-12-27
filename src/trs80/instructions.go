@@ -30,7 +30,7 @@ const (
 	instEi
 	instEx
 	instExx
-	instHalt // Not yet implemented.
+	instHalt
 	instIm
 	instIn
 	instInc
