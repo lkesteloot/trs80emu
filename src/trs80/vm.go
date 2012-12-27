@@ -168,10 +168,15 @@ func (vm *vm) run(vmCommandCh <-chan vmCommand) {
 		}
 	}
 
-	log.Print("CPU shut down")
+	log.Print("VM shut down")
+
+	if vm.vmUpdateCh != nil {
+		vm.vmUpdateCh <- vmUpdate{Cmd: "shutdown"}
+	}
 
 	// No more updates.
 	close(vm.vmUpdateCh)
+	vm.vmUpdateCh = nil
 }
 
 // Log the last historicalPcCount assembly instructions that we executed.

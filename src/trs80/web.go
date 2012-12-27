@@ -126,6 +126,10 @@ func wsHandler(ws *websocket.Conn) {
 		select {
 		case update := <-vmUpdateCh:
 			vmUpdates = append(vmUpdates, update)
+			if update.Cmd == "shutdown" {
+				flushUpdates()
+				receiving = false
+			}
 		case <-tickerCh:
 			receiving = flushUpdates()
 		}
