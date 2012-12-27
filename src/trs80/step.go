@@ -839,4 +839,10 @@ func (vm *vm) step() {
 		}
 		vm.previousAdjustClock = vm.clock
 	}
+
+	// Set off a timer interrupt.
+	if vm.clock > vm.previousTimerClock+timerCycles {
+		vm.handleTimer()
+		vm.previousTimerClock = vm.clock
+	}
 }

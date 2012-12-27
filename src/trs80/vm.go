@@ -60,6 +60,7 @@ type vm struct {
 	sleptSinceDump      time.Duration
 	startTime           int64
 	previousAdjustClock uint64
+	previousTimerClock  uint64
 }
 
 // Command to the VM from the UI.
@@ -112,8 +113,6 @@ func (vm *vm) run(vmCommandCh <-chan vmCommand) {
 	running := false
 	shutdown := false
 
-	timerCh := getTimerCh()
-
 	handleCmd := func(msg vmCommand) {
 		switch msg.Cmd {
 		case "boot":
@@ -147,8 +146,6 @@ func (vm *vm) run(vmCommandCh <-chan vmCommand) {
 			select {
 			case msg := <-vmCommandCh:
 				handleCmd(msg)
-			case <-timerCh:
-				vm.handleTimer()
 			default:
 				// See if there's a breakpoint here.
 				bp := vm.breakpoints.find(vm.cpu.pc)

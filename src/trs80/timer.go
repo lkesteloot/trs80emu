@@ -2,15 +2,10 @@
 
 package main
 
-import (
-	"time"
+const (
+	timerHz     = 30
+	timerCycles = cpuHz / timerHz
 )
-
-const timerHz = 30
-
-func getTimerCh() <-chan time.Time {
-	return time.Tick(time.Second / timerHz)
-}
 
 func (cpu *cpu) timerInterrupt(state bool) {
 	if state {
