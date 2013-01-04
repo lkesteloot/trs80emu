@@ -19,6 +19,13 @@ const (
 	cassette1500 = cassetteSpeed(1500)
 )
 
+type cassetteValue int
+const (
+	cassetteNeutral = cassetteValue(iota)
+	cassettePositive
+	cassetteNegative
+)
+
 type cassetteController struct {
 	// Whether the motor is running.
 	motorOn bool
@@ -32,8 +39,11 @@ type cassetteController struct {
 	// Byte offset within the input file.
 	position int
 
-	// Bogus
-	flipFlop, lastNonZero byte
+	// XXX Bogus
+	value cassetteValue
+	next cassetteValue
+	flipFlop bool
+	lastNonZero cassetteValue
 	transition uint64
 }
 
@@ -44,20 +54,29 @@ func (vm *vm) resetCassette() {
 func (vm *vm) getCassetteByte() byte {
 	cc := &vm.cc
 
+	log.Printf("getCassetteByte() start")
+
+	if cc.motorOn {
+		vm.setCassetteState(cassetteStateRead)
+	}
+
 	vm.cassetteClearInterrupt()
 	vm.updateCassette()
 
-	value := cc.flipFlop
-	if cc.lastNonZero == 1 {
-		value |= 1
+	b := byte(0)
+	if cc.flipFlop {
+		b |= 0x80
 	}
-	log.Printf("getCassetteByte() = %02X", value)
-	return value
+	if cc.lastNonZero == cassettePositive {
+		b |= 0x01
+	}
+	log.Printf("getCassetteByte() = %02X", b)
+	return b
 }
 
-func (vm *vm) putCassetteByte(value byte) {
+func (vm *vm) putCassetteByte(b byte) {
 	// Ignore.
-	log.Printf("Sending %02X to cassette", value)
+	log.Printf("Sending %02X to cassette", b)
 }
 
 func (vm *vm) kickOffCassette() {
@@ -80,8 +99,8 @@ func (vm *vm) setCassetteMotor(motorOn bool) {
 		log.Printf("setCassetteMotor(%v)", motorOn)
 		if motorOn {
 			cc.transition = vm.clock
-			cc.flipFlop = 0
-			cc.lastNonZero = 0
+			cc.flipFlop = false
+			cc.lastNonZero = cassetteNeutral
 
 			// Wait one second, then kick off reading.
 			vm.addEvent(eventKickOffCassette, func () { vm.kickOffCassette() }, cpuHz)
@@ -95,7 +114,10 @@ func (vm *vm) setCassetteMotor(motorOn bool) {
 func (vm *vm) updateCassette() {
 	cc := &vm.cc
 
+	log.Printf("updateCassette()")
+
 	if cc.motorOn && vm.setCassetteState(cassetteStateRead) >= 0 {
+		cc.flipFlop = true
 	}
 }
 
