@@ -568,7 +568,7 @@ func (vm *vm) updateDiskStatus() {
 }
 
 func (vm *vm) readDiskStatus() byte {
-	if driveCount == 0 {
+	if driveCount == 0 || vm.fdc.disks[0].data == nil {
 		return 0xFF
 	}
 
