@@ -92,8 +92,7 @@ func (vm *vm) readPort(port byte) byte {
 		return 0x30
 	case 0xFF:
 		// Cassette and various flags.
-		cassetteStatus := byte(0)
-		return (vm.modeImage & 0x7E) | cassetteStatus
+		return (vm.modeImage & 0x7E) | vm.getCassetteByte()
 	}
 
 	panic(fmt.Sprintf("Can't read from unknown port %02X", port))
@@ -123,7 +122,7 @@ func (vm *vm) writePort(port byte, value byte) {
 	case 0xEC, 0xED, 0xEE, 0xEF:
 		// Various controls.
 		vm.modeImage = value
-		/// trs_cassette_motor((value & 0x02) >> 1)
+		vm.setCassetteMotor(value & 0x02 != 0)
 		/// trs_screen_expanded((value & 0x04) >> 2)
 		/// trs_screen_alternate(!((value & 0x08) >> 3))
 		/// trs_timer_speed((value & 0x40) >> 6)
@@ -151,8 +150,7 @@ func (vm *vm) writePort(port byte, value byte) {
 			log.Printf("Sending %02X to Micro Labs graphics card", value)
 		} else {
 			// Do cassette emulation.
-			log.Printf("Sending %02X to cassette", value)
-			/// trs_cassette_out(value & 3);
+			vm.putCassetteByte(value & 0x03)
 		}
 	default:
 		panic(fmt.Sprintf("Can't write %02X to unknown port %02X", value, port))

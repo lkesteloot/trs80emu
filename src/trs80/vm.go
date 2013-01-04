@@ -32,6 +32,9 @@ type vm struct {
 	// Floppy disk controller.
 	fdc fdc
 
+	// Cassette subsystem.
+	cc cassetteController
+
 	// Breakpoints.
 	breakpoints breakpoints
 
@@ -186,10 +189,8 @@ func (vm *vm) logHistoricalPc() {
 }
 
 func (vm *vm) reset(powerOn bool) {
-	/// trs_cassette_reset()
-	/// trs_timer_speed(0)
+	vm.resetCassette()
 	vm.diskInit(powerOn)
-	/// trs_hard_out(TRS_HARD_CONTROL, TRS_HARD_SOFTWARE_RESET|TRS_HARD_DEVICE_ENABLE)
 	vm.cpu.setIrqMask(0)
 	vm.cpu.setNmiMask(0)
 	vm.keyboard.clearKeyboard()

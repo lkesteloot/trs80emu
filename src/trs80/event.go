@@ -10,6 +10,7 @@ const (
 	eventDiskDone = eventType(1 << iota)
 	eventDiskLostData
 	eventDiskFirstDrq
+	eventKickOffCassette
 
 	// Masks for multiple events.
 	eventDisk = eventDiskDone | eventDiskLostData | eventDiskFirstDrq

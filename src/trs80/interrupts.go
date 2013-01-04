@@ -11,6 +11,8 @@ const (
 	uartSendIrqMask
 	uartReceiveIrqMask
 	uartErrorIrqMask
+
+	cassetteIrqMasks = cassetteRiseIrqMask | cassetteFallIrqMask
 )
 
 // NMIs
@@ -77,4 +79,24 @@ func (cpu *cpu) diskIntrqInterrupt(state bool) {
 
 func (cpu *cpu) diskDrqInterrupt(state bool) {
 	// No effect.
+}
+
+func (vm *vm) cassetteRiseInterrupt() {
+	vm.cpu.irqLatch = (vm.cpu.irqLatch &^ cassetteRiseIrqMask) |
+		(vm.cpu.irqMask & cassetteRiseIrqMask)
+	vm.updateCassette()
+}
+
+func (vm *vm) cassetteFallInterrupt() {
+	vm.cpu.irqLatch = (vm.cpu.irqLatch &^ cassetteFallIrqMask) |
+		(vm.cpu.irqMask & cassetteFallIrqMask)
+	vm.updateCassette()
+}
+
+func (vm *vm) cassetteClearInterrupt() {
+	vm.cpu.irqLatch &^= cassetteIrqMasks
+}
+
+func (vm *vm) cassetteInterruptsEnabled() bool {
+	return vm.cpu.irqMask & cassetteIrqMasks != 0
 }
