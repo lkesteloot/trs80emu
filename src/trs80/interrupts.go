@@ -98,5 +98,5 @@ func (vm *vm) cassetteClearInterrupt() {
 }
 
 func (vm *vm) cassetteInterruptsEnabled() bool {
-	return vm.cpu.irqMask & cassetteIrqMasks != 0
+	return vm.cpu.irqMask&cassetteIrqMasks != 0
 }

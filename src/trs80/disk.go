@@ -163,12 +163,13 @@ const (
 	jv3NonIbm  = 0x04 // 0=normal, 1=short (for VTOS 3.0, xtrs only)
 	jv3Size    = 0x03 // See comment in getSizeCode().
 
-	jv3Free  = 0xff // In track/sector fields
+	jv3Free = 0xff // In track/sector fields
 )
 
 // Disk emulation types. After loading a disk file we detect what type of disk
 // it is.
 type emulationType uint
+
 const (
 	emuNone = emulationType(iota)
 	emuJv1

@@ -122,7 +122,7 @@ func (vm *vm) writePort(port byte, value byte) {
 	case 0xEC, 0xED, 0xEE, 0xEF:
 		// Various controls.
 		vm.modeImage = value
-		vm.setCassetteMotor(value & 0x02 != 0)
+		vm.setCassetteMotor(value&0x02 != 0)
 		/// trs_screen_expanded((value & 0x04) >> 2)
 		/// trs_screen_alternate(!((value & 0x08) >> 3))
 		/// trs_timer_speed((value & 0x40) >> 6)

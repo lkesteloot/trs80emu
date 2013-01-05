@@ -7,6 +7,7 @@ import (
 )
 
 type cassetteState int
+
 const (
 	cassetteStateClose = cassetteState(iota)
 	cassetteStateRead
@@ -14,12 +15,14 @@ const (
 )
 
 type cassetteSpeed int
+
 const (
-	cassette500 = cassetteSpeed(500)
+	cassette500  = cassetteSpeed(500)
 	cassette1500 = cassetteSpeed(1500)
 )
 
 type cassetteValue int
+
 const (
 	cassetteNeutral = cassetteValue(iota)
 	cassettePositive
@@ -40,11 +43,11 @@ type cassetteController struct {
 	position int
 
 	// XXX Bogus
-	value cassetteValue
-	next cassetteValue
-	flipFlop bool
+	value       cassetteValue
+	next        cassetteValue
+	flipFlop    bool
 	lastNonZero cassetteValue
-	transition uint64
+	transition  uint64
 }
 
 func (vm *vm) resetCassette() {
@@ -103,7 +106,7 @@ func (vm *vm) setCassetteMotor(motorOn bool) {
 			cc.lastNonZero = cassetteNeutral
 
 			// Wait one second, then kick off reading.
-			vm.addEvent(eventKickOffCassette, func () { vm.kickOffCassette() }, cpuHz)
+			vm.addEvent(eventKickOffCassette, func() { vm.kickOffCassette() }, cpuHz)
 		} else {
 			vm.setCassetteState(cassetteStateClose)
 		}
