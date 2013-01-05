@@ -10,20 +10,28 @@ import (
 )
 
 const (
+	// How many instructions to keep around in a queue so that we can display
+	// the last historicalPcCount instructions when a problem happens.
 	historicalPcCount = 20
 )
 
+// The vm structure (Virtual Machine) represents the entire emulated machine.
+// That includes the CPU, memory, disk, cassette, keyboard, display, and other
+// parts like the clock interrupt hardware.
 type vm struct {
 	// The CPU state.
 	cpu cpu
 
-	// RAM.
+	// All of addressable memory, including ROM, RAM, and memory-mapped I/O
+	// such as the display.
 	memory []byte
 
-	// Whether each byte of RAM has been initialized.
+	// Whether each byte of RAM has been initialized. This is useful for
+	// finding bugs in the emulator. If a program reads too many uninitialized
+	// locations, then it has probably gone off the rails.
 	memInit []bool
 
-	// Size of ROM.
+	// Size of ROM, starting at memory location zero.
 	romSize word
 
 	// Simulated keyboard.
@@ -32,7 +40,7 @@ type vm struct {
 	// Floppy disk controller.
 	fdc fdc
 
-	// Cassette subsystem.
+	// Cassette controller..
 	cc cassetteController
 
 	// Breakpoints.
@@ -47,7 +55,8 @@ type vm struct {
 	// Various I/O settings.
 	modeImage byte
 
-	// Channel to get updates from.
+	// Channel to get updates from. The VM will send updates (screen
+	// writes, diagnostic messages, etc.) to this channel.
 	vmUpdateCh chan<- vmUpdate
 
 	// Keep last "historicalPcCount" PCs for debugging.
@@ -55,9 +64,11 @@ type vm struct {
 	// Points to the most recent instruction added.
 	historicalPcPtr int
 
-	// Debug message.
+	// Debug message. This is constructed during instruction execution
+	// and logged after the instruction is done.
 	msg string
 
+	// Various fields to periodically debug or adjust the VM.
 	previousDumpTime    time.Time
 	previousDumpClock   uint64
 	sleptSinceDump      time.Duration
@@ -66,13 +77,14 @@ type vm struct {
 	previousTimerClock  uint64
 }
 
-// Command to the VM from the UI.
+// Command to the VM from the UI, such as keyboard presses or boot.
 type vmCommand struct {
 	Cmd  string
 	Addr int
 	Data string
 }
 
+// Creates a new virtual machine. Updates will be sent to vmUpdateCh.
 func createVm(vmUpdateCh chan<- vmUpdate) *vm {
 	// Allocate memory.
 	memorySize := 1024 * 64
@@ -112,10 +124,14 @@ func createVm(vmUpdateCh chan<- vmUpdate) *vm {
 	return vm
 }
 
+// Starts a VM. This doesn't boot the machine. It needs to get the
+// boot command from the command channel, specified in vmCommandCh.
+// The command channel also includes keyboard updates.
 func (vm *vm) run(vmCommandCh <-chan vmCommand) {
 	running := false
 	shutdown := false
 
+	// Handle a command from the UI.
 	handleCmd := func(msg vmCommand) {
 		switch msg.Cmd {
 		case "boot":
@@ -188,6 +204,7 @@ func (vm *vm) logHistoricalPc() {
 	}
 }
 
+// Reset the virtual machine, optionally to power-on state.
 func (vm *vm) reset(powerOn bool) {
 	vm.resetCassette()
 	vm.diskInit(powerOn)

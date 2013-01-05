@@ -2,7 +2,21 @@
 
 package main
 
-// This file borrows heavily from the xtrs file trs_disk.c.
+// Implementation of the TRS-80 Model III floppy disk controller. This file
+// borrows heavily from the xtrs file trs_disk.c. We support both JV1 and JV3
+// file formats, but JV1 is untested.
+//
+// JV1 is a Model I format that's just the sectors laid out end to end. There
+// are 35 tracks, 10 sectors per track, and 256 bytes per sector.
+//
+// JV3 is a Model III format that allows variable-sized sectors. There are two
+// blocks that specify where each sector is and how large it is. The first
+// block is at the beginning of the file. It describes at most 2901 sectors.
+// The next block is after that, followed by more sectors described by the
+// second block. Each block is 2901 3-byte sector info structures. The first
+// byte is the track number, the second is the sector number within that track,
+// and the third is some flags that specify the size of the sector. See the
+// jv3Sector structure.
 
 import (
 	"fmt"
@@ -18,25 +32,24 @@ const (
 	// How long the disk motor stays on after drive selected (in seconds).
 	motorTimeAfterSelect = 2
 
-	// Width of the index hole as a fraction of the entire circumference.
+	// Width of the index hole as a fraction of the circumference.
 	diskHoleWidth = 0.01
 
 	// Speed of disk.
 	diskRpm             = 300
 	clocksPerRevolution = cpuHz * 60 / diskRpm
 
-	// Whether disks are write-protected.
+	// Whether disks are write-protected. We make them all write-protected
+	// since we don't implement writing to disk.
 	writeProtection = true
 
 	// Never have more than this many tracks.
 	maxTracks = 255
 
-	// I don't know what this is but it defaults to false on xtrs.
-	diskTrueDam = false
-
 	// JV1 info.
 	jv1BytesPerSector  = 256
 	jv1SectorsPerTrack = 10
+	jv1DirectoryTrack  = 17
 
 	// JV3 info.
 	jv3MaxSides        = 2                      // Number of sides supported by this format.
@@ -49,8 +62,8 @@ const (
 // Type I status bits.
 const (
 	diskBusy     = 1 << iota // Whether the disk is actively doing work.
-	diskIndex                // Over index hole.
-	diskTrkZero              // On track 0.
+	diskIndex                // The head is currently over the index hole.
+	diskTrkZero              // Head is on track 0.
 	diskCrcErr               // CRC error.
 	diskSeekErr              // Seek error.
 	diskHeadEngd             // Head engaged.
@@ -151,12 +164,11 @@ const (
 	jv3Size    = 0x03 // See comment in getSizeCode().
 
 	jv3Free  = 0xff // In track/sector fields
-	jv3FreeF = 0xfc // In flags field, or'd with size code
 )
 
-// Emulation types.
+// Disk emulation types. After loading a disk file we detect what type of disk
+// it is.
 type emulationType uint
-
 const (
 	emuNone = emulationType(iota)
 	emuJv1
@@ -178,7 +190,7 @@ type fdc struct {
 	side           side
 	doubleDensity  bool
 	currentDrive   int
-	motorIsOn      bool
+	motorOn        bool
 	motorTimeout   uint64
 	lastReadAdr    int // Id index found by last readadr.
 
@@ -216,12 +228,12 @@ type jv3 struct {
 	trackStart  [maxTracks][jv3MaxSides]int  // Where each side/side track starts in id.
 }
 
-// The first block of a JV3 file has jv3SectorsPerBlock of these.
+// Each block of a JV3 file has jv3SectorsPerBlock of these.
 type jv3Sector struct {
 	track, sector, flags byte
 }
 
-// Sets all elements to jv3Free, making the sector as free.
+// Sets all elements to jv3Free, marking the sector as free.
 func (id *jv3Sector) makeFree() {
 	id.track = jv3Free
 	id.sector = jv3Free
@@ -238,11 +250,13 @@ func (id *jv3Sector) fillFromSlice(data []byte) {
 	}
 }
 
+// Returns which side this sector is on.
 func (id *jv3Sector) side() (side side) {
 	side.setFromBoolean(id.flags&jv3Side != 0)
 	return
 }
 
+// Returns whether this sector is double density (true) or single density (false).
 func (id *jv3Sector) doubleDensity() bool {
 	return id.flags&jv3Density != 0
 }
@@ -260,6 +274,7 @@ func (id *jv3Sector) getSizeCode() byte {
 
 	sectorIsFree := id.track == jv3Free
 
+	// Which bit to flip (invert) in the size code to get it in order.
 	var flipMask byte
 	if sectorIsFree {
 		flipMask = 2
@@ -275,6 +290,7 @@ func (id *jv3Sector) getSizeCode() byte {
 // 1 = back
 type side int
 
+// Returns a side from a boolean, where true is back and false is front.
 func sideFromBoolean(value bool) (side side) {
 	side.setFromBoolean(value)
 	return
@@ -290,10 +306,12 @@ func (side *side) setFromBoolean(value bool) {
 	}
 }
 
+// Loads the file from filename into drive.
 func (vm *vm) loadDisk(drive int, filename string) error {
 	return vm.fdc.disks[drive].load(filename)
 }
 
+// Loads the file from filename into this disk.
 func (disk *disk) load(filename string) error {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -320,18 +338,20 @@ func (disk *disk) recognizeDisk() {
 		disk.emulationType = emuJv1
 	case 193024, 377344:
 		disk.emulationType = emuJv3
-		disk.loadJv3Data(0)
+		disk.loadJv3Data()
 	default:
 		log.Fatalf("Don't know format of %d-byte disk", len(disk.data))
 	}
 }
 
-func (disk *disk) loadJv3Data(drive int) {
+// Loads JV3-specific data from the file and creates the in-memory data structures.
+func (disk *disk) loadJv3Data() {
 	// Mark the whole id array as free.
 	for i := 0; i < len(disk.jv3.id); i++ {
 		disk.jv3.id[i].makeFree()
 	}
 
+	// How many info blocks are on the disk. This is incremented in loadJv3Block().
 	disk.jv3.blockCount = 0
 
 	// Load first block.
@@ -345,7 +365,6 @@ func (disk *disk) loadJv3Data(drive int) {
 	for i := 0; i < 4; i++ {
 		disk.jv3.freeId[i] = jv3SectorsMax
 	}
-
 	disk.jv3.lastUsedId = -1
 	for idIndex := 0; idIndex < jv3SectorsMax; idIndex++ {
 		if disk.jv3.id[idIndex].track == jv3Free {
@@ -357,9 +376,13 @@ func (disk *disk) loadJv3Data(drive int) {
 			disk.jv3.lastUsedId = idIndex
 		}
 	}
-	disk.jv3.sortIds(drive)
+
+	// Sort the IDs for fast lookup.
+	disk.jv3.sortIds()
 }
 
+// Load one of the blocks of sector infos in JV3 disks. Return the byte
+// offset of the end of the sectors described by this block.
 func (disk *disk) loadJv3Block(idStart, blockStart int) int {
 	// Make sure there's enough there to read.
 	if blockStart+3*jv3SectorsPerBlock <= len(disk.data) {
@@ -371,18 +394,24 @@ func (disk *disk) loadJv3Block(idStart, blockStart int) int {
 			disk.jv3.id[idStart+i].fillFromSlice(disk.data[start : start+3])
 			start += 3
 		}
+
+		// Compute offsets of each sector.
+		offset := blockStart + jv3SectorStart
+		for i := 0; i < jv3SectorsPerBlock; i++ {
+			disk.jv3.offset[idStart+i] = offset
+			offset += disk.jv3.id[idStart+i].getSize()
+		}
+
+		// Where next block would begin.
+		return offset
 	}
 
-	// Compute offsets of each sector.
-	offset := blockStart + jv3SectorStart
-	for i := 0; i < jv3SectorsPerBlock; i++ {
-		disk.jv3.offset[idStart+i] = offset
-		offset += disk.jv3.id[idStart+i].getSize()
-	}
-
-	return offset
+	// Doesn't matter here, this would only happen for the second block, and
+	// we don't care about the offset for that one.
+	return 0
 }
 
+// Initialize the FDC.
 func (vm *vm) diskInit(powerOn bool) {
 	fdc := &vm.fdc
 
@@ -402,7 +431,7 @@ func (vm *vm) diskInit(powerOn bool) {
 	fdc.side = 0
 	fdc.doubleDensity = false
 	fdc.currentDrive = 0
-	fdc.motorIsOn = false
+	fdc.motorOn = false
 	fdc.motorTimeout = 0
 	vm.fdc.lastReadAdr = -1
 
@@ -414,6 +443,7 @@ func (vm *vm) diskInit(powerOn bool) {
 	vm.events.cancelEvents(eventDisk)
 }
 
+// Initialize the drive.
 func (disk *disk) init(powerOn bool) {
 	if powerOn {
 		disk.physicalTrack = 0
@@ -459,15 +489,20 @@ func (vm *vm) diskFirstDrq(bits byte) {
 	vm.cpu.diskDrqInterrupt(true)
 	// Evaluate this now, not when the callback is run.
 	currentCommand := vm.fdc.currentCommand
+	// If we've not finished our work within half a second, trigger a lost data
+	// interrupt.
 	vm.addEvent(eventDiskLostData, func() { vm.diskLostData(currentCommand) }, cpuHz/2)
 }
 
+// If we've not used this drive within the timeout period, shut off the motor. Returns
+// whether we shut the motor off.
 func (vm *vm) checkDiskMotorOff() bool {
 	stopped := vm.clock > vm.fdc.motorTimeout
 	if stopped {
 		vm.setDiskMotor(false)
 		vm.fdc.status |= diskNotRdy
 
+		// See if we were in the middle of doing something.
 		if isReadWriteCommand(vm.fdc.currentCommand) && (vm.fdc.status&diskDrq) != 0 {
 			// Also end the command and set Lost Data for good measure
 			vm.fdc.status = (vm.fdc.status | diskLostData) & ^byte(diskBusy|diskDrq)
@@ -478,10 +513,11 @@ func (vm *vm) checkDiskMotorOff() bool {
 	return stopped
 }
 
-func (vm *vm) setDiskMotor(value bool) {
-	if vm.fdc.motorIsOn != value {
+// Turns the motor on or off. Updates the UI.
+func (vm *vm) setDiskMotor(motorOn bool) {
+	if vm.fdc.motorOn != motorOn {
 		var intValue int
-		if value {
+		if motorOn {
 			if diskDebug {
 				log.Print("Starting motor")
 			}
@@ -496,7 +532,7 @@ func (vm *vm) setDiskMotor(value bool) {
 		if vm.vmUpdateCh != nil {
 			vm.vmUpdateCh <- vmUpdate{Cmd: "motor", Data: intValue}
 		}
-		vm.fdc.motorIsOn = value
+		vm.fdc.motorOn = motorOn
 	}
 }
 
@@ -504,14 +540,18 @@ func (vm *vm) setDiskMotor(value bool) {
 // from the leading edge of the index hole. For the first diskHoleWidth we're
 // on the hole itself.
 func (vm *vm) diskAngle() float32 {
+	// Use simulated time.
 	return float32(vm.clock%clocksPerRevolution) / float32(clocksPerRevolution)
 }
 
+// Whether the current disk command is read or write (as opposed to seek, etc.).
 func isReadWriteCommand(cmd byte) bool {
 	cmdType := commandType(cmd)
 	return cmdType == 2 || cmdType == 3
 }
 
+// Returns the type of command we're currently executing. See the constants
+// starting with diskCommandMask for details.
 func commandType(cmd byte) int {
 	switch cmd & diskCommandMask {
 	case diskRestore, diskSeek, diskStep, diskStepU,
@@ -529,6 +569,8 @@ func commandType(cmd byte) int {
 	panic(fmt.Sprintf("Unknown type for command %02X", cmd))
 }
 
+// If we're doing a non-read/write command, update the status with the state
+// of the disk, track, and head position.
 func (vm *vm) updateDiskStatus() {
 	disk := &vm.fdc.disks[vm.fdc.currentDrive]
 
@@ -540,12 +582,14 @@ func (vm *vm) updateDiskStatus() {
 	if disk.data == nil {
 		vm.fdc.status |= diskIndex
 	} else {
+		// See if we're over the index hole.
 		if vm.diskAngle() < diskHoleWidth {
 			vm.fdc.status |= diskIndex
 		} else {
 			vm.fdc.status &^= diskIndex
 		}
 
+		// We're always write-protected.
 		if writeProtection {
 			vm.fdc.status |= diskWritePrt
 		} else {
@@ -553,6 +597,7 @@ func (vm *vm) updateDiskStatus() {
 		}
 	}
 
+	// See if we're on track 0, which for some reason has a special bit.
 	if disk.physicalTrack == 0 {
 		vm.fdc.status |= diskTrkZero
 	} else {
@@ -567,7 +612,11 @@ func (vm *vm) updateDiskStatus() {
 	}
 }
 
+// Return the disk status from the I/O port.
 func (vm *vm) readDiskStatus() byte {
+	// If no disk was loaded into drive 0, just pretend that we don't
+	// have a disk system. Otherwise we have to hold down Break while
+	// booting (to get to cassette BASIC) and that's annoying.
 	if driveCount == 0 || vm.fdc.disks[0].data == nil {
 		return 0xFF
 	}
@@ -582,6 +631,7 @@ func (vm *vm) readDiskStatus() byte {
 		}
 	}
 
+	// Clear interrupt.
 	vm.cpu.diskIntrqInterrupt(false)
 
 	if diskDebug {
@@ -591,6 +641,7 @@ func (vm *vm) readDiskStatus() byte {
 	return vm.fdc.status
 }
 
+// Read the track register.
 func (vm *vm) readDiskTrack() byte {
 	if diskDebug {
 		log.Printf("readDiskTrack() = %02X", vm.fdc.track)
@@ -599,6 +650,7 @@ func (vm *vm) readDiskTrack() byte {
 	return vm.fdc.track
 }
 
+// Read the sector register.
 func (vm *vm) readDiskSector() byte {
 	if diskDebug {
 		log.Printf("readDiskSector() = %02X", vm.fdc.sector)
@@ -607,6 +659,7 @@ func (vm *vm) readDiskSector() byte {
 	return vm.fdc.sector
 }
 
+// Read a byte of data from the sector.
 func (vm *vm) readDiskData() byte {
 	disk := &vm.fdc.disks[vm.fdc.currentDrive]
 
@@ -635,127 +688,6 @@ func (vm *vm) readDiskData() byte {
 			}
 		}
 
-	case diskReadAdr:
-		panic("diskReadAdr")
-		/*
-			    if (vm.fdc.byteCount <= 0 || !(vm.fdc.status & TRSDISK_DRQ)) break
-			    if (d->emutype == REAL) {
-			#if 0
-			      vm.fdc.sector = d->u.real.buf[0]; //179x data sheet says this
-			#else
-			      vm.fdc.track = d->u.real.buf[0]; //let's guess it meant this
-			      vm.fdc.sector = d->u.real.buf[2]; //1771 data sheet says this
-			#endif
-			      vm.fdc.data = d->u.real.buf[6 - vm.fdc.byteCount]
-
-			    } else if (d->emutype == DMK) {
-			      vm.fdc.data = d->u.dmk.buf[d->u.dmk.curbyte]
-			#if 0
-			      if (vm.fdc.byteCount == 6) {
-				vm.fdc.sector = vm.fdc.data; //179x data sheet says this
-			      }
-			#else
-			      if (vm.fdc.byteCount == 6) {
-				vm.fdc.track = vm.fdc.data; //let's guess it meant this!!
-			      } else if (vm.fdc.byteCount == 4) {
-				vm.fdc.sector = vm.fdc.data;  //1771 data sheet says this
-			      }
-			#endif
-			      d->u.dmk.curbyte += dmk_incr(d)
-
-			    } else if (vm.fdc.lastReadAdr >= 0) {
-			      if (d->emutype == JV1) {
-				switch (vm.fdc.byteCount) {
-				case 6:
-				  vm.fdc.data = d->physicalTrack
-			#if 0
-				  vm.fdc.sector = d->physicalTrack; //179x data sheet says this
-			#else
-				  vm.fdc.track = d->physicalTrack; //let's guess it meant this
-			#endif
-				  break
-				case 5:
-				  vm.fdc.data = 0
-				  break
-				case 4:
-				  vm.fdc.data = jv1_interleave[vm.fdc.lastReadAdr % JV1_SECPERTRK]
-				  vm.fdc.sector = vm.fdc.data;  //1771 data sheet says this
-				  break
-				case 3:
-				  vm.fdc.data = 0x01;  // 256 bytes always
-				  break
-				case 2:
-				case 1:
-				  vm.fdc.data = vm.fdc.crc >> 8
-				  break
-				}
-			      } else if (d->emutype == JV3) {
-				sid = &d->u.jv3.id[d->u.jv3.sortedId[vm.fdc.lastReadAdr]]
-				switch (vm.fdc.byteCount) {
-				case 6:
-				  vm.fdc.data = sid->track
-			#if 0
-				  vm.fdc.sector = sid->track; //179x data sheet says this
-			#else
-				  vm.fdc.track = sid->track; //let's guess it meant this
-			#endif
-				  break
-				case 5:
-				  vm.fdc.data = (sid->flags & jv3Side) != 0
-				  break
-				case 4:
-				  vm.fdc.data = sid->sector
-				  vm.fdc.sector = sid->sector;  //1771 data sheet says this
-				  break
-				case 3:
-				  vm.fdc.data =
-				    id_index_to_size_code(d, d->u.jv3.sortedId[vm.fdc.lastReadAdr])
-				  break
-				case 2:
-				case 1:
-				  vm.fdc.data = vm.fdc.crc >> 8
-				  break
-				}
-			      }
-			    }
-			    vm.fdc.crc = calc_crc1(vm.fdc.crc, vm.fdc.data)
-			    vm.fdc.byteCount--
-			    if (vm.fdc.byteCount <= 0) {
-			      if (d->emutype == DMK && vm.fdc.crc != 0) {
-				vm.fdc.status |= diskCrcErr
-			      }
-			      vm.fdc.byteCount = 0
-			      vm.fdc.status &= ~TRSDISK_DRQ
-			      trs_disk_drq_interrupt(0)
-			      if (trs_event_scheduled() == trs_disk_lostdata) {
-				trs_cancel_event()
-			      }
-			      trs_schedule_event(trs_disk_done, 0, 64)
-			    }
-			    break
-		*/
-
-	case diskReadTrk:
-		panic("diskReadTrk")
-		/*
-			    // assert(emutype == DMK)
-			    if (!(vm.fdc.status & TRSDISK_DRQ)) break
-			    if (vm.fdc.byteCount > 0) {
-			      vm.fdc.data = d->u.dmk.buf[d->u.dmk.curbyte]
-			      d->u.dmk.curbyte += dmk_incr(d)
-			      vm.fdc.byteCount = vm.fdc.byteCount - 2 + vm.fdc.doubleDensity
-			    }
-			    if (vm.fdc.byteCount <= 0) {
-			      vm.fdc.byteCount = 0
-			      vm.fdc.status &= ~TRSDISK_DRQ
-			      trs_disk_drq_interrupt(0)
-			      if (trs_event_scheduled() == trs_disk_lostdata) {
-				trs_cancel_event()
-			      }
-			      trs_schedule_event(trs_disk_done, 0, 64)
-			    }
-			    break
-		*/
 	default:
 		// Might be okay, not sure.
 		panic("Unhandled case in readDiskData()")
@@ -837,7 +769,7 @@ func (vm *vm) writeDiskCommand(cmd byte) {
 			var newStatus byte = 0
 			switch disk.emulationType {
 			case emuJv1:
-				if disk.physicalTrack == 17 {
+				if disk.physicalTrack == jv1DirectoryTrack {
 					newStatus = disk1791F8
 				}
 				vm.fdc.byteCount = jv1BytesPerSector
@@ -850,11 +782,7 @@ func (vm *vm) writeDiskCommand(cmd byte) {
 						newStatus = disk1791FB
 						break
 					case jv3DamSdFA:
-						if diskTrueDam {
-							newStatus = disk1791FB
-						} else {
-							newStatus = disk1791F8
-						}
+						newStatus = disk1791F8
 						break
 					case jv3DamSdF9:
 						newStatus = disk1791F8
@@ -1041,7 +969,7 @@ func (vm *vm) searchSector(sector int, side side) int {
 			return -1
 		}
 		if !disk.jv3.sortedValid {
-			disk.jv3.sortIds(vm.fdc.currentDrive)
+			disk.jv3.sortIds()
 		}
 
 		i := disk.jv3.trackStart[disk.physicalTrack][vm.fdc.side]
@@ -1122,8 +1050,8 @@ func (jv3 *jv3) Swap(i, j int) {
 	jv3.sortedId[i], jv3.sortedId[j] = jv3.sortedId[j], jv3.sortedId[i]
 }
 
-// (Re-)create the sortedId data structure for the given drive.
-func (jv3 *jv3) sortIds(drive int) {
+// (Re-)create the sortedId data structure.
+func (jv3 *jv3) sortIds() {
 	// Start with one-to-one map.
 	for i := 0; i <= jv3SectorsMax; i++ {
 		jv3.sortedId[i] = i

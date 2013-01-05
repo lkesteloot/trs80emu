@@ -11,12 +11,19 @@ import (
 var nRegExp = regexp.MustCompile(`\bN\b`)
 var nnRegExp = regexp.MustCompile(`\bNN\b`)
 
+// Disassemble the instruction at the given pc and return the address,
+// machine language, and instruction. Return the PC of the following
+// instruction in newPc.
 func (vm *vm) disasm(pc word) (line string, nextPc word) {
+	// Look up the instruction.
 	instPc := pc
 	inst, byteData, wordData := vm.lookUpInst(&pc)
 	nextPc = pc
 
+	// Address.
 	line = fmt.Sprintf("%04X ", instPc)
+
+	// Machine language.
 	for pc = instPc; pc < instPc+4; pc++ {
 		if pc < nextPc {
 			line += fmt.Sprintf("%02X ", vm.memory[pc])
@@ -25,6 +32,7 @@ func (vm *vm) disasm(pc word) (line string, nextPc word) {
 		}
 	}
 
+	// Instruction.
 	if inst == nil {
 		line += "Unknown instruction"
 	} else {

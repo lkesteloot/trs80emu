@@ -7,6 +7,8 @@ import (
 	"log"
 )
 
+// Various flags that control what kind of debugging information
+// is logged by the emulator. Normally these are all false.
 const (
 	dumpInstructionSet       = false
 	diskDebug                = false
@@ -17,6 +19,8 @@ const (
 	disableTimer             = false
 )
 
+// Same as above but can be changed at runtime. This is for
+// instruction-level debugging.
 var printDebug = false
 
 // Map from PC to the ROM routine stored there.
@@ -62,6 +66,8 @@ func (vm *vm) explainLine(pc, hl word, a byte) {
 			for {
 				ch := vm.memory[addr]
 				msg += printableChar(ch)
+
+				// Strings are terminated by 0x03 (not printed) or 0x0D (printed).
 				if ch == 0x03 || ch == 0x0D {
 					break
 				}

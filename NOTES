@@ -9,6 +9,7 @@ Next:
         Keep reading from file until value changes or at most 10ms.
         Record how long that took in cycles.
     Do a thorough commenting pass.
+        Continue at disk.go:readDiskData().
     Add UI for switching disks.
     Get Eliminator to work for Larry:
         http://www.trs-80.org/the-eliminator/

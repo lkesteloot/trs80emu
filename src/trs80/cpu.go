@@ -3,10 +3,15 @@
 package main
 
 const (
+	// CPU clock on the Model III: 2.02752 MHz.
 	cpuHz       = 2027520
+
+	// Nanoseconds per clock cycle.
 	cpuPeriodNs = 1000000000 / cpuHz
 )
 
+// The CPU state. This includes flags (internal to the CPU) and interrupt
+// latches, which are external.
 type cpu struct {
 	// Registers:
 	a          byte
@@ -44,17 +49,23 @@ type cpu struct {
 	root *instruction
 }
 
+// Initialize the CPU instruction set.
 func (cpu *cpu) initialize() {
 	cpu.root = &instruction{}
 	cpu.root.loadInstructions(instructionList)
 }
 
+// Reset the CPU.
 func (cpu *cpu) reset() {
 	cpu.pc = 0
 	cpu.iff1 = false
 	cpu.iff2 = false
 }
 
+// Whether the specified condition, such as carry flag, is currently
+// satisfied by the flags of the CPU. This is one of the slowest
+// parts of the emulator. Replacing these strings with integers
+// would be the first step to improving emulator speed.
 func (cpu *cpu) conditionSatisfied(cond string) bool {
 	switch cond {
 	case "C":
@@ -78,6 +89,7 @@ func (cpu *cpu) conditionSatisfied(cond string) bool {
 	panic("Unknown condition " + cond)
 }
 
+// Whether the operand is on a word register or immediate.
 func isWordOperand(op string) bool {
 	switch op {
 	case "BC", "DE", "HL", "NN", "SP", "IX", "IY":
@@ -87,6 +99,8 @@ func isWordOperand(op string) bool {
 	return false
 }
 
+// Sign-extend an 8-bit byte to a 16-bit word. Bit 7 of the byte
+// is copied to bits 8 through 15 of the word.
 func signExtend(b byte) word {
 	return word(int8(b))
 }
