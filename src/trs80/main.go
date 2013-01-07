@@ -19,6 +19,12 @@ var profiling = flag.Bool("profile", false, "run for a few seconds and dump prof
 func main() {
 	flag.Parse()
 
+	filename := "cassettes/tron1.wav"
+	_, err := openWav(filename)
+	if err != nil {
+		panic(err)
+	}
+
 	if *profiling {
 		// When profiling don't run the web server, for some reason it causes
 		// the profile file to be empty.

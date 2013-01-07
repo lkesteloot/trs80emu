@@ -21,6 +21,7 @@ Next:
             Use simple "c,addr,byte" format with one-letter command:
                 p,15360,191
                 p3C00BF
+            Or allow multiple bytes per poke, in increasing RAM order.
             Would still need bulk commands, maybe separated by semicolon.
 
 References:

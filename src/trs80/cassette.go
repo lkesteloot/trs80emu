@@ -142,10 +142,19 @@ func (vm *vm) setCassetteState(newState cassetteState) int {
 	switch newState {
 	case cassetteStateRead:
 		vm.cc.position = 0
-		// XXX Open file, set audio rate, seek to right position.
+		vm.openCassetteFile()
 	}
 
 	// Update state.
 	vm.cc.state = newState
 	return 0
+}
+
+// Open file, set audio rate, seek to right position.
+func (vm *vm) openCassetteFile() {
+	filename := "cassettes/tron1.wav"
+	_, err := openWav(filename)
+	if err != nil {
+		panic(err)
+	}
 }
