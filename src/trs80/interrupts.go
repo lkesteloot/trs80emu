@@ -84,13 +84,11 @@ func (cpu *cpu) diskDrqInterrupt(state bool) {
 func (vm *vm) cassetteRiseInterrupt() {
 	vm.cpu.irqLatch = (vm.cpu.irqLatch &^ cassetteRiseIrqMask) |
 		(vm.cpu.irqMask & cassetteRiseIrqMask)
-	vm.updateCassette()
 }
 
 func (vm *vm) cassetteFallInterrupt() {
 	vm.cpu.irqLatch = (vm.cpu.irqLatch &^ cassetteFallIrqMask) |
 		(vm.cpu.irqMask & cassetteFallIrqMask)
-	vm.updateCassette()
 }
 
 func (vm *vm) cassetteClearInterrupt() {

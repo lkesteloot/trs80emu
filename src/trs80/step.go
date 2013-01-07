@@ -845,4 +845,7 @@ func (vm *vm) step() {
 		vm.handleTimer()
 		vm.previousTimerClock = vm.clock
 	}
+
+	// Update cassette state.
+	vm.updateCassette()
 }

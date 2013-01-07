@@ -5,18 +5,18 @@ package main
 // Parse .WAV files for cassette support.
 
 import (
-	"log"
 	"fmt"
 	"io"
+	"log"
 	"os"
 )
 
 type wavFile struct {
 	io.ReadSeeker
-	channelCount uint16
-	sampleRate uint32
+	channelCount   uint16
+	samplesPerSecond     uint32
 	bytesPerSample uint16
-	bitsPerSample uint16
+	bitsPerSample  uint16
 }
 
 // Parses .WAV file headers.
@@ -66,7 +66,7 @@ func openWav(filename string) (w *wavFile, err error) {
 		return
 	}
 	// Sample rate.
-	w.sampleRate, err = w.parseInt()
+	w.samplesPerSecond, err = w.parseInt()
 	if err != nil {
 		return
 	}
@@ -166,4 +166,18 @@ func (w *wavFile) parseShort() (uint16, error) {
 	}
 
 	return n, nil
+}
+
+func (w *wavFile) readSample() (int16, error) {
+	// Only handle simple case.
+	if w.channelCount != 1 || w.bytesPerSample != 2 || w.bitsPerSample != 16 {
+		panic("Don't handle WAV file format")
+	}
+
+	s, err := w.parseShort()
+	if err != nil {
+		return 0, err
+	}
+
+	return int16(s), nil
 }
