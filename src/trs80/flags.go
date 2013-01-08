@@ -2,9 +2,11 @@
 
 package main
 
-// http://www.zilog.com/docs/z80/um0080.pdf page 76
+// 8-bit flag register with helper functions.
+// More info here: http://www.zilog.com/docs/z80/um0080.pdf page 76
 type flags byte
 
+// Flags and masks.
 const (
 	carryShift, carryMask = iota, 1 << iota
 	subtractShift, subtractMask
@@ -15,9 +17,11 @@ const (
 	zeroShift, zeroMask
 	signShift, signMask
 
+	// These two bits are undocumented but we handle them properly just in case.
 	undocMasks = undoc3Mask | undoc5Mask
 )
 
+// Look-up table to make setting the sign, carry, and overflow flags quickly.
 var signCarryOverflowTable = []flags{
 	0,
 	parityOverflowMask | signMask,
@@ -29,6 +33,7 @@ var signCarryOverflowTable = []flags{
 	carryMask | signMask,
 }
 
+// Look-up table to make setting the half-carry flag quickly.
 var halfCarryTable = []flags{
 	0,
 	0,
@@ -40,6 +45,8 @@ var halfCarryTable = []flags{
 	halfCarryMask,
 }
 
+// Look-up table to make setting the sign, carry, and overflow flags quickly when
+// doing subtractions.
 var subtractSignCarryOverflowTable = []flags{
 	0,
 	carryMask | signMask,
@@ -51,6 +58,7 @@ var subtractSignCarryOverflowTable = []flags{
 	carryMask | signMask,
 }
 
+// Look-up table to make setting the half-carry flag quickly when doing subtractions.
 var subtractHalfCarryTable = []flags{
 	0,
 	halfCarryMask,
@@ -62,7 +70,7 @@ var subtractHalfCarryTable = []flags{
 	halfCarryMask,
 }
 
-// For parity flag. 1 = even parity, 0 = odd parity.
+// Specifies parity of each value of an 8-bit byte. 1 = even parity, 0 = odd parity.
 var parityTable = [...]byte{
 	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
 	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
@@ -166,25 +174,10 @@ func (f *flags) setS(s bool) {
 	}
 }
 
-// Set the undoc flags from a byte.
+// Set the undoc flags from a byte. The bits are just copied from
+// the corresponding bits of the specified byte.
 func (f *flags) setUndoc(v byte) {
 	*f = (*f &^ undocMasks) | (flags(v) & undocMasks)
-}
-
-// Useful function.
-func boolToInt(value bool) int {
-	if value {
-		return 1
-	}
-	return 0
-}
-
-// Useful function.
-func boolToFlags(value bool) flags {
-	if value {
-		return 1
-	}
-	return 0
 }
 
 // Update simple flags (S, Z, P, and undoc) based on result of operation.
@@ -196,6 +189,7 @@ func (f *flags) updateFromByte(value byte) {
 	f.setUndoc(value)
 }
 
+// Update flags after value1 + value2 was placed in result.
 func (f *flags) updateFromAddByte(value1, value2, result byte) {
 	index := (value1&0x88)>>1 | (value2&0x88)>>2 | (result&0x88)>>3
 	*f = halfCarryTable[index&7] |
@@ -207,6 +201,7 @@ func (f *flags) updateFromAddByte(value1, value2, result byte) {
 	}
 }
 
+// Update flags after value1 + value2 was placed in result.
 func (f *flags) updateFromAddWord(value1, value2, result word) {
 	index := (value1&0x8800)>>9 | (value2&0x8800)>>10 | (result&0x8800)>>11
 	*f = halfCarryTable[index&7] |
@@ -215,6 +210,7 @@ func (f *flags) updateFromAddWord(value1, value2, result word) {
 		flags(result.h()&undocMasks)
 }
 
+// Update flags after value1 + value2 + carry was placed in result.
 func (f *flags) updateFromAdcWord(value1, value2, result word) {
 	index := (value1&0x8800)>>9 | (value2&0x8800)>>10 | (result&0x8800)>>11
 	*f = halfCarryTable[index&7] |
@@ -226,6 +222,7 @@ func (f *flags) updateFromAdcWord(value1, value2, result word) {
 	}
 }
 
+// Update flags after value1 - value2 was placed in result.
 func (f *flags) updateFromSubByte(value1, value2, result byte) {
 	index := (value1&0x88)>>1 | (value2&0x88)>>2 | (result&0x88)>>3
 	*f = subtractMask |
@@ -238,6 +235,7 @@ func (f *flags) updateFromSubByte(value1, value2, result byte) {
 	}
 }
 
+// Update flags after value1 - value2 - carry was placed in result.
 func (f *flags) updateFromSbcWord(value1, value2, result word) {
 	index := (value1&0x8800)>>9 | (value2&0x8800)>>10 | (result&0x8800)>>11
 	*f = subtractMask |
@@ -250,6 +248,9 @@ func (f *flags) updateFromSbcWord(value1, value2, result word) {
 	}
 }
 
+// Update from a logical operation with result as a result. Specify
+// true for isAnd if this was an AND operation, false if it was
+// an OR or XOR.
 func (f *flags) updateFromLogicByte(result byte, isAnd bool) {
 	if isAnd {
 		*f = halfCarryMask
@@ -268,6 +269,7 @@ func (f *flags) updateFromLogicByte(result byte, isAnd bool) {
 	f.setUndoc(result)
 }
 
+// Update from a decrement operation that results in result.
 func (f *flags) updateFromDecByte(result byte) {
 	*f = (*f & carryMask) | subtractMask
 
@@ -287,6 +289,7 @@ func (f *flags) updateFromDecByte(result byte) {
 	f.setUndoc(result)
 }
 
+// Update from an increment operation that results in result.
 func (f *flags) updateFromIncByte(result byte) {
 	*f &= carryMask
 	f.setPv(result == 0x80)
@@ -296,6 +299,7 @@ func (f *flags) updateFromIncByte(result byte) {
 	f.setUndoc(result)
 }
 
+// Update from an in-port operation that results in result.
 func (f *flags) updateFromInByte(result byte) {
 	*f &^= signMask | zeroMask | halfCarryMask | parityOverflowMask | subtractMask
 

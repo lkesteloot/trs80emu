@@ -2,6 +2,10 @@
 
 package main
 
+// Handle keyboard mapping. The TRS-80 Model III keyboard has keys in different
+// places, so we must occasionally fake a Shift key being up or down when it's
+// really not.
+
 import (
 	"log"
 )

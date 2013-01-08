@@ -664,8 +664,11 @@ func (vm *vm) readDiskSector() byte {
 func (vm *vm) readDiskData() byte {
 	disk := &vm.fdc.disks[vm.fdc.currentDrive]
 
+	// The read command can do various things depending on the specific current command,
+	// but we only support reading from the diskette.
 	switch vm.fdc.currentCommand & diskCommandMask {
 	case diskRead:
+		// Keep reading from the buffer.
 		if vm.fdc.byteCount > 0 && (vm.fdc.status&diskDrq) != 0 {
 			var c byte
 			if disk.dataOffset >= len(disk.data) {
@@ -701,6 +704,7 @@ func (vm *vm) readDiskData() byte {
 	return vm.fdc.data
 }
 
+// Set the current command.
 func (vm *vm) writeDiskCommand(cmd byte) {
 	disk := &vm.fdc.disks[vm.fdc.currentDrive]
 
@@ -715,6 +719,7 @@ func (vm *vm) writeDiskCommand(cmd byte) {
 	vm.fdc.byteCount = 0
 	vm.fdc.currentCommand = cmd
 
+	// Kick off anything that's based on the command.
 	switch cmd & diskCommandMask {
 	case diskRestore:
 		vm.fdc.lastReadAdr = -1
@@ -754,12 +759,15 @@ func (vm *vm) writeDiskCommand(cmd byte) {
 	case diskStepOutU:
 		panic("Don't handle diskStepOutU")
 	case diskRead:
+		// Read the sector. The bytes will be read later.
 		vm.fdc.lastReadAdr = -1
 		vm.fdc.status = 0
 		goalSide := side(-1)
 		if cmd&diskCMask != 0 {
 			goalSide.setFromBoolean((cmd & diskBMask) != 0)
 		}
+
+		// Look for the sector in the file.
 		sectorIndex := vm.searchSector(int(vm.fdc.sector), goalSide)
 		if sectorIndex == -1 {
 			vm.fdc.status |= diskBusy
@@ -845,6 +853,7 @@ func (vm *vm) writeDiskCommand(cmd byte) {
 	}
 }
 
+// Set the track register for later reads.
 func (vm *vm) writeDiskTrack(value byte) {
 	if diskDebug {
 		log.Printf("writeDiskTrack(%02X)", value)
@@ -853,6 +862,7 @@ func (vm *vm) writeDiskTrack(value byte) {
 	vm.fdc.track = value
 }
 
+// Set the sector register for later reads.
 func (vm *vm) writeDiskSector(value byte) {
 	if diskDebug {
 		log.Printf("writeDiskSector(%02X)", value)
@@ -861,6 +871,8 @@ func (vm *vm) writeDiskSector(value byte) {
 	vm.fdc.sector = value
 }
 
+// Write to the data register. We don't support writing to the diskette,
+// but the register is used by other commands, such as seeking.
 func (vm *vm) writeDiskData(value byte) {
 	if diskDebug {
 		log.Printf("writeDiskData(%02X)", value)
@@ -879,6 +891,7 @@ func (vm *vm) writeDiskData(value byte) {
 	vm.fdc.data = value
 }
 
+// Select a disk drive.
 func (vm *vm) writeDiskSelect(value byte) {
 	if diskDebug {
 		log.Printf("writeDiskSelect(%02X)", value)
@@ -894,6 +907,8 @@ func (vm *vm) writeDiskSelect(value byte) {
 			if diskDebug {
 				log.Printf("Advancing clock from %d to %d", vm.clock, event.clock)
 			}
+			// This puts the clock ahead immediately, but the main loop of the emulator
+			// will then sleep to make the real-time correct.
 			vm.clock = event.clock
 			vm.events.dispatch(vm.clock)
 		}
@@ -941,6 +956,7 @@ func (vm *vm) searchSector(sector int, side side) int {
 		vm.fdc.status |= diskNotFound
 		return -1
 	case emuJv1:
+		// Check for error.
 		if disk.physicalTrack < 0 ||
 			disk.physicalTrack >= maxTracks ||
 			vm.fdc.side == 1 ||
@@ -957,8 +973,10 @@ func (vm *vm) searchSector(sector int, side side) int {
 			sector = 0
 		}
 
+		// All sectors are the same size, so just use a formula.
 		return jv1SectorsPerTrack*int(disk.physicalTrack) + sector
 	case emuJv3:
+		// Check for error.
 		if disk.physicalTrack < 0 ||
 			disk.physicalTrack >= maxTracks ||
 			vm.fdc.side >= jv3MaxSides ||
@@ -973,6 +991,7 @@ func (vm *vm) searchSector(sector int, side side) int {
 			disk.jv3.sortIds()
 		}
 
+		// Look up in the sorted array.
 		i := disk.jv3.trackStart[disk.physicalTrack][vm.fdc.side]
 		if i != -1 {
 			for {
@@ -998,6 +1017,7 @@ func (vm *vm) searchSector(sector int, side side) int {
 	panic("Unhandled case in searchSector()")
 }
 
+// Get the byte offset of the given sector.
 func (disk *disk) getDataOffset(index int) int {
 	switch disk.emulationType {
 	case emuJv1:

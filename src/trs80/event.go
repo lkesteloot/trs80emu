@@ -2,6 +2,8 @@
 
 package main
 
+// Infrastructure to trigger events in the future. This is usually for hardware events.
+
 import (
 	"log"
 )
@@ -19,6 +21,7 @@ const (
 type eventType uint
 type eventCallback func()
 
+// A single scheduled event.
 type event struct {
 	eventType eventType
 	callback  eventCallback
@@ -26,6 +29,7 @@ type event struct {
 	next      *event
 }
 
+// All scheduled events.
 type events struct {
 	head *event
 }

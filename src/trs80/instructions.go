@@ -2,6 +2,8 @@
 
 package main
 
+// Stores the instruction tree.
+
 import (
 	"fmt"
 	"log"
@@ -153,7 +155,8 @@ var instToInstInt = map[string]int{
 	"XOR":   instXor,
 }
 
-// Copy and pasted from z80.txt (http://guide.ticalc.org/download/z80.txt)
+// Copy and pasted from z80.txt (http://guide.ticalc.org/download/z80.txt) with
+// minor fixes.
 var instructionList string = `
 ADC A,(HL)    7     1   +0V+++  8E
 ADC A,(IX+N)  19    3   +0V+++  DD 8E XX
@@ -743,16 +746,20 @@ func (inst *instruction) addInstruction(asm, cycles string, opcodes []string) {
 	}
 }
 
+// Look up instruction at given PC, returning the instruction and optional byte and
+// word data fields.
 func (vm *vm) lookUpInst(pc *word) (inst *instruction, byteData byte, wordData word) {
 	haveByteData := false
 	inst = vm.cpu.root
 
+	// Recurse down the tree.
 	for {
 		// Terminal node.
 		if inst.asm != "" {
 			return
 		}
 
+		// Get the next byte.
 		opcode := vm.readMem(*pc)
 		*pc++
 
