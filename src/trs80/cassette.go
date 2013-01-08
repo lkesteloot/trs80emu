@@ -3,10 +3,11 @@
 package main
 
 const (
-	// Threshold for 16-bit samples.
+	// Threshold for 16-bit signed samples.
 	cassetteThreshold = 5000
 )
 
+// State of the hardware. We don't support writing.
 type cassetteState int
 
 const (
@@ -15,13 +16,7 @@ const (
 	cassetteStateFail
 )
 
-type cassetteSpeed int
-
-const (
-	cassette500  = cassetteSpeed(500)
-	cassette1500 = cassetteSpeed(1500)
-)
-
+// Value of wave in audio: negative, neutral (around zero), or positive.
 type cassetteValue int
 
 const (
@@ -30,6 +25,7 @@ const (
 	cassetteNegative
 )
 
+// Internal state of the cassette controller.
 type cassetteController struct {
 	// Whether the motor is running.
 	motorOn bool
@@ -40,18 +36,10 @@ type cassetteController struct {
 	// State machine.
 	state cassetteState
 
-	// Speed that we're reading at.
-	speed cassetteSpeed
-
-	// Byte offset within the input file.
-	position int
-
-	// XXX Bogus
+	// Internal register state.
 	value       cassetteValue
-	next        cassetteValue
-	flipFlop    bool
 	lastNonZero cassetteValue
-	transition  uint64
+	flipFlop    bool
 
 	// When we turned on the motor (started reading the file) and how many samples
 	// we've read since then.
@@ -59,19 +47,24 @@ type cassetteController struct {
 	samplesRead int
 }
 
+// Reset the controller to a known state.
 func (vm *vm) resetCassette() {
 	vm.setCassetteState(cassetteStateClose)
 }
 
+// Get a byte from the I/O port.
 func (vm *vm) getCassetteByte() byte {
 	cc := &vm.cc
 
+	// If the motor's running, and we're reading a byte, then get into read mode.
 	if cc.motorOn {
 		vm.setCassetteState(cassetteStateRead)
 	}
 
+	// Clear any interrupt that may have triggered this read.
 	vm.cassetteClearInterrupt()
 
+	// Cassette owns bits 0 and 7.
 	b := byte(0)
 	if cc.flipFlop {
 		b |= 0x80
@@ -82,6 +75,8 @@ func (vm *vm) getCassetteByte() byte {
 	return b
 }
 
+// Write to the cassette port. We don't support writing tapes, but this is used
+// for 500-baud reading to trigger the next analysis of the tape.
 func (vm *vm) putCassetteByte(b byte) {
 	cc := &vm.cc
 
@@ -93,26 +88,23 @@ func (vm *vm) putCassetteByte(b byte) {
 	}
 }
 
+// Kick off the reading process when doing 1500-baud reads.
 func (vm *vm) kickOffCassette() {
 	cc := &vm.cc
 
 	if cc.motorOn && cc.state == cassetteStateClose && vm.cassetteInterruptsEnabled() {
-		// If we're here, then it's a 1500 baud read.
-		cc.speed = cassette1500
-		cc.transition = vm.clock
-
 		// Kick off the process.
 		vm.cassetteRiseInterrupt()
 		vm.cassetteFallInterrupt()
 	}
 }
 
+// Turn the motor on or off.
 func (vm *vm) setCassetteMotor(motorOn bool) {
 	cc := &vm.cc
 
 	if motorOn != cc.motorOn {
 		if motorOn {
-			cc.transition = vm.clock
 			cc.flipFlop = false
 			cc.lastNonZero = cassetteNeutral
 
@@ -143,7 +135,7 @@ func (vm *vm) updateCassette() {
 			}
 			cc.samplesRead++
 
-			// Convert to -1, 0, 1, where 0 is some noisy in-between state.
+			// Convert to state, where neutral is some noisy in-between state.
 			value := cassetteNeutral
 			if s > cassetteThreshold {
 				value = cassettePositive
@@ -151,11 +143,14 @@ func (vm *vm) updateCassette() {
 				value = cassetteNegative
 			}
 
+			// See if we've changed value.
 			if value != cc.value {
 				if value == cassettePositive {
+					// Positive edge.
 					cc.flipFlop = true
 					vm.cassetteRiseInterrupt()
 				} else if value == cassetteNegative {
+					// Negative edge.
 					cc.flipFlop = true
 					vm.cassetteFallInterrupt()
 				}
@@ -186,7 +181,6 @@ func (vm *vm) setCassetteState(newState cassetteState) int {
 	// Change things based on new state.
 	switch newState {
 	case cassetteStateRead:
-		vm.cc.position = 0
 		vm.openCassetteFile()
 	}
 
@@ -195,7 +189,7 @@ func (vm *vm) setCassetteState(newState cassetteState) int {
 	return 0
 }
 
-// Open file, set audio rate, seek to right position.
+// Open file, get metadata, and get read to read the tape.
 func (vm *vm) openCassetteFile() {
 	cc := &vm.cc
 

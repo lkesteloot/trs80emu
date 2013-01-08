@@ -1,13 +1,6 @@
 
 Next:
 
-    Implement cassette reading.
-        Read byte from data file.
-            If positive (far above neutral), value is 1
-            If negative (far below neutral), value is 2
-            Otherwise value is 0
-        Keep reading from file until value changes or at most 10ms.
-        Record how long that took in cycles.
     Do a thorough commenting pass.
         Continue at disk.go:readDiskData().
     Add UI for switching disks.
