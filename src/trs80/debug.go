@@ -15,7 +15,6 @@ const (
 	diskSortDebug            = false
 	eventDebug               = false
 	warnUninitMemRead        = false
-	enableDebugOnScreenWrite = false
 	disableTimer             = false
 	wavDebug                 = false
 )

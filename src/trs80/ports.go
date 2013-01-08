@@ -2,6 +2,8 @@
 
 package main
 
+// Handle I/O ports.
+
 import (
 	"fmt"
 	"log"
@@ -47,6 +49,7 @@ var ports = map[byte]string{
 	0xFF: "Graphics/cassette",
 }
 
+// Read a byte from a port.
 func (vm *vm) readPort(port byte) byte {
 	/// log.Printf("Reading port %02X", port)
 	switch port {
@@ -98,6 +101,7 @@ func (vm *vm) readPort(port byte) byte {
 	panic(fmt.Sprintf("Can't read from unknown port %02X", port))
 }
 
+// Write a byte to a port.
 func (vm *vm) writePort(port byte, value byte) {
 	/// log.Printf("Writing %02X to port %02X", value, port)
 	switch port {

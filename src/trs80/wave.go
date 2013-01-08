@@ -11,6 +11,7 @@ import (
 	"os"
 )
 
+// Holds information about the WAV file.
 type wavFile struct {
 	io.ReadSeeker
 	channelCount     uint16
@@ -111,6 +112,7 @@ func openWav(filename string) (w *wavFile, err error) {
 	return
 }
 
+// Parse a 4-byte ASCII chunk ID and verify that it matches the given ID.
 func (w *wavFile) parseChunkId(expectedChunkId string) error {
 	// Read four bytes.
 	b := make([]byte, 4)
@@ -132,6 +134,7 @@ func (w *wavFile) parseChunkId(expectedChunkId string) error {
 	return nil
 }
 
+// Loads a 4-byte little-endian int.
 func (w *wavFile) parseInt() (uint32, error) {
 	// Read four bytes.
 	b := make([]byte, 4)
@@ -150,6 +153,7 @@ func (w *wavFile) parseInt() (uint32, error) {
 	return n, nil
 }
 
+// Loads a 2-byte little-endian int.
 func (w *wavFile) parseShort() (uint16, error) {
 	// Read two bytes.
 	b := make([]byte, 2)
@@ -168,6 +172,7 @@ func (w *wavFile) parseShort() (uint16, error) {
 	return n, nil
 }
 
+// Loads a sample.
 func (w *wavFile) readSample() (int16, error) {
 	// Only handle simple case.
 	if w.channelCount != 1 || w.bytesPerSample != 2 || w.bitsPerSample != 16 {

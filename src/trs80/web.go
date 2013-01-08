@@ -2,6 +2,8 @@
 
 package main
 
+// Expose a web interface for the UI of the machine.
+
 import (
 	"bufio"
 	"code.google.com/p/go.net/websocket"
@@ -14,11 +16,11 @@ import (
 
 // Simple interface that has a Timeout() method, since so many net errors have
 // the method.
-
 type Timeouter interface {
 	Timeout() bool
 }
 
+// Generate the top-level index page.
 func generateIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	bw := bufio.NewWriter(w)
@@ -37,6 +39,7 @@ func generateIndex(w http.ResponseWriter, r *http.Request) {
 	bw.Flush()
 }
 
+// Generate the font CSS that has offsets for each character.
 func generateFontCss(w http.ResponseWriter, r *http.Request) {
 	// Image is 512x480
 	// 10 rows of glyphs, but last two are different page.
@@ -65,6 +68,7 @@ func generateFontCss(w http.ResponseWriter, r *http.Request) {
 	bw.Flush()
 }
 
+// Top-level handler.
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/" {
 		generateIndex(w, r)
@@ -96,6 +100,7 @@ func readWs(ws *websocket.Conn, vmCommandCh chan<- vmCommand) {
 	}
 }
 
+// Handle the web sockets request.
 func wsHandler(ws *websocket.Conn) {
 	vmCommandCh := make(chan vmCommand)
 	vmUpdateCh := make(chan vmUpdate)
@@ -136,6 +141,7 @@ func wsHandler(ws *websocket.Conn) {
 	}
 }
 
+// Serve the website. This function blocks.
 func serveWebsite() {
 	port := 8080
 

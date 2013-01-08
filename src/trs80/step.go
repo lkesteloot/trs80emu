@@ -2,6 +2,8 @@
 
 package main
 
+// The main code that emulates the Z80.
+
 import (
 	"fmt"
 	"log"
@@ -32,6 +34,7 @@ func (vm *vm) step() {
 	avoidHandlingIrq := false
 	isHalting := false
 
+	// Put together a message for debugging this instruction.
 	vm.msg = ""
 	if printDebug {
 		vm.explainLine(instPc, cpu.hl, cpu.a)

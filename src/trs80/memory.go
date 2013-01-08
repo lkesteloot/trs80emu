@@ -2,16 +2,21 @@
 
 package main
 
+// Memory simulator. This includes ROM, RAM, and memory-mapped I/O.
+
 import (
 	"fmt"
 	"log"
 )
 
 const (
+	// True RAM begins at this address.
 	ramBegin        = 0x4000
+
 	crashOnRomWrite = false
 )
 
+// Write a byte to an address in memory.
 func (vm *vm) writeMem(addr word, b byte) {
 	// xtrs:trs_memory.c
 	// Check ROM writing. Harmless in real life, but may indicate a bug here.
@@ -26,20 +31,10 @@ func (vm *vm) writeMem(addr word, b byte) {
 		}
 	} else if addr >= ramBegin {
 		// RAM.
-		if addr == 0x5049 && false {
-			// Hack to catch problem writing serial number. Can remove this.
-			log.Print("Writing to serial number space")
-			printDebug = true
-		}
 		vm.memory[addr] = b
 		vm.memInit[addr] = true
 	} else if addr >= screenBegin && addr < screenEnd {
 		// Screen.
-		if enableDebugOnScreenWrite && b != 0x20 {
-			printDebug = true
-			log.Printf("Writing %02X '%c' to screen at line %d, column %d (%04X)",
-				b, b, (addr-screenBegin)/64, (addr-screenBegin)%64, addr)
-		}
 		vm.memory[addr] = b
 		if vm.vmUpdateCh != nil {
 			vm.vmUpdateCh <- vmUpdate{Cmd: "poke", Addr: int(addr), Data: int(b)}
@@ -47,16 +42,18 @@ func (vm *vm) writeMem(addr word, b byte) {
 	} else if addr == 0x37E8 {
 		// Printer. Ignore, but could print ASCII byte to display.
 	} else {
-		// Ignore write.
+		// Ignore write anywhere else.
 	}
 }
 
+// Write a word to memory, little endian.
 func (vm *vm) writeMemWord(addr word, w word) {
 	// Little endian.
 	vm.writeMem(addr, w.l())
 	vm.writeMem(addr+1, w.h())
 }
 
+// Read a byte from memory.
 func (vm *vm) readMem(addr word) (b byte) {
 	// Memory-mapped I/O.
 	// http://www.trs-80.com/trs80-zaps-internals.htm#memmapio
@@ -87,6 +84,7 @@ func (vm *vm) readMem(addr word) (b byte) {
 	return
 }
 
+// Read a word from memory, little endian.
 func (vm *vm) readMemWord(addr word) (w word) {
 	w.setL(vm.readMem(addr))
 	w.setH(vm.readMem(addr + 1))
@@ -94,21 +92,25 @@ func (vm *vm) readMemWord(addr word) (w word) {
 	return
 }
 
+// Push a byte onto the stack.
 func (vm *vm) pushByte(b byte) {
 	vm.cpu.sp--
 	vm.writeMem(vm.cpu.sp, b)
 }
 
+// Push a word onto the stack, little endian.
 func (vm *vm) pushWord(w word) {
 	vm.pushByte(w.h())
 	vm.pushByte(w.l())
 }
 
+// Pop a byte off the stack.
 func (vm *vm) popByte() byte {
 	vm.cpu.sp++
 	return vm.readMem(vm.cpu.sp - 1)
 }
 
+// Pop a word off the stack, little endian.
 func (vm *vm) popWord() word {
 	var w word
 
@@ -118,6 +120,7 @@ func (vm *vm) popWord() word {
 	return w
 }
 
+// Get a byte from the specified reference, which could be a register or memory location.
 func (vm *vm) getByteValue(ref string, byteData byte, wordData word) byte {
 	cpu := &vm.cpu
 
@@ -175,6 +178,7 @@ func (vm *vm) getByteValue(ref string, byteData byte, wordData word) byte {
 	panic("We don't yet handle addressing mode " + ref)
 }
 
+// Get a word from the specified reference, which could be a register or memory location.
 func (vm *vm) getWordValue(ref string, byteData byte, wordData word) word {
 	cpu := &vm.cpu
 
@@ -223,6 +227,7 @@ func (vm *vm) getWordValue(ref string, byteData byte, wordData word) word {
 	panic("We don't yet handle addressing mode " + ref)
 }
 
+// Write a byte to the specified reference, which could be a register or memory location.
 func (vm *vm) setByte(ref string, value byte, byteData byte, wordData word) {
 	cpu := &vm.cpu
 
@@ -286,6 +291,7 @@ func (vm *vm) setByte(ref string, value byte, byteData byte, wordData word) {
 	}
 }
 
+// Write a word to the specified reference, which could be a register or memory location.
 func (vm *vm) setWord(ref string, value word, byteData byte, wordData word) {
 	cpu := &vm.cpu
 

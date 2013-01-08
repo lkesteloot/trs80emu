@@ -17,30 +17,38 @@ const (
 	keyDelayClockCycles = 40000
 )
 
+// Whether to force a Shift key, and how.
 const (
 	shiftNeutral = iota
 	shiftForceDown
 	shiftForceUp
 )
 
+// State of the keyboard.
 type keyboard struct {
 	// 8 bytes, each a bitfield of keys currently pressed.
 	keys               [8]byte
 	shiftForce         uint
+
+	// We queue up keystrokes so that we don't overwhelm the ROM polling routines.
 	keyQueue           [16]keyActivity
 	keyQueueSize       int
 	keyProcessMinClock uint64
 }
 
+// For each ASCII character or key we keep track of how to trigger it.
 type keyInfo struct {
 	byteIndex, bitNumber, shiftForce uint
 }
 
+// A queued-up key.
 type keyActivity struct {
 	keyInfo
 	isPressed bool
 }
 
+// Map from ASCII or special key to the info of which byte and bit it's mapped
+// to, and whether to force Shift.
 var keyMap = map[string]keyInfo{
 	// http://www.trs-80.com/trs80-zaps-internals.htm#keyboard13
 	"@": {0, 0, shiftForceUp},
@@ -146,6 +154,7 @@ var keyMap = map[string]keyInfo{
 	"Shift": {7, 0, shiftNeutral},
 }
 
+// Release all keys.
 func (kb *keyboard) clearKeyboard() {
 	for i := 0; i < len(kb.keys); i++ {
 		kb.keys[i] = 0
@@ -153,17 +162,23 @@ func (kb *keyboard) clearKeyboard() {
 	kb.shiftForce = shiftNeutral
 }
 
+// Read a byte from the keyboard memory bank. This is an odd system where
+// bits in the address map to the various bytes, and you can read the OR'ed
+// addresses to read more than one byte at a time. This isn't used by the
+// ROM, I don't think. For the last byte we fake the Shift key if necessary.
 func (vm *vm) readKeyboard(addr word) byte {
 	addr -= keyboardBegin
 
 	var b byte
 
+	// Dequeue if necessary.
 	if vm.clock > vm.keyboard.keyProcessMinClock {
 		if vm.keyboard.processKeyQueue() {
 			vm.keyboard.keyProcessMinClock = vm.clock + keyDelayClockCycles
 		}
 	}
 
+	// OR together the various bytes.
 	for i, keys := range vm.keyboard.keys {
 		if addr&(1<<uint(i)) != 0 {
 			if i == 7 {
@@ -187,8 +202,9 @@ func (vm *vm) readKeyboard(addr word) byte {
 	return b
 }
 
+// Enqueue a key press or release.
 func (kb *keyboard) keyEvent(key string, isPressed bool) {
-	/// log.Printf("Key %s is %v\n", key, isPressed)
+	// Look up the key info.
 	keyInfo, ok := keyMap[key]
 	if !ok {
 		log.Printf("Unknown key \"%s\"", key)
@@ -202,7 +218,7 @@ func (kb *keyboard) keyEvent(key string, isPressed bool) {
 	}
 }
 
-// Return whether a key was processed.
+// Dequeue the next key and set its bit. Return whether a key was processed.
 func (kb *keyboard) processKeyQueue() bool {
 	if kb.keyQueueSize == 0 {
 		return false

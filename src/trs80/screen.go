@@ -2,15 +2,20 @@
 
 package main
 
+// Screen constants and utilities.
+
 import (
 	"fmt"
 )
 
-const screenRows = 16
-const screenColumns = 64
-const screenBegin = 0x3C00
-const screenEnd = screenBegin + screenRows*screenColumns
+const (
+	screenRows = 16
+	screenColumns = 64
+	screenBegin = 0x3C00
+	screenEnd = screenBegin + screenRows*screenColumns
+)
 
+// Dump the contents of the screen to the terminal.
 func (vm *vm) dumpScreen() {
 	addr := word(screenBegin)
 	for y := 0; y < screenRows; y++ {

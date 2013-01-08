@@ -2,6 +2,8 @@
 
 package main
 
+// The VM (Virtual Machine) represents the entire machine.
+
 import (
 	"flag"
 	"io/ioutil"
