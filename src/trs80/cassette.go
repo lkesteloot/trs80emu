@@ -2,10 +2,6 @@
 
 package main
 
-import (
-	"log"
-)
-
 const (
 	// Threshold for 16-bit samples.
 	cassetteThreshold = 5000
@@ -70,8 +66,6 @@ func (vm *vm) resetCassette() {
 func (vm *vm) getCassetteByte() byte {
 	cc := &vm.cc
 
-	/// log.Printf("getCassetteByte() start")
-
 	if cc.motorOn {
 		vm.setCassetteState(cassetteStateRead)
 	}
@@ -85,19 +79,23 @@ func (vm *vm) getCassetteByte() byte {
 	if cc.lastNonZero == cassettePositive {
 		b |= 0x01
 	}
-	/// log.Printf("getCassetteByte() = %02X", b)
 	return b
 }
 
 func (vm *vm) putCassetteByte(b byte) {
-	// Ignore.
-	log.Printf("Sending %02X to cassette", b)
+	cc := &vm.cc
+
+	if cc.motorOn {
+		if cc.state == cassetteStateRead {
+			vm.updateCassette()
+			cc.flipFlop = false
+		}
+	}
 }
 
 func (vm *vm) kickOffCassette() {
 	cc := &vm.cc
 
-	log.Printf("kickOffCassette()")
 	if cc.motorOn && cc.state == cassetteStateClose && vm.cassetteInterruptsEnabled() {
 		// If we're here, then it's a 1500 baud read.
 		cc.speed = cassette1500
@@ -113,7 +111,6 @@ func (vm *vm) setCassetteMotor(motorOn bool) {
 	cc := &vm.cc
 
 	if motorOn != cc.motorOn {
-		log.Printf("setCassetteMotor(%v)", motorOn)
 		if motorOn {
 			cc.transition = vm.clock
 			cc.flipFlop = false
@@ -180,7 +177,6 @@ func (vm *vm) setCassetteState(newState cassetteState) int {
 	if oldState == newState {
 		return 1
 	}
-	log.Printf("setCassetteState(%d)", newState)
 
 	// Once in error, everything will fail until we close.
 	if oldState == cassetteStateFail && newState != cassetteStateClose {
@@ -203,7 +199,8 @@ func (vm *vm) setCassetteState(newState cassetteState) int {
 func (vm *vm) openCassetteFile() {
 	cc := &vm.cc
 
-	filename := "cassettes/tron1.wav"
+	// filename := "cassettes/tron1.wav"
+	filename := "cassettes/B1.wav"
 	cassette, err := openWav(filename)
 	if err != nil {
 		panic(err)
