@@ -13,10 +13,10 @@ import (
 
 type wavFile struct {
 	io.ReadSeeker
-	channelCount   uint16
-	samplesPerSecond     uint32
-	bytesPerSample uint16
-	bitsPerSample  uint16
+	channelCount     uint16
+	samplesPerSecond uint32
+	bytesPerSample   uint16
+	bitsPerSample    uint16
 }
 
 // Parses .WAV file headers.

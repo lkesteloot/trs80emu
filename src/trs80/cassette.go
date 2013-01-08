@@ -44,7 +44,7 @@ type cassetteController struct {
 	// When we turned on the motor (started reading the file) and how many samples
 	// we've read since then.
 	motorOnClock uint64
-	samplesRead int
+	samplesRead  int
 }
 
 // Reset the controller to a known state.
@@ -123,8 +123,8 @@ func (vm *vm) updateCassette() {
 
 	if cc.motorOn && vm.setCassetteState(cassetteStateRead) >= 0 {
 		// See how many samples we should have read by now.
-		samplesToRead := int((vm.clock - cc.motorOnClock)*
-			uint64(cc.cassette.samplesPerSecond)/cpuHz)
+		samplesToRead := int((vm.clock - cc.motorOnClock) *
+			uint64(cc.cassette.samplesPerSecond) / cpuHz)
 
 		// Catch up.
 		for samplesToRead > cc.samplesRead {
