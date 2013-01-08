@@ -133,7 +133,7 @@ func wsHandler(ws *websocket.Conn) {
 			// Combine consecutive pokes.
 			last := len(vmUpdates) - 1
 			if update.Cmd == "poke" && last >= 0 && vmUpdates[last].Cmd == "poke" &&
-				vmUpdates[last].Addr + len(vmUpdates[last].Msg) == update.Addr {
+				vmUpdates[last].Addr+len(vmUpdates[last].Msg) == update.Addr {
 
 				// Just tack it on to the existing poke.
 				vmUpdates[last].Msg += update.Msg

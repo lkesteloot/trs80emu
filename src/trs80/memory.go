@@ -121,210 +121,210 @@ func (vm *vm) popWord() word {
 }
 
 // Get a byte from the specified reference, which could be a register or memory location.
-func (vm *vm) getByteValue(ref string, byteData byte, wordData word) byte {
+func (vm *vm) getByteValue(operand int, byteData byte, wordData word) byte {
 	cpu := &vm.cpu
 
-	switch ref {
-	case "A":
+	switch operand {
+	case operandA:
 		return cpu.a
-	case "B":
+	case operandB:
 		return cpu.bc.h()
-	case "C":
+	case operandC:
 		return cpu.bc.l()
-	case "D":
+	case operandD:
 		return cpu.de.h()
-	case "E":
+	case operandE:
 		return cpu.de.l()
-	case "H":
+	case operandH:
 		return cpu.hl.h()
-	case "L":
+	case operandL:
 		return cpu.hl.l()
-	case "(BC)":
+	case operandParensBc:
 		if printDebug {
 			vm.msg += fmt.Sprintf("(BC = %04X) ", cpu.bc)
 		}
 		return vm.readMem(cpu.bc)
-	case "(DE)":
+	case operandParensDe:
 		if printDebug {
 			vm.msg += fmt.Sprintf("(DE = %04X) ", cpu.de)
 		}
 		return vm.readMem(cpu.de)
-	case "(HL)":
+	case operandParensHl:
 		if printDebug {
 			vm.msg += fmt.Sprintf("(HL = %04X) ", cpu.hl)
 		}
 		return vm.readMem(cpu.hl)
-	case "(IX+N)":
+	case operandParensIxPlusN:
 		addr := cpu.ix + signExtend(byteData)
 		if printDebug {
 			vm.msg += fmt.Sprintf("(IX = %04X + %02X = %04X) ", cpu.ix, byteData, addr)
 		}
 		return vm.readMem(addr)
-	case "(IY+N)":
+	case operandParensIyPlusN:
 		addr := cpu.iy + signExtend(byteData)
 		if printDebug {
 			vm.msg += fmt.Sprintf("(IY = %04X + %02X = %04X) ", cpu.iy, byteData, addr)
 		}
 		return vm.readMem(addr)
-	case "N":
+	case operandN:
 		return byteData
-	case "(NN)":
+	case operandParensNn:
 		if printDebug {
 			vm.msg += fmt.Sprintf("(NN = %04X) ", wordData)
 		}
 		return vm.readMem(wordData)
 	}
 
-	panic("We don't yet handle addressing mode " + ref)
+	panic(fmt.Sprintf("We don't yet handle addressing mode %d", operand))
 }
 
 // Get a word from the specified reference, which could be a register or memory location.
-func (vm *vm) getWordValue(ref string, byteData byte, wordData word) word {
+func (vm *vm) getWordValue(operand int, byteData byte, wordData word) word {
 	cpu := &vm.cpu
 
-	switch ref {
-	case "AF":
+	switch operand {
+	case operandAf:
 		var w word
 		w.setH(cpu.a)
 		w.setL(byte(cpu.f))
 		return w
-	case "AF'":
+	case operandAfp:
 		var w word
 		w.setH(cpu.ap)
 		w.setL(byte(cpu.fp))
 		return w
-	case "BC":
+	case operandBc:
 		return cpu.bc
-	case "DE":
+	case operandDe:
 		return cpu.de
-	case "HL":
+	case operandHl:
 		return cpu.hl
-	case "IX":
+	case operandIx:
 		return cpu.ix
-	case "IY":
+	case operandIy:
 		return cpu.iy
-	case "SP":
+	case operandSp:
 		return cpu.sp
-	case "NN":
+	case operandNn:
 		return wordData
-	case "(NN)":
+	case operandParensNn:
 		if printDebug {
 			vm.msg += fmt.Sprintf("(NN = %04X) ", wordData)
 		}
 		return vm.readMemWord(wordData)
-	case "(HL)":
+	case operandParensHl:
 		if printDebug {
 			vm.msg += fmt.Sprintf("(HL = %04X) ", cpu.hl)
 		}
 		return vm.readMemWord(cpu.hl)
-	case "(SP)":
+	case operandParensSp:
 		if printDebug {
 			vm.msg += fmt.Sprintf("(SP = %04X) ", cpu.sp)
 		}
 		return vm.readMemWord(cpu.sp)
 	}
 
-	panic("We don't yet handle addressing mode " + ref)
+	panic(fmt.Sprintf("We don't yet handle addressing mode %d", operand))
 }
 
 // Write a byte to the specified reference, which could be a register or memory location.
-func (vm *vm) setByte(ref string, value byte, byteData byte, wordData word) {
+func (vm *vm) setByte(operand int, value byte, byteData byte, wordData word) {
 	cpu := &vm.cpu
 
-	switch ref {
-	case "A":
+	switch operand {
+	case operandA:
 		cpu.a = value
-	case "B":
+	case operandB:
 		cpu.bc.setH(value)
-	case "C":
+	case operandC:
 		cpu.bc.setL(value)
-	case "D":
+	case operandD:
 		cpu.de.setH(value)
-	case "E":
+	case operandE:
 		cpu.de.setL(value)
-	case "H":
+	case operandH:
 		cpu.hl.setH(value)
-	case "L":
+	case operandL:
 		cpu.hl.setL(value)
-	case "LX":
+	case operandLx:
 		cpu.ix.setL(value)
-	case "HX":
+	case operandHx:
 		cpu.ix.setH(value)
-	case "LY":
+	case operandLy:
 		cpu.iy.setL(value)
-	case "HY":
+	case operandHy:
 		cpu.iy.setH(value)
-	case "(BC)":
+	case operandParensBc:
 		vm.writeMem(cpu.bc, value)
 		if printDebug {
 			vm.msg += fmt.Sprintf("(BC = %04X) ", cpu.bc)
 		}
-	case "(DE)":
+	case operandParensDe:
 		vm.writeMem(cpu.de, value)
 		if printDebug {
 			vm.msg += fmt.Sprintf("(DE = %04X) ", cpu.de)
 		}
-	case "(HL)":
+	case operandParensHl:
 		vm.writeMem(cpu.hl, value)
 		if printDebug {
 			vm.msg += fmt.Sprintf("(HL = %04X) ", cpu.hl)
 		}
-	case "(IX+N)":
+	case operandParensIxPlusN:
 		addr := cpu.ix + signExtend(byteData)
 		vm.writeMem(addr, value)
 		if printDebug {
 			vm.msg += fmt.Sprintf("(IX = %04X + %02X = %04X) ", cpu.ix, byteData, addr)
 		}
-	case "(IY+N)":
+	case operandParensIyPlusN:
 		addr := cpu.iy + signExtend(byteData)
 		vm.writeMem(addr, value)
 		if printDebug {
 			vm.msg += fmt.Sprintf("(IY = %04X + %02X = %04X) ", cpu.iy, byteData, addr)
 		}
-	case "(NN)":
+	case operandParensNn:
 		vm.writeMem(wordData, value)
 		if printDebug {
 			vm.msg += fmt.Sprintf("(NN = %04X) ", wordData)
 		}
 	default:
-		panic("Can't handle destination of " + ref)
+		panic(fmt.Sprintf("Can't handle destination of %d", operand))
 	}
 }
 
 // Write a word to the specified reference, which could be a register or memory location.
-func (vm *vm) setWord(ref string, value word, byteData byte, wordData word) {
+func (vm *vm) setWord(operand int, value word, byteData byte, wordData word) {
 	cpu := &vm.cpu
 
-	switch ref {
-	case "AF":
+	switch operand {
+	case operandAf:
 		cpu.a = value.h()
 		cpu.f = flags(value.l())
-	case "AF'":
+	case operandAfp:
 		cpu.ap = value.h()
 		cpu.fp = flags(value.l())
-	case "BC":
+	case operandBc:
 		cpu.bc = value
-	case "DE":
+	case operandDe:
 		cpu.de = value
-	case "HL":
+	case operandHl:
 		cpu.hl = value
-	case "SP":
+	case operandSp:
 		cpu.sp = value
-	case "IX":
+	case operandIx:
 		cpu.ix = value
-	case "IY":
+	case operandIy:
 		cpu.iy = value
-	case "(NN)":
+	case operandParensNn:
 		vm.writeMemWord(wordData, value)
 		if printDebug {
 			vm.msg += fmt.Sprintf("(NN = %04X) ", wordData)
 		}
-	case "(SP)":
+	case operandParensSp:
 		vm.writeMemWord(cpu.sp, value)
 		if printDebug {
 			vm.msg += fmt.Sprintf("(SP = %04X) ", cpu.sp)
 		}
 	default:
-		panic("Can't handle destination of " + ref)
+		panic(fmt.Sprintf("Can't handle destination of %d", operand))
 	}
 }

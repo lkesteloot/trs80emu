@@ -50,29 +50,30 @@ func (vm *vm) step() {
 
 	// Dispatch on instruction.
 	subfields := inst.subfields
+	subfieldsInt := inst.subfieldsInt
 	switch inst.instInt {
 	case instAdc:
 		// Add with carry.
 		if inst.subfield01Word {
-			value1 := vm.getWordValue(subfields[0], byteData, wordData)
-			value2 := vm.getWordValue(subfields[1], byteData, wordData)
+			value1 := vm.getWordValue(subfieldsInt[0], byteData, wordData)
+			value2 := vm.getWordValue(subfieldsInt[1], byteData, wordData)
 			result := value1 + value2
 			if cpu.f.c() {
 				result++
 			}
-			vm.setWord(subfields[0], result, byteData, wordData)
+			vm.setWord(subfieldsInt[0], result, byteData, wordData)
 			if printDebug {
 				vm.msg += fmt.Sprintf("%04X + %04X + %v = %04X", value1, value2, cpu.f.c(), result)
 			}
 			cpu.f.updateFromAdcWord(value1, value2, result)
 		} else {
-			value1 := vm.getByteValue(subfields[0], byteData, wordData)
-			value2 := vm.getByteValue(subfields[1], byteData, wordData)
+			value1 := vm.getByteValue(subfieldsInt[0], byteData, wordData)
+			value2 := vm.getByteValue(subfieldsInt[1], byteData, wordData)
 			result := value1 + value2
 			if cpu.f.c() {
 				result++
 			}
-			vm.setByte(subfields[0], result, byteData, wordData)
+			vm.setByte(subfieldsInt[0], result, byteData, wordData)
 			if printDebug {
 				vm.msg += fmt.Sprintf("%02X + %02X + %v = %02X", value1, value2, cpu.f.c(), result)
 			}
@@ -80,26 +81,26 @@ func (vm *vm) step() {
 		}
 	case instAdd:
 		if inst.subfield01Word {
-			value1 := vm.getWordValue(subfields[0], byteData, wordData)
-			value2 := vm.getWordValue(subfields[1], byteData, wordData)
+			value1 := vm.getWordValue(subfieldsInt[0], byteData, wordData)
+			value2 := vm.getWordValue(subfieldsInt[1], byteData, wordData)
 			result := value1 + value2
-			vm.setWord(subfields[0], result, byteData, wordData)
+			vm.setWord(subfieldsInt[0], result, byteData, wordData)
 			if printDebug {
 				vm.msg += fmt.Sprintf("%04X + %04X = %04X", value1, value2, result)
 			}
 			cpu.f.updateFromAddWord(value1, value2, result)
 		} else {
-			value1 := vm.getByteValue(subfields[0], byteData, wordData)
-			value2 := vm.getByteValue(subfields[1], byteData, wordData)
+			value1 := vm.getByteValue(subfieldsInt[0], byteData, wordData)
+			value2 := vm.getByteValue(subfieldsInt[1], byteData, wordData)
 			result := value1 + value2
-			vm.setByte(subfields[0], result, byteData, wordData)
+			vm.setByte(subfieldsInt[0], result, byteData, wordData)
 			if printDebug {
 				vm.msg += fmt.Sprintf("%02X + %02X = %02X", value1, value2, result)
 			}
 			cpu.f.updateFromAddByte(value1, value2, result)
 		}
 	case instAnd, instXor, instOr:
-		value := vm.getByteValue(subfields[0], byteData, wordData)
+		value := vm.getByteValue(subfieldsInt[0], byteData, wordData)
 		before := cpu.a
 		var symbol string
 		switch inst.instInt {
@@ -120,13 +121,13 @@ func (vm *vm) step() {
 	case instBit:
 		// Test bit.
 		b, _ := strconv.ParseUint(subfields[0], 10, 8)
-		value := vm.getByteValue(subfields[1], byteData, wordData)
+		value := vm.getByteValue(subfieldsInt[1], byteData, wordData)
 		result := byte(1<<b) & value
 		cpu.f = (cpu.f & carryMask) | halfCarryMask | (flags(result) & signMask)
 		if result == 0 {
 			cpu.f |= parityOverflowMask | zeroMask
 		}
-		if subfields[1] != "(HL)" {
+		if subfieldsInt[1] != operandParensHl {
 			cpu.f.setUndoc(value)
 		}
 	case instCcf:
@@ -140,7 +141,7 @@ func (vm *vm) step() {
 			vm.msg += fmt.Sprintf("Carry flipped from %s to %s", carry, !carry)
 		}
 	case instCp:
-		value := vm.getByteValue(subfields[0], byteData, wordData)
+		value := vm.getByteValue(subfieldsInt[0], byteData, wordData)
 		result := cpu.a - value
 		cpu.f.updateFromSubByte(cpu.a, value, result)
 		if printDebug {
@@ -224,20 +225,20 @@ func (vm *vm) step() {
 		cpu.f.setC(carry)
 	case instDec:
 		if inst.subfield0Word {
-			value := vm.getWordValue(subfields[0], byteData, wordData)
+			value := vm.getWordValue(subfieldsInt[0], byteData, wordData)
 			result := value - 1
 			if printDebug {
 				vm.msg += fmt.Sprintf("%04X - 1 = %04X", value, result)
 			}
-			vm.setWord(subfields[0], result, byteData, wordData)
+			vm.setWord(subfieldsInt[0], result, byteData, wordData)
 			// Flags are not affected.
 		} else {
-			value := vm.getByteValue(subfields[0], byteData, wordData)
+			value := vm.getByteValue(subfieldsInt[0], byteData, wordData)
 			result := value - 1
 			if printDebug {
 				vm.msg += fmt.Sprintf("%02X - 1 = %02X", value, result)
 			}
-			vm.setByte(subfields[0], result, byteData, wordData)
+			vm.setByte(subfieldsInt[0], result, byteData, wordData)
 			cpu.f.updateFromDecByte(result)
 		}
 	case instDi:
@@ -261,10 +262,10 @@ func (vm *vm) step() {
 		cpu.iff2 = true
 		avoidHandlingIrq = true
 	case instEx:
-		value1 := vm.getWordValue(subfields[0], byteData, wordData)
-		value2 := vm.getWordValue(subfields[1], byteData, wordData)
-		vm.setWord(subfields[0], value2, byteData, wordData)
-		vm.setWord(subfields[1], value1, byteData, wordData)
+		value1 := vm.getWordValue(subfieldsInt[0], byteData, wordData)
+		value2 := vm.getWordValue(subfieldsInt[1], byteData, wordData)
+		vm.setWord(subfieldsInt[0], value2, byteData, wordData)
+		vm.setWord(subfieldsInt[1], value1, byteData, wordData)
 		if printDebug {
 			vm.msg += fmt.Sprintf("%04X <--> %04X", value1, value2)
 		}
@@ -299,7 +300,7 @@ func (vm *vm) step() {
 		}
 		value := vm.readPort(port)
 		if len(subfields) == 2 {
-			vm.setByte(subfields[0], value, byteData, wordData)
+			vm.setByte(subfieldsInt[0], value, byteData, wordData)
 		}
 		if affectFlags {
 			cpu.f.updateFromInByte(value)
@@ -313,20 +314,20 @@ func (vm *vm) step() {
 		}
 	case instInc:
 		if inst.subfield0Word {
-			value := vm.getWordValue(subfields[0], byteData, wordData)
+			value := vm.getWordValue(subfieldsInt[0], byteData, wordData)
 			result := value + 1
 			if printDebug {
 				vm.msg += fmt.Sprintf("%04X + 1 = %04X", value, result)
 			}
-			vm.setWord(subfields[0], result, byteData, wordData)
+			vm.setWord(subfieldsInt[0], result, byteData, wordData)
 			// Flags are not affected.
 		} else {
-			value := vm.getByteValue(subfields[0], byteData, wordData)
+			value := vm.getByteValue(subfieldsInt[0], byteData, wordData)
 			result := value + 1
 			if printDebug {
 				vm.msg += fmt.Sprintf("%02X + 1 = %02X", value, result)
 			}
-			vm.setByte(subfields[0], result, byteData, wordData)
+			vm.setByte(subfieldsInt[0], result, byteData, wordData)
 			cpu.f.updateFromIncByte(result)
 		}
 	case instIni, instInir, instInd, instIndr:
@@ -353,7 +354,7 @@ func (vm *vm) step() {
 		cpu.f.setZ(b == 0)
 		cpu.f.setN(true)
 	case instJp, instCall:
-		addr := vm.getWordValue(subfields[len(subfields)-1], byteData, wordData)
+		addr := vm.getWordValue(subfieldsInt[len(subfields)-1], byteData, wordData)
 		if len(subfields) == 1 || cpu.conditionSatisfied(subfields[0]) {
 			if inst.instInt == instCall {
 				vm.pushWord(cpu.pc)
@@ -385,8 +386,8 @@ func (vm *vm) step() {
 		}
 	case instLd:
 		if inst.subfield01Word {
-			value := vm.getWordValue(subfields[1], byteData, wordData)
-			vm.setWord(subfields[0], value, byteData, wordData)
+			value := vm.getWordValue(subfieldsInt[1], byteData, wordData)
+			vm.setWord(subfieldsInt[0], value, byteData, wordData)
 			if printDebug {
 				vm.msg += fmt.Sprintf("%04X", value)
 			}
@@ -401,9 +402,9 @@ func (vm *vm) step() {
 			if inst.hasDoubleByte {
 				value = byte(wordData >> 8)
 			} else {
-				value = vm.getByteValue(subfields[1], byteData, wordData)
+				value = vm.getByteValue(subfieldsInt[1], byteData, wordData)
 			}
-			vm.setByte(subfields[0], value, byteData, wordData)
+			vm.setByte(subfieldsInt[0], value, byteData, wordData)
 			if printDebug {
 				vm.msg += fmt.Sprintf("%02X", value)
 			}
@@ -445,7 +446,7 @@ func (vm *vm) step() {
 		// Nothing to do!
 	case instOut:
 		var port byte
-		value := vm.getByteValue(subfields[1], byteData, wordData)
+		value := vm.getByteValue(subfieldsInt[1], byteData, wordData)
 		switch subfields[0] {
 		case "(C)":
 			port = cpu.bc.l()
@@ -491,12 +492,12 @@ func (vm *vm) step() {
 		cpu.f.setN(true)
 	case instPop:
 		value := vm.popWord()
-		vm.setWord(subfields[0], value, byteData, wordData)
+		vm.setWord(subfieldsInt[0], value, byteData, wordData)
 		if printDebug {
 			vm.msg += fmt.Sprintf("%04X", value)
 		}
 	case instPush:
-		value := vm.getWordValue(subfields[0], byteData, wordData)
+		value := vm.getWordValue(subfieldsInt[0], byteData, wordData)
 		vm.pushWord(value)
 		if printDebug {
 			vm.msg += fmt.Sprintf("%04X", value)
@@ -504,9 +505,9 @@ func (vm *vm) step() {
 	case instRes:
 		// Reset bit.
 		b, _ := strconv.ParseUint(subfields[0], 10, 8)
-		origValue := vm.getByteValue(subfields[1], byteData, wordData)
+		origValue := vm.getByteValue(subfieldsInt[1], byteData, wordData)
 		value := origValue &^ (1 << b)
-		vm.setByte(subfields[1], value, byteData, wordData)
+		vm.setByte(subfieldsInt[1], value, byteData, wordData)
 		if printDebug {
 			vm.msg += fmt.Sprintf("%02X &^ %02X = %02X", origValue, 1<<b, value)
 		}
@@ -539,14 +540,14 @@ func (vm *vm) step() {
 		}
 	case instRl:
 		// Rotate left through carry.
-		value := vm.getByteValue(subfields[0], byteData, wordData)
+		value := vm.getByteValue(subfieldsInt[0], byteData, wordData)
 		result := value << 1
 		if cpu.f.c() {
 			result |= 0x01
 		}
 		cpu.f.updateFromByte(result)
 		cpu.f.setC(value&0x80 != 0)
-		vm.setByte(subfields[0], result, byteData, wordData)
+		vm.setByte(subfieldsInt[0], result, byteData, wordData)
 	case instRla:
 		// Left rotate A through carry.
 		value := cpu.a
@@ -565,10 +566,10 @@ func (vm *vm) step() {
 	case instRlc:
 		// Left rotate. We can't combine this with RLCA because the resulting condition
 		// bits are different.
-		value := vm.getByteValue(subfields[0], byteData, wordData)
+		value := vm.getByteValue(subfieldsInt[0], byteData, wordData)
 		leftBit := value >> 7
 		result := (value << 1) | leftBit
-		vm.setByte(subfields[0], result, byteData, wordData)
+		vm.setByte(subfieldsInt[0], result, byteData, wordData)
 		cpu.f.updateFromByte(result)
 		cpu.f.setC(leftBit == 1)
 		cpu.f.setH(false)
@@ -605,7 +606,7 @@ func (vm *vm) step() {
 		vm.writeMem(cpu.hl, newValue)
 	case instRr:
 		// Rotate right through carry.
-		value := vm.getByteValue(subfields[0], byteData, wordData)
+		value := vm.getByteValue(subfieldsInt[0], byteData, wordData)
 		result := value >> 1
 		if cpu.f.c() {
 			result |= 0x80
@@ -615,7 +616,7 @@ func (vm *vm) step() {
 		cpu.f.setN(false)
 		cpu.f.setH(false)
 		cpu.f.setUndoc(result)
-		vm.setByte(subfields[0], result, byteData, wordData)
+		vm.setByte(subfieldsInt[0], result, byteData, wordData)
 	case instRra:
 		// Right rotate A through carry.
 		value := cpu.a
@@ -633,7 +634,7 @@ func (vm *vm) step() {
 		cpu.f.setUndoc(cpu.a)
 	case instRrc:
 		// Rotate right.
-		value := vm.getByteValue(subfields[0], byteData, wordData)
+		value := vm.getByteValue(subfieldsInt[0], byteData, wordData)
 		result := value >> 1
 		if value&0x01 != 0 {
 			result |= 0x80
@@ -643,7 +644,7 @@ func (vm *vm) step() {
 		cpu.f.setH(false)
 		cpu.f.setN(false)
 		cpu.f.setC(result&0x80 != 0)
-		vm.setByte(subfields[0], result, byteData, wordData)
+		vm.setByte(subfieldsInt[0], result, byteData, wordData)
 	case instRrca:
 		// Rotate right.
 		value := cpu.a
@@ -690,9 +691,9 @@ func (vm *vm) step() {
 	case instSet:
 		// Set bit.
 		b, _ := strconv.ParseUint(subfields[0], 10, 8)
-		value := vm.getByteValue(subfields[1], byteData, wordData)
+		value := vm.getByteValue(subfieldsInt[1], byteData, wordData)
 		result := value | (1 << b)
-		vm.setByte(subfields[1], result, byteData, wordData)
+		vm.setByte(subfieldsInt[1], result, byteData, wordData)
 		if printDebug {
 			vm.msg += fmt.Sprintf("%02X | %02X = %02X", value, 1<<b, result)
 		}
@@ -702,8 +703,8 @@ func (vm *vm) step() {
 			panic("Can't handle SBC with one parameter")
 		}
 		if inst.subfield0Word {
-			before := vm.getWordValue(subfields[0], byteData, wordData)
-			value := vm.getWordValue(subfields[1], byteData, wordData)
+			before := vm.getWordValue(subfieldsInt[0], byteData, wordData)
+			value := vm.getWordValue(subfieldsInt[1], byteData, wordData)
 			result := before - value
 			if cpu.f.c() {
 				result--
@@ -712,10 +713,10 @@ func (vm *vm) step() {
 				vm.msg += fmt.Sprintf("%04X - %04X - %v = %04X", before, value, cpu.f.c(), result)
 			}
 			cpu.f.updateFromSbcWord(before, value, result)
-			vm.setWord(subfields[0], result, byteData, wordData)
+			vm.setWord(subfieldsInt[0], result, byteData, wordData)
 		} else {
-			before := vm.getByteValue(subfields[0], byteData, wordData)
-			value := vm.getByteValue(subfields[1], byteData, wordData)
+			before := vm.getByteValue(subfieldsInt[0], byteData, wordData)
+			value := vm.getByteValue(subfieldsInt[1], byteData, wordData)
 			result := before - value
 			if cpu.f.c() {
 				result--
@@ -724,48 +725,48 @@ func (vm *vm) step() {
 				vm.msg += fmt.Sprintf("%02X - %02X - %v = %02X", before, value, cpu.f.c(), result)
 			}
 			cpu.f.updateFromSubByte(before, value, result)
-			vm.setByte(subfields[0], result, byteData, wordData)
+			vm.setByte(subfieldsInt[0], result, byteData, wordData)
 		}
 	case instSla:
 		// Shift left into carry.
-		value := vm.getByteValue(subfields[0], byteData, wordData)
+		value := vm.getByteValue(subfieldsInt[0], byteData, wordData)
 		result := value << 1
 		cpu.f.updateFromByte(result)
 		cpu.f.setH(false)
 		cpu.f.setN(false)
 		cpu.f.setC(value&0x80 != 0)
-		vm.setByte(subfields[0], result, byteData, wordData)
+		vm.setByte(subfieldsInt[0], result, byteData, wordData)
 	case instSll:
 		// Shift left and increment. xtrs calls this SLIA and says that it's undocumented.
-		value := vm.getByteValue(subfields[0], byteData, wordData)
+		value := vm.getByteValue(subfieldsInt[0], byteData, wordData)
 		result := (value << 1) | 1
 		cpu.f.updateFromByte(result)
 		cpu.f.setC(value&0x80 != 0)
 		cpu.f.setH(false)
 		cpu.f.setN(false)
-		vm.setByte(subfields[0], result, byteData, wordData)
+		vm.setByte(subfieldsInt[0], result, byteData, wordData)
 	case instSra:
 		// Shift right arithmetic.
-		value := vm.getByteValue(subfields[0], byteData, wordData)
+		value := vm.getByteValue(subfieldsInt[0], byteData, wordData)
 		result := byte(int8(value) >> 1)
 		cpu.f.updateFromByte(result)
 		cpu.f.setC(value&0x01 != 0)
 		cpu.f.setH(false)
 		cpu.f.setN(false)
-		vm.setByte(subfields[0], result, byteData, wordData)
+		vm.setByte(subfieldsInt[0], result, byteData, wordData)
 	case instSrl:
 		// Shift right.
-		value := vm.getByteValue(subfields[0], byteData, wordData)
+		value := vm.getByteValue(subfieldsInt[0], byteData, wordData)
 		result := value >> 1
 		cpu.f.updateFromByte(result)
 		cpu.f.setC(value&0x01 != 0)
 		cpu.f.setH(false)
 		cpu.f.setN(false)
-		vm.setByte(subfields[0], result, byteData, wordData)
+		vm.setByte(subfieldsInt[0], result, byteData, wordData)
 	case instSub:
 		// Always 8-bit, always to accumulator.
 		before := cpu.a
-		value := vm.getByteValue(subfields[0], byteData, wordData)
+		value := vm.getByteValue(subfieldsInt[0], byteData, wordData)
 		cpu.a -= value
 		if printDebug {
 			vm.msg += fmt.Sprintf("%02X - %02X = %02X", before, value, cpu.a)

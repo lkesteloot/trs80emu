@@ -155,6 +155,70 @@ var instToInstInt = map[string]int{
 	"XOR":   instXor,
 }
 
+// Constants for each operand type, so we can dispatch faster.
+const (
+	operandAf = iota
+	operandA
+	operandAfp
+	operandBc
+	operandB
+	operandC
+	operandDe
+	operandD
+	operandE
+	operandHl
+	operandH
+	operandL
+	operandIx
+	operandHx
+	operandLx
+	operandIy
+	operandHy
+	operandLy
+	operandSp
+	operandN
+	operandNn
+	operandParensBc
+	operandParensDe
+	operandParensHl
+	operandParensIxPlusN
+	operandParensIyPlusN
+	operandParensNn
+	operandParensSp
+)
+
+// Look-up table from operand string to type.
+var operandToOperandInt = map[string]int{
+	"AF":     operandAf,
+	"A":      operandA,
+	"AF'":    operandAfp,
+	"BC":     operandBc,
+	"B":      operandB,
+	"DE":     operandDe,
+	"C":      operandC,
+	"D":      operandD,
+	"E":      operandE,
+	"HL":     operandHl,
+	"H":      operandH,
+	"L":      operandL,
+	"IX":     operandIx,
+	"HX":     operandHx,
+	"LX":     operandLx,
+	"IY":     operandIy,
+	"HY":     operandHy,
+	"LY":     operandLy,
+	"SP":     operandSp,
+	"N":      operandN,
+	"NN":     operandNn,
+	"(BC)":   operandParensBc,
+	"(DE)":   operandParensDe,
+	"(HL)":   operandParensHl,
+	"(IX+N)": operandParensIxPlusN,
+	"(IY+N)": operandParensIyPlusN,
+	"(NN)":   operandParensNn,
+	"(SP)":   operandParensSp,
+}
+
 // Copy and pasted from z80.txt (http://guide.ticalc.org/download/z80.txt) with
 // minor fixes.
 var instructionList string = `
@@ -567,15 +631,20 @@ type instruction struct {
 	// Leaf of tree.
 	asm, opcodes        string
 	cycles, jumpPenalty uint64
+	// Fields of asm: "LD A,N" is ["LD", "A,N"].
 	fields              []string
+	// Subfields of fields[1]: "A,N" is ["A", "N"].
 	subfields           []string
+	// Integer version of subfields: "A,N" is [operandA, operandN].
+	subfieldsInt        []int
+	// Integer version of fields[0]: "LD" is instLd.
 	instInt             int
-	// subfields[0] is a word operand.
-	subfield0Word		bool
-	// subfields[0] or subfields[1] is a word operand.
-	subfield01Word		bool
+	// Whether subfields[0] is a word operand.
+	subfield0Word bool
+	// Whether subfields[0] or subfields[1] is a word operand.
+	subfield01Word bool
 	// Cache hack test.
-	hasDoubleByte		bool
+	hasDoubleByte bool
 
 	// For XX data byte.
 	xx *instruction
@@ -672,6 +741,16 @@ func (inst *instruction) addInstruction(asm, cycles string, opcodes []string) {
 
 		// Map to an integer constant to make dispatch 40% faster.
 		inst.instInt = instToInstInt[inst.fields[0]]
+
+		// Map subfields to integer constants.
+		inst.subfieldsInt = make([]int, len(inst.subfields))
+		for i, operand := range inst.subfields {
+			var ok bool
+			inst.subfieldsInt[i], ok = operandToOperandInt[operand]
+			if !ok {
+				inst.subfieldsInt[i] = -1
+			}
+		}
 
 		// Precompute this so we don't have to do it every step.
 		inst.subfield0Word = len(inst.subfields) >= 1 && isWordOperand(inst.subfields[0])
