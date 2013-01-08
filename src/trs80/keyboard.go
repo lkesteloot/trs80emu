@@ -27,8 +27,8 @@ const (
 // State of the keyboard.
 type keyboard struct {
 	// 8 bytes, each a bitfield of keys currently pressed.
-	keys               [8]byte
-	shiftForce         uint
+	keys       [8]byte
+	shiftForce uint
 
 	// We queue up keystrokes so that we don't overwhelm the ROM polling routines.
 	keyQueue           [16]keyActivity

@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	screenRows = 16
+	screenRows    = 16
 	screenColumns = 64
-	screenBegin = 0x3C00
-	screenEnd = screenBegin + screenRows*screenColumns
+	screenBegin   = 0x3C00
+	screenEnd     = screenBegin + screenRows*screenColumns
 )
 
 // Dump the contents of the screen to the terminal.

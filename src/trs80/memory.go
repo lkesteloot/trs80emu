@@ -11,7 +11,7 @@ import (
 
 const (
 	// True RAM begins at this address.
-	ramBegin        = 0x4000
+	ramBegin = 0x4000
 
 	crashOnRomWrite = false
 )

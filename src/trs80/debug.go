@@ -10,13 +10,13 @@ import (
 // Various flags that control what kind of debugging information
 // is logged by the emulator. Normally these are all false.
 const (
-	dumpInstructionSet       = false
-	diskDebug                = false
-	diskSortDebug            = false
-	eventDebug               = false
-	warnUninitMemRead        = false
-	disableTimer             = false
-	wavDebug                 = false
+	dumpInstructionSet = false
+	diskDebug          = false
+	diskSortDebug      = false
+	eventDebug         = false
+	warnUninitMemRead  = false
+	disableTimer       = false
+	wavDebug           = false
 )
 
 // Same as above but can be changed at runtime. This is for
