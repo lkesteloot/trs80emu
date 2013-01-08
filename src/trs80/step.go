@@ -54,7 +54,7 @@ func (vm *vm) step() {
 	switch inst.instInt {
 	case instAdc:
 		// Add with carry.
-		if isWordOperand(subfields[0]) || isWordOperand(subfields[1]) {
+		if inst.subfield01Word {
 			value1 := vm.getWordValue(subfields[0], byteData, wordData)
 			value2 := vm.getWordValue(subfields[1], byteData, wordData)
 			result := value1 + value2
@@ -80,7 +80,7 @@ func (vm *vm) step() {
 			cpu.f.updateFromAddByte(value1, value2, result)
 		}
 	case instAdd:
-		if isWordOperand(subfields[0]) || isWordOperand(subfields[1]) {
+		if inst.subfield01Word {
 			value1 := vm.getWordValue(subfields[0], byteData, wordData)
 			value2 := vm.getWordValue(subfields[1], byteData, wordData)
 			result := value1 + value2
@@ -224,7 +224,7 @@ func (vm *vm) step() {
 		cpu.f.setH(halfCarry)
 		cpu.f.setC(carry)
 	case instDec:
-		if isWordOperand(subfields[0]) {
+		if inst.subfield0Word {
 			value := vm.getWordValue(subfields[0], byteData, wordData)
 			result := value - 1
 			if printDebug {
@@ -313,7 +313,7 @@ func (vm *vm) step() {
 			vm.msg += fmt.Sprintf("%02X <- %02X (%s)", value, port, portDescription)
 		}
 	case instInc:
-		if isWordOperand(subfields[0]) {
+		if inst.subfield0Word {
 			value := vm.getWordValue(subfields[0], byteData, wordData)
 			result := value + 1
 			if printDebug {
@@ -385,7 +385,7 @@ func (vm *vm) step() {
 			}
 		}
 	case instLd:
-		if isWordOperand(subfields[0]) || isWordOperand(subfields[1]) {
+		if inst.subfield01Word {
 			value := vm.getWordValue(subfields[1], byteData, wordData)
 			vm.setWord(subfields[0], value, byteData, wordData)
 			if printDebug {
@@ -702,7 +702,7 @@ func (vm *vm) step() {
 		if len(subfields) == 1 {
 			panic("Can't handle SBC with one parameter")
 		}
-		if isWordOperand(subfields[0]) {
+		if inst.subfield0Word {
 			before := vm.getWordValue(subfields[0], byteData, wordData)
 			value := vm.getWordValue(subfields[1], byteData, wordData)
 			result := before - value

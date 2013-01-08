@@ -570,6 +570,10 @@ type instruction struct {
 	fields              []string
 	subfields           []string
 	instInt             int
+	// subfields[0] is a word operand.
+	subfield0Word		bool
+	// subfields[0] or subfields[1] is a word operand.
+	subfield01Word		bool
 
 	// For XX data byte.
 	xx *instruction
@@ -666,6 +670,11 @@ func (inst *instruction) addInstruction(asm, cycles string, opcodes []string) {
 
 		// Map to an integer constant to make dispatch 40% faster.
 		inst.instInt = instToInstInt[inst.fields[0]]
+
+		// Precompute this so we don't have to do it every step.
+		inst.subfield0Word = len(inst.subfields) >= 1 && isWordOperand(inst.subfields[0])
+		inst.subfield01Word = len(inst.subfields) >= 2 &&
+			(isWordOperand(inst.subfields[0]) || isWordOperand(inst.subfields[1]))
 	} else {
 		// Create internal node of tree.
 		opcodeStr := opcodes[0]
