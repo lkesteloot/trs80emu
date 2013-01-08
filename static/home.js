@@ -82,12 +82,18 @@
         var cmd = msg.Cmd;
 
         if (cmd === "poke") {
+            // Poke a string at the address.
             var addr = msg.Addr;
-            var data = msg.Data;
 
-            if (addr >= 15360 && addr < 16384) {
-                // Screen.
-                $("#s" + addr).attr("class", "char char-" + data);
+            for (var i = 0; i < msg.Msg.length; i++) {
+                var data = msg.Msg.charCodeAt(i);
+
+                if (addr >= 15360 && addr < 16384) {
+                    // Screen.
+                    $("#s" + addr).attr("class", "char char-" + data);
+                }
+
+                addr++;
             }
         } else if (cmd === "motor") {
             var motorOn = msg.Data != 0;

@@ -37,7 +37,7 @@ func (vm *vm) writeMem(addr word, b byte) {
 		// Screen.
 		vm.memory[addr] = b
 		if vm.vmUpdateCh != nil {
-			vm.vmUpdateCh <- vmUpdate{Cmd: "poke", Addr: int(addr), Data: int(b)}
+			vm.vmUpdateCh <- vmUpdate{Cmd: "poke", Addr: int(addr), Msg: string(b)}
 		}
 	} else if addr == 0x37E8 {
 		// Printer. Ignore, but could print ASCII byte to display.

@@ -6,7 +6,6 @@ package main
 type vmUpdate struct {
 	Cmd  string
 	Msg  string
-	Reg  string
 	Addr int
 	Data int
 }

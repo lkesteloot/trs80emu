@@ -1,21 +1,16 @@
 
 Next:
 
-    Do a thorough commenting pass.
-        Continue at keyboard.go.
+    Deal with JSON send I/O timeouts.
+        Try again.
+        Detecting it and looping makes it lock up. Deadlock?
+    Document home.js.
     Add UI for switching disks.
+    Add UI for switching cassette.
     Get Eliminator to work for Larry:
         http://www.trs-80.org/the-eliminator/
         http://www.trs-80.org/games-by-wayne-westmoreland-and-terry-gilman/
         Needs handling of multiple drives.
-    Deal with JSON send I/O timeouts.
-        Detecting it and looping makes it lock up. Deadlock?
-        Maybe just massively reduce bytes used per update.
-            Use simple "c,addr,byte" format with one-letter command:
-                p,15360,191
-                p3C00BF
-            Or allow multiple bytes per poke, in increasing RAM order.
-            Would still need bulk commands, maybe separated by semicolon.
 
 References:
 

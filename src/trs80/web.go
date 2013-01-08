@@ -130,7 +130,17 @@ func wsHandler(ws *websocket.Conn) {
 	for receiving {
 		select {
 		case update := <-vmUpdateCh:
-			vmUpdates = append(vmUpdates, update)
+			// Combine consecutive pokes.
+			last := len(vmUpdates) - 1
+			if update.Cmd == "poke" && last >= 0 && vmUpdates[last].Cmd == "poke" &&
+				vmUpdates[last].Addr + len(vmUpdates[last].Msg) == update.Addr {
+
+				// Just tack it on to the existing poke.
+				vmUpdates[last].Msg += update.Msg
+			} else {
+				// Add update to queue.
+				vmUpdates = append(vmUpdates, update)
+			}
 			if update.Cmd == "shutdown" {
 				flushUpdates()
 				receiving = false
