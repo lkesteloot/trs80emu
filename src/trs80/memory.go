@@ -58,7 +58,10 @@ func (vm *vm) readMem(addr word) (b byte) {
 	// Memory-mapped I/O.
 	// http://www.trs-80.com/trs80-zaps-internals.htm#memmapio
 	// xtrs:trs_memory.c
-	if addr >= ramBegin {
+	if addr < vm.romSize {
+		// ROM.
+		b = vm.memory[addr]
+	} else if addr >= ramBegin {
 		// RAM.
 		if warnUninitMemRead && !vm.memInit[addr] {
 			log.Printf("Warning: Uninitialized read of RAM at %04X", addr)
@@ -67,9 +70,6 @@ func (vm *vm) readMem(addr word) (b byte) {
 	} else if addr == 0x37E8 {
 		// Printer. 0x30 = Printer selected, ready, with paper, not busy.
 		b = 0x30
-	} else if addr < vm.romSize {
-		// ROM.
-		b = vm.memory[addr]
 	} else if addr >= screenBegin && addr < screenEnd {
 		// Screen.
 		b = vm.memory[addr]
