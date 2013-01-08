@@ -9,7 +9,6 @@ import (
 	"log"
 	"runtime"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -399,7 +398,7 @@ func (vm *vm) step() {
 			// function will re-use the byte data. Note that the disassembled instruction
 			// will be wrong for that.
 			var value byte
-			if strings.HasSuffix(inst.fields[1], "N),N") {
+			if inst.hasDoubleByte {
 				value = byte(wordData >> 8)
 			} else {
 				value = vm.getByteValue(subfields[1], byteData, wordData)

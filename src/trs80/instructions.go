@@ -574,6 +574,8 @@ type instruction struct {
 	subfield0Word		bool
 	// subfields[0] or subfields[1] is a word operand.
 	subfield01Word		bool
+	// Cache hack test.
+	hasDoubleByte		bool
 
 	// For XX data byte.
 	xx *instruction
@@ -675,6 +677,7 @@ func (inst *instruction) addInstruction(asm, cycles string, opcodes []string) {
 		inst.subfield0Word = len(inst.subfields) >= 1 && isWordOperand(inst.subfields[0])
 		inst.subfield01Word = len(inst.subfields) >= 2 &&
 			(isWordOperand(inst.subfields[0]) || isWordOperand(inst.subfields[1]))
+		inst.hasDoubleByte = len(inst.fields) >= 2 && strings.HasSuffix(inst.fields[1], "N),N")
 	} else {
 		// Create internal node of tree.
 		opcodeStr := opcodes[0]

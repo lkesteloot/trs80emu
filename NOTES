@@ -6,6 +6,7 @@ Next:
         Detecting it and looping makes it lock up. Deadlock?
     Add UI for switching disks.
     Add UI for switching cassette.
+    Optimization: Use int constant for operand type.
     Get Eliminator to work for Larry:
         http://www.trs-80.org/the-eliminator/
         http://www.trs-80.org/games-by-wayne-westmoreland-and-terry-gilman/
