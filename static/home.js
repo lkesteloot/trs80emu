@@ -1,9 +1,13 @@
+// Copyright 2012 Lawrence Kesteloot
 
 (function () {
 
-    var msgCount = 0;
     var g_ws = null;
 
+    // Set up the DOM for the screen, which is an array of spans of fixed size with the
+    // same background (font.png). We move the background around for each cell to show
+    // a different character. This works well but makes it impossible to copy and
+    // paste the text.
     var createScreen = function () {
         var $screen = $("<div>").addClass("screen").appendTo($("body"));
 
@@ -18,6 +22,8 @@
         }
     };
 
+    // Create the action buttons below the screen, and the various messages and
+    // motor lights.
     var createButtons = function () {
         var $buttons = $("<div>").addClass("buttons").appendTo($("body"));
 
@@ -78,15 +84,16 @@
             appendTo($("body"));
     };
 
-    var handleMsg = function (msg) {
-        var cmd = msg.Cmd;
+    // Handle a command from the emulator.
+    var handleUpdate = function (update) {
+        var cmd = update.Cmd;
 
         if (cmd === "poke") {
             // Poke a string at the address.
-            var addr = msg.Addr;
+            var addr = update.Addr;
 
-            for (var i = 0; i < msg.Msg.length; i++) {
-                var data = msg.Msg.charCodeAt(i);
+            for (var i = 0; i < update.Msg.length; i++) {
+                var data = update.Msg.charCodeAt(i);
 
                 if (addr >= 15360 && addr < 16384) {
                     // Screen.
@@ -96,7 +103,8 @@
                 addr++;
             }
         } else if (cmd === "motor") {
-            var motorOn = msg.Data != 0;
+            // Turn the diskette motor light on or off.
+            var motorOn = update.Data != 0;
             var $motor = $("#motor");
             if (motorOn) {
                 $motor.show();
@@ -104,25 +112,23 @@
                 $motor.hide();
             }
         } else if (cmd === "breakpoint") {
-            $("#message").text("Breakpoint at 0x" + msg.Addr.toString(16))
+            // We've hit a breakpoint. This could just be a message.
+            $("#message").text("Breakpoint at 0x" + update.Addr.toString(16))
         } else if (cmd === "message") {
-            $("#message").text(msg.Msg);
+            // Show a generic message.
+            $("#message").text(update.Msg);
         } else {
             console.log("Unknown command \"" + cmd + "\"");
         }
-
-        msgCount++;
-        if (msgCount % 1000 === 0) {
-            console.log("Got " + msgCount + " messages")
-        }
     };
 
+    // Set up the web socket to get updates and send commands.
     var configureWs = function () {
         var ws = new WebSocket("ws://" + window.location.host + "/ws");
         ws.onmessage = function (event) {
-            var msgs = JSON.parse(event.data);
-            for (var i = 0; i < msgs.length; i++) {
-                handleMsg(msgs[i]);
+            var updates = JSON.parse(event.data);
+            for (var i = 0; i < updates.length; i++) {
+                handleUpdate(updates[i]);
             }
         };
         ws.onclose = function (event) {
@@ -131,6 +137,7 @@
         return ws;
     };
 
+    // Convert keys on the keyboard to ASCII letters or special strings like "Enter".
     var configureKeyboard = function () {
         // Converts a key up/down event to an ASCII character or string representing
         // key, like "Left".
@@ -236,6 +243,7 @@
             return key
         };
 
+        // Handle a key event by mapping it and sending it to the emulator.
         var keyEvent = function (event, isPressed) {
             // Don't send to virtual computer if a text input field is selected.
             if ($(document.activeElement).attr("type") == "text") {
@@ -243,8 +251,6 @@
             }
 
             var key = eventToKey(event);
-            console.log("Key is \"" + key + "\"");
-
             if (key !== "" && g_ws) {
                 g_ws.send(JSON.stringify({
                     Cmd: isPressed ? "press" : "release",

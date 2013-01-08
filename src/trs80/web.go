@@ -95,7 +95,7 @@ func readWs(ws *websocket.Conn, vmCommandCh chan<- vmCommand) {
 			vmCommandCh <- vmCommand{Cmd: "shutdown"}
 			return
 		}
-		log.Printf("Got command %s", message)
+		/// log.Printf("Got command %s", message)
 		vmCommandCh <- message
 	}
 }

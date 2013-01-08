@@ -4,7 +4,6 @@ Next:
     Deal with JSON send I/O timeouts.
         Try again.
         Detecting it and looping makes it lock up. Deadlock?
-    Document home.js.
     Add UI for switching disks.
     Add UI for switching cassette.
     Get Eliminator to work for Larry:
