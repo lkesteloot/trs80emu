@@ -1,9 +1,9 @@
 
 Next:
 
-    Better handling of cassette EOF.
-        Test by doing H cass and loading B1.
-        Just keep reading 0?
+    Nicer UI.
+        Can probably remove trace and breakpoints.
+        Put controls down the right-hand side.
     Get Eliminator to work for Larry:
         http://www.trs-80.org/the-eliminator/
         http://www.trs-80.org/games-by-wayne-westmoreland-and-terry-gilman/

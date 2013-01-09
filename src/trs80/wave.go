@@ -18,6 +18,7 @@ type wavFile struct {
 	samplesPerSecond uint32
 	bytesPerSample   uint16
 	bitsPerSample    uint16
+	isEof            bool
 }
 
 // Parses .WAV file headers.
@@ -28,7 +29,7 @@ func openWav(filename string) (w *wavFile, err error) {
 		return
 	}
 
-	w = &wavFile{f, 0, 0, 0, 0}
+	w = &wavFile{f, 0, 0, 0, 0, false}
 
 	// Parse header.
 	err = w.parseChunkId("RIFF")
@@ -179,8 +180,19 @@ func (w *wavFile) readSample() (int16, error) {
 		panic("Don't handle WAV file format")
 	}
 
+	if w.isEof {
+		// Pretend that the tape stopped and that we're just
+		// reading silence. That's probably what the original
+		// computer did.
+		return 0, nil
+	}
+
 	s, err := w.parseShort()
-	if err != nil {
+	if err == io.EOF {
+		log.Print("End of cassette")
+		w.isEof = true
+		return 0, nil
+	} else if err != nil {
 		return 0, err
 	}
 

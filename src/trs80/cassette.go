@@ -133,7 +133,6 @@ func (vm *vm) updateCassette() {
 		for samplesToRead > cc.samplesRead {
 			s, err := cc.cassette.readSample()
 			if err != nil {
-				// XXX Probably EOF.
 				panic(err)
 			}
 			cc.samplesRead++

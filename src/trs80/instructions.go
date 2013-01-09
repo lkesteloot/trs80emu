@@ -632,13 +632,13 @@ type instruction struct {
 	asm, opcodes        string
 	cycles, jumpPenalty uint64
 	// Fields of asm: "LD A,N" is ["LD", "A,N"].
-	fields              []string
+	fields []string
 	// Subfields of fields[1]: "A,N" is ["A", "N"].
-	subfields           []string
+	subfields []string
 	// Integer version of subfields: "A,N" is [operandA, operandN].
-	subfieldsInt        []int
+	subfieldsInt []int
 	// Integer version of fields[0]: "LD" is instLd.
-	instInt             int
+	instInt int
 	// Whether subfields[0] is a word operand.
 	subfield0Word bool
 	// Whether subfields[0] or subfields[1] is a word operand.

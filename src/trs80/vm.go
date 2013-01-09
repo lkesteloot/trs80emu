@@ -159,13 +159,13 @@ func (vm *vm) run(vmCommandCh <-chan vmCommand) {
 			}
 		case "set_disk0":
 			log.Printf("Loading diskette %s into drive %d", msg.Data, 0)
-			err := vm.loadDisk(0, "disks/" + msg.Data)
+			err := vm.loadDisk(0, "disks/"+msg.Data)
 			if err != nil {
 				panic(err)
 			}
 		case "set_disk1":
 			log.Printf("Loading diskette %s into drive %d", msg.Data, 1)
-			err := vm.loadDisk(1, "disks/" + msg.Data)
+			err := vm.loadDisk(1, "disks/"+msg.Data)
 			if err != nil {
 				panic(err)
 			}
