@@ -12,8 +12,6 @@ import (
 const (
 	// True RAM begins at this address.
 	ramBegin = 0x4000
-
-	crashOnRomWrite = false
 )
 
 // Write a byte to an address in memory.
@@ -22,12 +20,14 @@ func (vm *vm) writeMem(addr word, b byte) {
 	// Check ROM writing. Harmless in real life, but may indicate a bug here.
 	if addr < vm.romSize {
 		// ROM.
-		msg := fmt.Sprintf("Warning: Tried to write %02X to ROM at %04X", b, addr)
-		vm.logHistoricalPc()
-		if crashOnRomWrite {
-			panic(msg)
-		} else {
-			log.Print(msg)
+		if crashOnRomWrite || logOnRomWrite {
+			msg := fmt.Sprintf("Warning: Tried to write %02X to ROM at %04X", b, addr)
+			vm.logHistoricalPc()
+			if crashOnRomWrite {
+				panic(msg)
+			} else {
+				log.Print(msg)
+			}
 		}
 	} else if addr >= ramBegin {
 		// RAM.

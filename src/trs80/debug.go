@@ -17,6 +17,8 @@ const (
 	warnUninitMemRead  = false
 	disableTimer       = false
 	wavDebug           = false
+	crashOnRomWrite	   = false
+	logOnRomWrite      = false
 )
 
 // Same as above but can be changed at runtime. This is for
