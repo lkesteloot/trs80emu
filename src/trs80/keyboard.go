@@ -14,7 +14,7 @@ import (
 const (
 	keyboardBegin       = 0x3800
 	keyboardEnd         = keyboardBegin + 256
-	keyDelayClockCycles = 40000
+	keyDelayClockCycles = 4000
 )
 
 // Whether to force a Shift key, and how.
