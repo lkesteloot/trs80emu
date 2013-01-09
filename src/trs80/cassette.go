@@ -117,6 +117,7 @@ func (vm *vm) setCassetteMotor(motorOn bool) {
 			vm.setCassetteState(cassetteStateClose)
 		}
 		cc.motorOn = motorOn
+		vm.updateCassetteMotorLight();
 	}
 }
 
@@ -204,4 +205,16 @@ func (vm *vm) openCassetteFile() {
 	cc.cassette = cassette
 	cc.motorOnClock = vm.clock
 	cc.samplesRead = 0
+}
+
+// Update the status of the red light on the display.
+func (vm *vm) updateCassetteMotorLight() {
+	var motorOnInt int
+	if vm.cc.motorOn {
+		motorOnInt = 1
+	} else {
+		motorOnInt = 0
+	}
+
+	vm.vmUpdateCh <- vmUpdate{Cmd: "motor", Addr: -1, Data: motorOnInt}
 }

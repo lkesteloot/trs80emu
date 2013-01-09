@@ -4,36 +4,57 @@ body {
     padding: 10px;
 }
 
-.screen {
+div.screen {
     display: inline-block;
+    float: left;
     padding: 10px;
     background-color: #334843;
     color: white;
     font-family: monospace;
     /* Pack the lines tightly: */
     line-height: 1px;
-    /* Not needed: */
-    /*
-    -webkit-transform-origin: top left;
-    -webkit-transform: scaleX(2);
-    transform-origin: top left;
-    transform: scaleX(2);
-    */
 }
 
-.screen span {
+div.screen span {
     white-space: pre;
 }
 
-.buttons {
-    margin-top: 5px;
+td.control-panel {
+    vertical-align: top;
+    padding: 10px;
 }
 
-#motor {
+.debug-panel {
     display: none;
-    width: 24px;
-    height: 24px;
-    background-color: red;
-    border-radius: 12px;
-    margin-top: 5px;
+    margin-top: 10px;
+}
+
+.input-table {
+    margin-top: 10px;
+}
+
+.input-table th {
+    font-weight: normal;
+    text-align: right;
+    padding-right: 5px;
+}
+
+button[type=button] {
+    width: 100px;
+}
+
+td.motorLight {
+    vertical-align: center;
+}
+
+div.motorLight {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    margin-left: 5px;
+}
+
+.motorLightOn {
+    background-color: #d00;
 }

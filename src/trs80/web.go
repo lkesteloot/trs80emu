@@ -25,20 +25,7 @@ type Timeouter interface {
 // Generate the top-level index page.
 func generateIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	bw := bufio.NewWriter(w)
-	fmt.Fprint(bw, `<!DOCTYPE html>
-<html>
-    <head>
-        <title>TRS-80 Model III Emulator</title>
-        <script src="static/jquery-1.8.2.min.js"></script>
-        <script src="static/home.js"></script>
-        <link rel="stylesheet" href="static/home.css"/>
-        <link rel="stylesheet" href="font.css"/>
-	</head>
-	<body>
-	</body>
-</html>`)
-	bw.Flush()
+	http.ServeFile(w, r, "static/index.html")
 }
 
 // Generate the font CSS that has offsets for each character.

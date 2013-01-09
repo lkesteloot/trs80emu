@@ -2,7 +2,6 @@
 
 (function () {
     var SHOW_DEBUG = false;
-
     var g_ws = null;
 
     // Set up the DOM for the screen, which is an array of spans of fixed size with the
@@ -10,7 +9,7 @@
     // a different character. This works well but makes it impossible to copy and
     // paste the text.
     var createScreen = function () {
-        var $screen = $("<div>").addClass("screen").appendTo($("body"));
+        var $screen = $("div.screen");
 
         var addr = 15360;
         for (var y = 0; y < 16; y++) {
@@ -23,80 +22,43 @@
         }
     };
 
-    // Create the action buttons below the screen, and the various messages and
-    // motor lights.
-    var createButtons = function () {
-        var $buttons = $("<div>").addClass("buttons").appendTo($("body"));
+    // Create the action buttons, the various messages, motor lights, and other
+    // controls.
+    var createControlPanel = function () {
+        var $controlPanel = $("td.control-panel");
 
-        $("<button>").
-            attr("type", "button").
-            text("Boot").
-            click(function () {
-                if (g_ws) {
-                    g_ws.send(JSON.stringify({Cmd: "boot"}));
-                }
-            }).
-            appendTo($buttons);
-
-        $("<button>").
-            attr("type", "button").
-            text("Reset").
-            click(function () {
-                if (g_ws) {
-                    g_ws.send(JSON.stringify({Cmd: "reset"}));
-                }
-            }).
-            appendTo($buttons);
+        $("#bootButton").click(function () {
+            if (g_ws) {
+                g_ws.send(JSON.stringify({Cmd: "boot"}));
+            }
+        });
+        $("#resetButton").click(function () {
+            if (g_ws) {
+                g_ws.send(JSON.stringify({Cmd: "reset"}));
+            }
+        });
 
         if (SHOW_DEBUG) {
-            $("<button>").
-                attr("type", "button").
-                text("Trace").
-                click(function () {
-                    if (g_ws) {
-                        g_ws.send(JSON.stringify({Cmd: "tron"}));
-                    }
-                }).
-                appendTo($buttons);
-
-            var $breakpoint_address = $("<input>").
-                attr("id", "breakpoint_address").
-                attr("type", "text").
-                appendTo($buttons);
-            $("<button>").
-                attr("type", "button").
-                attr("placeholder", "Hex address").
-                text("Add Breakpoint").
-                click(function () {
-                    if (g_ws) {
-                        var addr = parseInt($breakpoint_address.val(), 16);
-                        g_ws.send(JSON.stringify({Cmd: "add_breakpoint", Addr: addr}));
-                        $breakpoint_address.val("");
-                        $("#message").text("Breakpoint set at 0x" + addr.toString(16))
-                    }
-                }).
-                appendTo($buttons);
+            $(".debug-panel").show();
         }
 
-        $("<div>").
-            attr("id", "message").
-            appendTo($("body"));
+        $("#traceButton").click(function () {
+            if (g_ws) {
+                g_ws.send(JSON.stringify({Cmd: "tron"}));
+            }
+        });
+        $("#addBreakpointButton").click(function () {
+            if (g_ws) {
+                var $breakpointAddress = $("#breakpointAddress");
+                var addr = parseInt($breakpointAddress.val(), 16);
+                g_ws.send(JSON.stringify({Cmd: "add_breakpoint", Addr: addr}));
+                $breakpointAddress.val("");
+                $("#message").text("Breakpoint set at 0x" + addr.toString(16))
+            }
+        });
 
-        $("<div>").
-            attr("id", "motor").
-            appendTo($("body"));
-
-        $("<select>").
-            attr("id", "disk0").
-            appendTo($("body"));
-        $("<select>").
-            attr("id", "disk1").
-            appendTo($("body"));
-        $("<select>").
-            attr("id", "cassette").
-            appendTo($("body"));
-
-        var configure_input_selector = function (input, file_type) {
+        // Configure the control where the user can specify diskettes and cassette.
+        var configureInputSelector = function (input, file_type) {
             var EMPTY_TEXT = "-- empty --";
             var $select = $("#" + input);
 
@@ -118,7 +80,7 @@
             });
 
             // Update VM when input changes.
-            var set_input = function () {
+            var setInput = function () {
                 var filename = $select.find("option:selected").text();
                 if (filename === EMPTY_TEXT) {
                     filename = "";
@@ -130,12 +92,12 @@
             };
 
             // Look for changes.
-            $select.change(set_input);
+            $select.change(setInput);
         };
 
-        configure_input_selector("disk0", "disks");
-        configure_input_selector("disk1", "disks");
-        configure_input_selector("cassette", "cassettes");
+        configureInputSelector("disk0", "disks");
+        configureInputSelector("disk1", "disks");
+        configureInputSelector("cassette", "cassettes");
     };
 
     // Handle a command from the emulator.
@@ -159,11 +121,16 @@
         } else if (cmd === "motor") {
             // Turn the diskette motor light on or off.
             var motorOn = update.Data != 0;
-            var $motor = $("#motor");
-            if (motorOn) {
-                $motor.show();
+            var $motor;
+            if (update.Addr == -1) {
+                $motor = $("#motorCassette");
             } else {
-                $motor.hide();
+                $motor = $("#motorDrive" + update.Addr);
+            }
+            if (motorOn) {
+                $motor.addClass("motorLightOn");
+            } else {
+                $motor.removeClass("motorLightOn");
             }
         } else if (cmd === "breakpoint") {
             // We've hit a breakpoint. This could just be a message.
@@ -322,7 +289,7 @@
 
     $(function () {
         createScreen();
-        createButtons();
+        createControlPanel();
         g_ws = configureWs();
         configureKeyboard();
     });

@@ -517,23 +517,8 @@ func (vm *vm) checkDiskMotorOff() bool {
 // Turns the motor on or off. Updates the UI.
 func (vm *vm) setDiskMotor(motorOn bool) {
 	if vm.fdc.motorOn != motorOn {
-		var intValue int
-		if motorOn {
-			if diskDebug {
-				log.Print("Starting motor")
-			}
-			intValue = 1
-		} else {
-			if diskDebug {
-				log.Print("Stopping motor")
-			}
-			intValue = 0
-		}
-		// Update UI.
-		if vm.vmUpdateCh != nil {
-			vm.vmUpdateCh <- vmUpdate{Cmd: "motor", Data: intValue}
-		}
 		vm.fdc.motorOn = motorOn
+		vm.updateDiskMotorLights()
 	}
 }
 
@@ -929,6 +914,7 @@ func (vm *vm) writeDiskSelect(value byte) {
 	default:
 		panic("Disk not handled")
 	}
+	vm.updateDiskMotorLights()
 
 	// If a drive was selected, turn on its motor.
 	if vm.fdc.status&diskNotRdy == 0 {
@@ -1112,6 +1098,22 @@ func (jv3 *jv3) sortIds() {
 				jv3.id[index].track,
 				jv3.id[index].sector,
 				jv3.id[index].flags)
+		}
+	}
+}
+
+// Update the status of the red lights on the display.
+func (vm *vm) updateDiskMotorLights() {
+	if vm.vmUpdateCh != nil {
+		for drive := 0; drive < driveCount; drive++ {
+			var motorOnInt int
+			if vm.fdc.motorOn && vm.fdc.currentDrive == drive {
+				motorOnInt = 1
+			} else {
+				motorOnInt = 0
+			}
+
+			vm.vmUpdateCh <- vmUpdate{Cmd: "motor", Addr: drive, Data: motorOnInt}
 		}
 	}
 }
