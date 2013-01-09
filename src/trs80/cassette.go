@@ -27,6 +27,9 @@ const (
 
 // Internal state of the cassette controller.
 type cassetteController struct {
+	// Filename to read for cassette data. This should be a WAV file.
+	filename string
+
 	// Whether the motor is running.
 	motorOn bool
 
@@ -193,9 +196,7 @@ func (vm *vm) setCassetteState(newState cassetteState) int {
 func (vm *vm) openCassetteFile() {
 	cc := &vm.cc
 
-	// filename := "cassettes/tron1.wav"
-	filename := "cassettes/B1.wav"
-	cassette, err := openWav(filename)
+	cassette, err := openWav("cassettes/" + cc.filename)
 	if err != nil {
 		panic(err)
 	}

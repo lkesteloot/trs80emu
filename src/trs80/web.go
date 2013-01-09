@@ -7,8 +7,10 @@ package main
 import (
 	"bufio"
 	"code.google.com/p/go.net/websocket"
+	"encoding/json"
 	"fmt"
 	"github.com/lkesteloot/goutil/webutil"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -68,13 +70,38 @@ func generateFontCss(w http.ResponseWriter, r *http.Request) {
 	bw.Flush()
 }
 
+// Generate a JSON document of files in a directory.
+func generateFileList(w http.ResponseWriter, r *http.Request, dir string) {
+	// Get list of files.
+	fileInfos, err := ioutil.ReadDir(dir)
+	if err != nil {
+		http.Error(w, "Internal Server Error", 500)
+		return
+	}
+
+	// Convert to list of strings.
+	var filenames []string
+	for _, fileInfo := range fileInfos {
+		filenames = append(filenames, fileInfo.Name())
+	}
+
+	// JSON-encoded.
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(filenames)
+}
+
 // Top-level handler.
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "/" {
+	switch r.URL.Path {
+	case "/":
 		generateIndex(w, r)
-	} else if r.URL.Path == "/font.css" {
+	case "/font.css":
 		generateFontCss(w, r)
-	} else {
+	case "/disks.json":
+		generateFileList(w, r, "disks")
+	case "/cassettes.json":
+		generateFileList(w, r, "cassettes")
+	default:
 		http.NotFound(w, r)
 	}
 }

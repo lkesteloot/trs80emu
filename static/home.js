@@ -82,6 +82,57 @@
         $("<div>").
             attr("id", "motor").
             appendTo($("body"));
+
+        $("<select>").
+            attr("id", "disk0").
+            appendTo($("body"));
+        $("<select>").
+            attr("id", "disk1").
+            appendTo($("body"));
+        $("<select>").
+            attr("id", "cassette").
+            appendTo($("body"));
+
+        var configure_input_selector = function (input, file_type) {
+            var EMPTY_TEXT = "-- empty --";
+            var $select = $("#" + input);
+
+            // Fill the <select>
+            $.ajax({
+                url: "/" + file_type + ".json",
+                dataType: "json",
+                success: function (filenames) {
+                    $select.empty();
+                    $select.append(
+                        $("<option>").
+                            text(EMPTY_TEXT));
+                    for (var i = 0; i < filenames.length; i++) {
+                        $select.append(
+                            $("<option>").
+                                text(filenames[i]));
+                    }
+                }
+            });
+
+            // Update VM when input changes.
+            var set_input = function () {
+                var filename = $select.find("option:selected").text();
+                if (filename === EMPTY_TEXT) {
+                    filename = "";
+                }
+
+                if (g_ws) {
+                    g_ws.send(JSON.stringify({Cmd: "set_" + input, Data: filename}));
+                }
+            };
+
+            // Look for changes.
+            $select.change(set_input);
+        };
+
+        configure_input_selector("disk0", "disks");
+        configure_input_selector("disk1", "disks");
+        configure_input_selector("cassette", "cassettes");
     };
 
     // Handle a command from the emulator.

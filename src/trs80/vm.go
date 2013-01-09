@@ -157,8 +157,23 @@ func (vm *vm) run(vmCommandCh <-chan vmCommand) {
 					vm.vmUpdateCh <- vmUpdate{Cmd: "message", Msg: "Trace is off"}
 				}
 			}
+		case "set_disk0":
+			log.Printf("Loading diskette %s into drive %d", msg.Data, 0)
+			err := vm.loadDisk(0, "disks/" + msg.Data)
+			if err != nil {
+				panic(err)
+			}
+		case "set_disk1":
+			log.Printf("Loading diskette %s into drive %d", msg.Data, 1)
+			err := vm.loadDisk(1, "disks/" + msg.Data)
+			if err != nil {
+				panic(err)
+			}
+		case "set_cassette":
+			log.Printf("Loading cassette %s", msg.Data)
+			vm.cc.filename = msg.Data
 		default:
-			panic("Unknown CPU command " + msg.Cmd)
+			panic("Unknown VM command " + msg.Cmd)
 		}
 	}
 
