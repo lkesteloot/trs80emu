@@ -1,6 +1,7 @@
 // Copyright 2012 Lawrence Kesteloot
 
 (function () {
+    var SHOW_DEBUG = false;
 
     var g_ws = null;
 
@@ -47,33 +48,35 @@
             }).
             appendTo($buttons);
 
-        $("<button>").
-            attr("type", "button").
-            text("Trace").
-            click(function () {
-                if (g_ws) {
-                    g_ws.send(JSON.stringify({Cmd: "tron"}));
-                }
-            }).
-            appendTo($buttons);
+        if (SHOW_DEBUG) {
+            $("<button>").
+                attr("type", "button").
+                text("Trace").
+                click(function () {
+                    if (g_ws) {
+                        g_ws.send(JSON.stringify({Cmd: "tron"}));
+                    }
+                }).
+                appendTo($buttons);
 
-        var $breakpoint_address = $("<input>").
-            attr("id", "breakpoint_address").
-            attr("type", "text").
-            appendTo($buttons);
-        $("<button>").
-            attr("type", "button").
-            attr("placeholder", "Hex address").
-            text("Add Breakpoint").
-            click(function () {
-                if (g_ws) {
-                    var addr = parseInt($breakpoint_address.val(), 16);
-                    g_ws.send(JSON.stringify({Cmd: "add_breakpoint", Addr: addr}));
-                    $breakpoint_address.val("");
-                    $("#message").text("Breakpoint set at 0x" + addr.toString(16))
-                }
-            }).
-            appendTo($buttons);
+            var $breakpoint_address = $("<input>").
+                attr("id", "breakpoint_address").
+                attr("type", "text").
+                appendTo($buttons);
+            $("<button>").
+                attr("type", "button").
+                attr("placeholder", "Hex address").
+                text("Add Breakpoint").
+                click(function () {
+                    if (g_ws) {
+                        var addr = parseInt($breakpoint_address.val(), 16);
+                        g_ws.send(JSON.stringify({Cmd: "add_breakpoint", Addr: addr}));
+                        $breakpoint_address.val("");
+                        $("#message").text("Breakpoint set at 0x" + addr.toString(16))
+                    }
+                }).
+                appendTo($buttons);
+        }
 
         $("<div>").
             attr("id", "message").
