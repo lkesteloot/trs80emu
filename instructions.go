@@ -178,6 +178,7 @@ const (
 	operandSp
 	operandN
 	operandNn
+	operandR
 	operandParensBc
 	operandParensDe
 	operandParensHl
@@ -210,6 +211,7 @@ var operandToOperandInt = map[string]int{
 	"SP":     operandSp,
 	"N":      operandN,
 	"NN":     operandNn,
+	"R":	  operandR,
 	"(BC)":   operandParensBc,
 	"(DE)":   operandParensDe,
 	"(HL)":   operandParensHl,

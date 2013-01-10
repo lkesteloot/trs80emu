@@ -7,6 +7,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 )
 
 const (
@@ -173,8 +174,12 @@ func (vm *vm) getByteValue(operand int, byteData byte, wordData word) byte {
 			vm.msg += fmt.Sprintf("(NN = %04X) ", wordData)
 		}
 		return vm.readMem(wordData)
+	case operandR:
+		// Memory refresh. Just return a random number.
+		return byte(rand.Intn(1 << 8))
 	}
 
+	vm.logHistoricalPc()
 	panic(fmt.Sprintf("We don't yet handle addressing mode %d", operand))
 }
 
