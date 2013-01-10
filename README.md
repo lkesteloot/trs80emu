@@ -43,3 +43,22 @@ You can change the contents of the cassette with the selector on the right.
 The red dot represents the cassette motor. Put the cassette files into the
 "cassettes" directory.  Cassettes must be WAV files (mono, 16-bit). Both 500
 and 1500 baud are supported.
+
+Screenshots
+-----------
+
+Cassette BASIC:
+
+![Cassette BASIC](https://raw.github.com/lkesteloot/trs80/master/screenshots/01_boot.png)
+
+TRS-DOS:
+
+![TRS-DOS](https://raw.github.com/lkesteloot/trs80/master/screenshots/02_disk_boot.png)
+
+VisiCalc:
+
+![VisiCalc](https://raw.github.com/lkesteloot/trs80/master/screenshots/03_visicalc.png)
+
+Loading from cassette:
+
+![Loading from cassette](https://raw.github.com/lkesteloot/trs80/master/screenshots/04_cload.png)
