@@ -1,1 +1,1 @@
-go install trs80 && bin/trs80 $*
+go install github.com/lkesteloot/trs80 && ../../../../bin/trs80 $*

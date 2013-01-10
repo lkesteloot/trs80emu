@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -169,6 +170,12 @@ func wsHandler(ws *websocket.Conn) {
 func serveWebsite() {
 	port := 8080
 
+	// Sanity check to make sure we're in the right directory.
+	_, err := os.Stat("static/font.png")
+	if err != nil {
+		log.Fatal("You must be in the trs80 source directory (github.com/lkesteloot/trs80)")
+	}
+
 	// Create handlers.
 	handlers := http.NewServeMux()
 	handlers.Handle("/", webutil.GetHandler(http.HandlerFunc(homeHandler)))
@@ -188,7 +195,7 @@ func serveWebsite() {
 
 	// Start serving.
 	log.Printf("Serving website on %s", address)
-	err := server.ListenAndServe()
+	err = server.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 	}

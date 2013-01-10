@@ -1,2 +1,2 @@
-go install trs80 && bin/trs80 -profile
-go tool pprof bin/trs80 trs80.prof
+go install github.com/lkesteloot/trs80 && ../../../../bin/trs80 -profile
+go tool pprof ../../../../bin/trs80 trs80.prof
