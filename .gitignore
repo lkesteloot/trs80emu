@@ -1,4 +1,2 @@
-/bin
-/Z80.xls
-/src/trs80/trs80
 *.prof
+/trs80
