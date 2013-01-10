@@ -1,7 +1,6 @@
 
 Next:
 
-    Forcibly blur <select> after choice so that subsequent keys don't change selection.
     Get Eliminator to work for Larry:
         http://www.trs-80.org/the-eliminator/
         http://www.trs-80.org/games-by-wayne-westmoreland-and-terry-gilman/
@@ -39,60 +38,3 @@ Disk notes:
         Needed second index hole to flip disk.
         Drives sold by Radio Shack had 35 tracks, 160K.
     http://en.wikipedia.org/wiki/Western_Digital_FD1771
-    Math:
-        90000/40/9 = 250
-        Files are 89600 bytes, so missing 400 bytes.
-        Header seems to continue until 02400 = 1280 = 0x500
-        89600 - 1280 = 88320
-        88320/40/8 = 276 = 256 + 20
-        Headers are identical in both files.
-        89600/1280 = 70 = 35*2
-        89600/35 = 2560 = 1280*2
-        2360/8 = 320
-        Another break at 012000 = 02400*4
-        So guessing:
-            No header, everything is data.
-                First 1280 bytes have NO SYSTEM etc, so can't be raw header.
-            89,600 bytes total.
-            35 tracks = 2560 bytes per track.
-            8 sectors = 320 bytes per sector.
-            5 sectors = 512 bytes per sector.
-                Can't be, first section is 1280 bytes.
-            10 sectors = 256 bytes per sector.
-        First few bytes of file are:
-            00              NOP
-            fe  11          CP 11   (0x11 = 17; 17th track is special?)
-            f3              DI
-            31  fc  41      LD SP, 41FC
-            21  e2  42      LD HL, 42E2
-            cd  9a  42      CALL 429A
-            3e  01          LD A, 01
-            32  e1  37      LD (37E1), A
-            3a  02  42      LD A, (4202)
-            57              LD D, A
-        So except for first 3 bytes, it's definitely code. No header.
-    JV3:
-        Disk has 1 or 2 blocks describing sector layout.
-        Each block is 34*256 = 8704 bytes.
-        Each block can store info on 2901 sectors.
-        Each info is:
-            track
-            sector
-            flags
-                Includes size of sector (128, 256, 512, or 1024 bytes)
-        For each block:
-            Load 2901 infos.
-            Calculate position of each sector by adding their sizes (offset).
-        For writing:
-            For each size, we keep the ID of the first free sector of that size we find.
-            Also keep track of the last non-free id, or -1 if none.
-        Create permuting array (sorted_id) of sectors.
-            Sort by:
-                track
-                side
-                id
-            Since now sorted that way, record start of each (track,side) index in sorted_id.
-
-
-
-

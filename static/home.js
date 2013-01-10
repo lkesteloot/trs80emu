@@ -89,6 +89,10 @@
                 if (g_ws) {
                     g_ws.send(JSON.stringify({Cmd: "set_" + input, Data: filename}));
                 }
+
+                // Blur the selector so that subsequent keystrokes (for the emulator)
+                // don't change the selection.
+                $select.blur();
             };
 
             // Look for changes.
