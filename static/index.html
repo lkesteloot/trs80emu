@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>TRS-80 Model III Emulator</title>
+        <script src="static/jquery-1.8.2.min.js"></script>
+        <script src="static/home.js"></script>
+        <link rel="stylesheet" href="static/home.css"/>
+        <link rel="stylesheet" href="font.css"/>
+    </head>
+    <body>
+        <table class="top-frames">
+            <tr>
+                <td class="screen">
+                    <div class="screen">
+                    </div>
+                </td>
+                <td class="control-panel">
+                    <button id="bootButton" type="button">Boot</button><br>
+                    <button id="resetButton" type="button">Reset</button><br>
+                    <div class="debug-panel">
+                        <button id="traceButton" type="button">Trace</button><br>
+                        <input id="breakpointAddress" type="text" placeholder="Hex address">
+                        <button id="addBreakpointButton" type="button">Add Breakpoint</button><br>
+                    </div>
+                    <table class="input-table">
+                        <tr>
+                            <th>Drive 1:</th>
+                            <td><select id="disk1"></select></td>
+                            <td class="motorLight"><div id="motorDrive1" class="motorLight"></div></td>
+                        </tr>
+                        <tr>
+                            <th>Drive 0:</th>
+                            <td><select id="disk0"></select></td>
+                            <td class="motorLight"><div id="motorDrive0" class="motorLight"></div></td>
+                        </tr>
+                        <tr>
+                            <th>Cassette:</th>
+                            <td><select id="cassette"></select></td>
+                            <td class="motorLight"><div id="motorCassette" class="motorLight"></div></td>
+                        </tr>
+                    </table>
+                    <div id="message"></div>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>
