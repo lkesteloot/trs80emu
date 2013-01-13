@@ -88,7 +88,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	case "/disks.json":
 		generateFileList(w, r, "disks")
 	case "/cassettes.json":
-		generateFileList(w, r, "cassettes")
+		generateFileList(w, r, *cassettesDir)
 	default:
 		http.NotFound(w, r)
 	}

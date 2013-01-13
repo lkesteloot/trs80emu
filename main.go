@@ -11,10 +11,12 @@ import (
 
 const (
 	profileFilename = "trs80.prof"
+	defaultCassettesDir = "cassettes"
 )
 
 // Command-line flags.
 var profiling = flag.Bool("profile", false, "run for a few seconds and dump profiling file")
+var cassettesDir = flag.String("cassettes", defaultCassettesDir, "directory of cassettes")
 
 func main() {
 	flag.Parse()

@@ -196,7 +196,7 @@ func (vm *vm) setCassetteState(newState cassetteState) int {
 func (vm *vm) openCassetteFile() {
 	cc := &vm.cc
 
-	cassette, err := openWav("cassettes/" + cc.filename)
+	cassette, err := openWav(*cassettesDir + "/" + cc.filename)
 	if err != nil {
 		panic(err)
 	}
