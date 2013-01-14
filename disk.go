@@ -915,6 +915,7 @@ func (vm *vm) writeDiskSelect(value byte) {
 	}
 
 	// Which drive is being enabled?
+	previousDrive := vm.fdc.currentDrive
 	switch value & diskDriveMask {
 	case 0:
 		vm.fdc.status |= diskNotRdy
@@ -929,7 +930,9 @@ func (vm *vm) writeDiskSelect(value byte) {
 	default:
 		panic("Disk not handled")
 	}
-	vm.updateDiskMotorLights()
+	if vm.fdc.currentDrive != previousDrive {
+		vm.updateDiskMotorLights()
+	}
 
 	// If a drive was selected, turn on its motor.
 	if vm.fdc.status&diskNotRdy == 0 {
