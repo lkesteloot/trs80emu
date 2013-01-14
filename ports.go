@@ -53,6 +53,9 @@ var ports = map[byte]string{
 func (vm *vm) readPort(port byte) byte {
 	/// log.Printf("Reading port %02X", port)
 	switch port {
+	case 0x00:
+		// Joystick.
+		return 0xFF
 	case 0x3F:
 		// Unmapped, don't crash.
 		return 0xFF
