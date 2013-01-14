@@ -5,7 +5,6 @@ package main
 // The VM (Virtual Machine) represents the entire machine.
 
 import (
-	"flag"
 	/// "github.com/remogatto/z80"
 	"github.com/lkesteloot/z80"
 	"io/ioutil"
@@ -148,14 +147,6 @@ func createVm(vmUpdateCh chan<- vmUpdate) *vm {
 	vm.z80 = z80.NewZ80(vm, vm)
 	vm.z80.Reset()
 
-	// Specify the disks in the drive.
-	for drive, filename := range flag.Args() {
-		err = vm.loadDisk(drive, filename)
-		if err != nil {
-			panic(err)
-		}
-	}
-
 	return vm
 }
 
@@ -192,13 +183,13 @@ func (vm *vm) run(vmCommandCh <-chan vmCommand) {
 			}
 		case "set_disk0":
 			log.Printf("Loading diskette %s into drive %d", msg.Data, 0)
-			err := vm.loadDisk(0, "disks/"+msg.Data)
+			err := vm.loadDisk(0, msg.Data)
 			if err != nil {
 				panic(err)
 			}
 		case "set_disk1":
 			log.Printf("Loading diskette %s into drive %d", msg.Data, 1)
-			err := vm.loadDisk(1, "disks/"+msg.Data)
+			err := vm.loadDisk(1, msg.Data)
 			if err != nil {
 				panic(err)
 			}

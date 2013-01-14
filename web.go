@@ -60,7 +60,7 @@ func generateFontCss(w http.ResponseWriter, r *http.Request) {
 }
 
 // Generate a JSON document of files in a directory.
-func generateFileList(w http.ResponseWriter, r *http.Request, dir string) {
+func generateFileList(w http.ResponseWriter, r *http.Request, dir, extension string) {
 	// Get list of files.
 	fileInfos, err := ioutil.ReadDir(dir)
 	if err != nil {
@@ -69,12 +69,12 @@ func generateFileList(w http.ResponseWriter, r *http.Request, dir string) {
 	}
 
 	// Convert to list of strings.
-	var filenames []string
+	filenames := []string{}
 	for _, fileInfo := range fileInfos {
 		filename := fileInfo.Name()
 
-		// Only keep .WAV files.
-		if strings.HasSuffix(strings.ToLower(filename), ".wav") {
+		// Only keep the right files.
+		if strings.HasSuffix(strings.ToLower(filename), extension) {
 			filenames = append(filenames, fileInfo.Name())
 		}
 	}
@@ -96,9 +96,9 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	case "/font.css":
 		generateFontCss(w, r)
 	case "/disks.json":
-		generateFileList(w, r, "disks")
+		generateFileList(w, r, "disks", ".dsk")
 	case "/cassettes.json":
-		generateFileList(w, r, *cassettesDir)
+		generateFileList(w, r, *cassettesDir, ".wav")
 	default:
 		http.NotFound(w, r)
 	}

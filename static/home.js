@@ -59,7 +59,6 @@
 
         // Configure the control where the user can specify diskettes and cassette.
         var configureInputSelector = function (input, file_type) {
-            var EMPTY_TEXT = "-- empty --";
             var $select = $("#" + input);
 
             // Fill the <select>
@@ -70,19 +69,25 @@
                     $select.empty();
                     $select.append(
                         $("<option>").
-                            text(EMPTY_TEXT));
+                            text("-- empty --"));
                     for (var i = 0; i < filenames.length; i++) {
                         $select.append(
                             $("<option>").
                                 text(filenames[i]));
                     }
+                },
+                error: function () {
+                    $select.empty();
+                    $select.append(
+                        $("<option>").
+                            text("-- invalid directory --"));
                 }
             });
 
             // Update VM when input changes.
             var setInput = function () {
                 var filename = $select.find("option:selected").text();
-                if (filename === EMPTY_TEXT) {
+                if (filename.charAt(0) === "-") {
                     filename = "";
                 }
 
@@ -261,7 +266,7 @@
                 event.preventDefault();
             } else {
                 // Ignore.
-                console.log(which);
+                /// console.log(which);
                 key = "";
             }
 

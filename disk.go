@@ -309,7 +309,22 @@ func (side *side) setFromBoolean(value bool) {
 
 // Loads the file from filename into drive.
 func (vm *vm) loadDisk(drive int, filename string) error {
-	return vm.fdc.disks[drive].load(filename)
+	var err error
+
+	if filename == "" {
+		err = vm.fdc.disks[drive].makeEmpty()
+	} else {
+		err = vm.fdc.disks[drive].load("disks/"+filename)
+	}
+
+	return err
+}
+
+// Empty the drive.
+func (disk *disk) makeEmpty() error {
+	disk.emulationType = emuNone
+	disk.data = nil
+	return nil
 }
 
 // Loads the file from filename into this disk.
