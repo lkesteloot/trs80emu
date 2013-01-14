@@ -14,6 +14,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -70,8 +71,17 @@ func generateFileList(w http.ResponseWriter, r *http.Request, dir string) {
 	// Convert to list of strings.
 	var filenames []string
 	for _, fileInfo := range fileInfos {
-		filenames = append(filenames, fileInfo.Name())
+		filename := fileInfo.Name()
+
+		// Only keep .WAV files.
+		if strings.HasSuffix(strings.ToLower(filename), ".wav") {
+			filenames = append(filenames, fileInfo.Name())
+		}
 	}
+
+	// The ReadDir() function returns the filenames sorted, but that puts "B12"
+	// before "B2".  So we re-sort taking into account numbers.
+	sortNumerically(filenames)
 
 	// JSON-encoded.
 	w.Header().Set("Content-Type", "application/json")

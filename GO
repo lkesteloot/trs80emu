@@ -1,1 +1,3 @@
+#!/bin/zsh
+
 go install github.com/lkesteloot/trs80 && ../../../../bin/trs80 $*
