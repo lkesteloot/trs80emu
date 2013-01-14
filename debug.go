@@ -10,19 +10,19 @@ import (
 // Various flags that control what kind of debugging information
 // is logged by the emulator. Normally these are all false.
 const (
-	diskDebug          = true
+	diskDebug          = false
 	diskSortDebug      = false
-	eventDebug         = true
-	warnUninitMemRead  = true
+	eventDebug         = false
+	warnUninitMemRead  = false
 	disableTimer       = false
 	wavDebug           = false
 	crashOnRomWrite    = false
-	logOnRomWrite      = true
+	logOnRomWrite      = false
 )
 
 // Same as above but can be changed at runtime. This is for
 // instruction-level debugging.
-var printDebug = true
+var printDebug = false
 
 // Map from PC to the ROM routine stored there.
 var romRoutines = map[uint16]string{

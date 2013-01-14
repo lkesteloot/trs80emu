@@ -20,8 +20,7 @@ func (vm *vm) step() {
 
 	// Execute a single instruction.
 	vm.z80.DoOpcode()
-	log.Printf("Tstates = %d", vm.z80.Tstates)
-	vm.clock = uint64(vm.z80.Tstates)// XXX
+	vm.clock += 4 // XXX
 
 	// Dispatch scheduled events.
 	vm.events.dispatch(vm.clock)
@@ -46,7 +45,6 @@ func (vm *vm) step() {
 		vm.z80.Interrupt()
 	}
 
-	log.Printf("Clock = %d", vm.clock)
 	if vm.clock > vm.previousDumpClock+cpuHz {
 		now := time.Now()
 		if vm.previousDumpClock > 0 {
