@@ -17,17 +17,11 @@ func compareStringsNumerically(a, b string) int {
 		return ch >= '0' && ch <= '9'
 	}
 
-	// Return the next "chunk" of the string, which is either the value of the byte
-	// at i, or the number starting at i.
-	var getChunk = func(s string, i int) (chunk int, nextI int) {
-		if isDigit(s[i]) {
-			chunk = 0
-			for i < len(s) && isDigit(s[i]) {
-				chunk = chunk*10 + int(s[i]-'0')
-				i++
-			}
-		} else {
-			chunk = int(s[i])
+	// Return the next integer in the string and the position after the last digit.
+	var parseNextInt = func(s string, i int) (value int, nextI int) {
+		value = 0
+		for i < len(s) && isDigit(s[i]) {
+			value = value*10 + int(s[i]-'0')
 			i++
 		}
 		nextI = i
@@ -39,8 +33,17 @@ func compareStringsNumerically(a, b string) int {
 		var chunkA, chunkB int
 
 		// Get the next "chunk", which could be a letter or a number.
-		chunkA, i = getChunk(a, i)
-		chunkB, j = getChunk(b, j)
+		if isDigit(a[i]) && isDigit(b[j]) {
+			// Only compare numerically if both are numbers.
+			chunkA, i = parseNextInt(a, i)
+			chunkB, j = parseNextInt(b, j)
+		} else {
+			// Compare ASCII.
+			chunkA = int(a[i])
+			i++
+			chunkB = int(b[j])
+			j++
+		}
 
 		if chunkA < chunkB {
 			return -1

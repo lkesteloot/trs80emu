@@ -33,4 +33,10 @@ func TestCompareStringsNumerically(t *testing.T) {
 	cmp("A123B", "A123C", -1)
 	cmp("A123C", "A123B", 1)
 	cmp("A123C5", "A123C44", -1)
+
+	// Strings where the chunks don't match up.
+	cmp("AA", "A1", 1)
+	cmp("A1", "AA", -1)
+	cmp("AA", "A1000", 1)
+	cmp("A1000", "AA", -1)
 }
