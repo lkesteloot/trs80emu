@@ -461,7 +461,7 @@ func (vm *vm) diskDone(bits byte) {
 
 	vm.fdc.status &^= diskBusy
 	vm.fdc.status |= bits
-	vm.cpu.diskIntrqInterrupt(true)
+	vm.diskIntrqInterrupt(true)
 }
 
 // Event to abort the last command with LOSTDATA if it is
@@ -475,7 +475,7 @@ func (vm *vm) diskLostData(cmd byte) {
 		vm.fdc.status &^= diskBusy
 		vm.fdc.status |= diskLostData
 		vm.fdc.byteCount = 0
-		vm.cpu.diskIntrqInterrupt(true)
+		vm.diskIntrqInterrupt(true)
 	}
 }
 
@@ -487,7 +487,7 @@ func (vm *vm) diskFirstDrq(bits byte) {
 	}
 
 	vm.fdc.status |= diskDrq | bits
-	vm.cpu.diskDrqInterrupt(true)
+	vm.diskDrqInterrupt(true)
 	// Evaluate this now, not when the callback is run.
 	currentCommand := vm.fdc.currentCommand
 	// If we've not finished our work within half a second, trigger a lost data
@@ -618,7 +618,7 @@ func (vm *vm) readDiskStatus() byte {
 	}
 
 	// Clear interrupt.
-	vm.cpu.diskIntrqInterrupt(false)
+	vm.diskIntrqInterrupt(false)
 
 	if diskDebug {
 		log.Printf("readDiskStatus() = %02X", vm.fdc.status)
@@ -671,7 +671,7 @@ func (vm *vm) readDiskData() byte {
 			if vm.fdc.byteCount <= 0 {
 				vm.fdc.byteCount = 0
 				vm.fdc.status &^= diskDrq
-				vm.cpu.diskDrqInterrupt(false)
+				vm.diskDrqInterrupt(false)
 				vm.events.cancelEvents(eventDiskLostData)
 				vm.addEvent(eventDiskDone, func() { vm.diskDone(0) }, 64)
 			}
@@ -700,7 +700,7 @@ func (vm *vm) writeDiskCommand(cmd byte) {
 	// Cancel "lost data" event.
 	vm.events.cancelEvents(eventDiskLostData)
 
-	vm.cpu.diskIntrqInterrupt(false)
+	vm.diskIntrqInterrupt(false)
 	vm.fdc.byteCount = 0
 	vm.fdc.currentCommand = cmd
 
@@ -829,9 +829,9 @@ func (vm *vm) writeDiskCommand(cmd byte) {
 			panic("Conditional interrupt features not implemented")
 		} else if (cmd & 0x08) != 0 {
 			// Immediate interrupt.
-			vm.cpu.diskIntrqInterrupt(true)
+			vm.diskIntrqInterrupt(true)
 		} else {
-			vm.cpu.diskIntrqInterrupt(false)
+			vm.diskIntrqInterrupt(false)
 		}
 	default:
 		panic(fmt.Sprintf("Unknown disk command %02X", cmd))
@@ -921,7 +921,7 @@ func (vm *vm) writeDiskSelect(value byte) {
 		vm.setDiskMotor(true)
 		// XXX Could replace this with an event.
 		vm.fdc.motorTimeout = vm.clock + motorTimeAfterSelect*cpuHz
-		vm.cpu.diskMotorOffInterrupt(false)
+		vm.diskMotorOffInterrupt(false)
 	}
 }
 

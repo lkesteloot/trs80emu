@@ -166,7 +166,7 @@ func (kb *keyboard) clearKeyboard() {
 // bits in the address map to the various bytes, and you can read the OR'ed
 // addresses to read more than one byte at a time. This isn't used by the
 // ROM, I don't think. For the last byte we fake the Shift key if necessary.
-func (vm *vm) readKeyboard(addr word) byte {
+func (vm *vm) readKeyboard(addr uint16) byte {
 	addr -= keyboardBegin
 
 	var b byte

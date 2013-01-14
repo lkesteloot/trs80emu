@@ -10,23 +10,22 @@ import (
 // Various flags that control what kind of debugging information
 // is logged by the emulator. Normally these are all false.
 const (
-	dumpInstructionSet = false
-	diskDebug          = false
+	diskDebug          = true
 	diskSortDebug      = false
-	eventDebug         = false
-	warnUninitMemRead  = false
+	eventDebug         = true
+	warnUninitMemRead  = true
 	disableTimer       = false
 	wavDebug           = false
 	crashOnRomWrite    = false
-	logOnRomWrite      = false
+	logOnRomWrite      = true
 )
 
 // Same as above but can be changed at runtime. This is for
 // instruction-level debugging.
-var printDebug = false
+var printDebug = true
 
 // Map from PC to the ROM routine stored there.
-var romRoutines = map[word]string{
+var romRoutines = map[uint16]string{
 	0x02A1: "$CLKOFF: Disable clock display",
 	0x0298: "$CLKON: Enable clock display",
 	0x0296: "$CSHIN: Search for cassette header and sync byte",
@@ -57,7 +56,7 @@ var romRoutines = map[word]string{
 }
 
 // Log interesting information about the instruction we're about to execute.
-func (vm *vm) explainLine(pc, hl word, a byte) {
+func (vm *vm) explainLine(pc, hl uint16, a byte) {
 	explanation, ok := romRoutines[pc]
 	if ok {
 		log.Print(explanation)

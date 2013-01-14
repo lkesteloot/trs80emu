@@ -58,10 +58,10 @@ func (vm *vm) readPort(port byte) byte {
 		return 0xFF
 	case 0xE0:
 		// IRQ latch read.
-		return ^vm.cpu.irqLatch
+		return ^vm.irqLatch
 	case 0xE4:
 		// NMI latch read.
-		return ^vm.cpu.nmiLatch
+		return ^vm.nmiLatch
 	case 0xE8:
 		// UART modem.
 		return 0xFF
@@ -76,7 +76,7 @@ func (vm *vm) readPort(port byte) byte {
 		return 0xFF
 	case 0xEC, 0xED, 0xEE, 0xEF:
 		// Acknowledge timer.
-		vm.cpu.timerInterrupt(false)
+		vm.timerInterrupt(false)
 		return 0xFF
 	case 0xF0:
 		// Disk status.
@@ -111,10 +111,10 @@ func (vm *vm) writePort(port byte, value byte) {
 		// Don't know. Don't crash.
 	case 0xE0:
 		// Set interrupt mask.
-		vm.cpu.setIrqMask(value)
+		vm.setIrqMask(value)
 	case 0xE4, 0xE5, 0xE6, 0xE7:
 		// NMI state.
-		vm.cpu.setNmiMask(value)
+		vm.setNmiMask(value)
 	case 0xE8:
 		// UART reset.
 	case 0xE9:
@@ -156,4 +156,30 @@ func (vm *vm) writePort(port byte, value byte) {
 	default:
 		panic(fmt.Sprintf("Can't write %02X to unknown port %02X", value, port))
 	}
+}
+
+// The rest of the file is to satisfy the z80.PortAccessor interface, which the
+// z80 uses.
+func (vm *vm) ReadPort(address uint16) byte {
+	return vm.ReadPortInternal(address, false)
+}
+
+func (vm *vm) WritePort(address uint16, b byte) {
+	vm.WritePortInternal(address, b, false)
+}
+
+func (vm *vm) ReadPortInternal(address uint16, contend bool) byte {
+	return vm.readPort(byte(address))
+}
+
+func (vm *vm) WritePortInternal(address uint16, b byte, contend bool) {
+	vm.writePort(byte(address), b)
+}
+
+func (vm *vm) ContendPortPreio(address uint16) {
+	// Ignore.
+}
+
+func (vm *vm) ContendPortPostio(address uint16) {
+	// Ignore.
 }

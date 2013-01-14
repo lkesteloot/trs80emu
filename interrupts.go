@@ -25,91 +25,77 @@ const (
 )
 
 // Set the mask for IRQ (regular) interrupts.
-func (cpu *cpu) setIrqMask(irqMask byte) {
-	cpu.irqMask = irqMask
+func (vm *vm) setIrqMask(irqMask byte) {
+	vm.irqMask = irqMask
 }
 
 // Set the mask for non-maskable interrupts. (Yes.)
-func (cpu *cpu) setNmiMask(nmiMask byte) {
+func (vm *vm) setNmiMask(nmiMask byte) {
 	// Reset is always allowed:
-	cpu.nmiMask = nmiMask | resetNmiMask
-	cpu.updateNmiSeen()
+	vm.nmiMask = nmiMask | resetNmiMask
+	vm.updateNmiSeen()
 }
 
 // Reset whether we've seen this NMI interrupt if the mask and latch no longer overlap.
-func (cpu *cpu) updateNmiSeen() {
-	if (cpu.nmiLatch & cpu.nmiMask) == 0 {
-		cpu.nmiSeen = false
+func (vm *vm) updateNmiSeen() {
+	if (vm.nmiLatch & vm.nmiMask) == 0 {
+		vm.nmiSeen = false
 	}
-}
-
-// Jump to the IRQ handler.
-func (vm *vm) handleIrq() {
-	vm.pushWord(vm.cpu.pc)
-	vm.cpu.iff1 = false
-	vm.cpu.pc = 0x38
-}
-
-// Jump to the NMI handler.
-func (vm *vm) handleNmi() {
-	vm.pushWord(vm.cpu.pc)
-	vm.cpu.iff1 = false
-	vm.cpu.pc = 0x66
 }
 
 // Set the state of the reset button interrupt.
-func (cpu *cpu) resetButtonInterrupt(state bool) {
+func (vm *vm) resetButtonInterrupt(state bool) {
 	if state {
-		cpu.nmiLatch |= resetNmiMask
+		vm.nmiLatch |= resetNmiMask
 	} else {
-		cpu.nmiLatch &^= resetNmiMask
+		vm.nmiLatch &^= resetNmiMask
 	}
-	cpu.updateNmiSeen()
+	vm.updateNmiSeen()
 }
 
 // Set the state of the disk motor off interrupt.
-func (cpu *cpu) diskMotorOffInterrupt(state bool) {
+func (vm *vm) diskMotorOffInterrupt(state bool) {
 	if state {
-		cpu.nmiLatch |= diskMotorOffNmiMask
+		vm.nmiLatch |= diskMotorOffNmiMask
 	} else {
-		cpu.nmiLatch &^= diskMotorOffNmiMask
+		vm.nmiLatch &^= diskMotorOffNmiMask
 	}
-	cpu.updateNmiSeen()
+	vm.updateNmiSeen()
 }
 
 // Set the state of the disk interrupt.
-func (cpu *cpu) diskIntrqInterrupt(state bool) {
+func (vm *vm) diskIntrqInterrupt(state bool) {
 	if state {
-		cpu.nmiLatch |= diskIntrqNmiMask
+		vm.nmiLatch |= diskIntrqNmiMask
 	} else {
-		cpu.nmiLatch &^= diskIntrqNmiMask
+		vm.nmiLatch &^= diskIntrqNmiMask
 	}
-	cpu.updateNmiSeen()
+	vm.updateNmiSeen()
 }
 
 // Set the state of the disk interrupt.
-func (cpu *cpu) diskDrqInterrupt(state bool) {
+func (vm *vm) diskDrqInterrupt(state bool) {
 	// No effect.
 }
 
 // Saw a positive edge on cassette.
 func (vm *vm) cassetteRiseInterrupt() {
-	vm.cpu.irqLatch = (vm.cpu.irqLatch &^ cassetteRiseIrqMask) |
-		(vm.cpu.irqMask & cassetteRiseIrqMask)
+	vm.irqLatch = (vm.irqLatch &^ cassetteRiseIrqMask) |
+		(vm.irqMask & cassetteRiseIrqMask)
 }
 
 // Saw a negative edge on cassette.
 func (vm *vm) cassetteFallInterrupt() {
-	vm.cpu.irqLatch = (vm.cpu.irqLatch &^ cassetteFallIrqMask) |
-		(vm.cpu.irqMask & cassetteFallIrqMask)
+	vm.irqLatch = (vm.irqLatch &^ cassetteFallIrqMask) |
+		(vm.irqMask & cassetteFallIrqMask)
 }
 
 // Reset cassette edge interrupts.
 func (vm *vm) cassetteClearInterrupt() {
-	vm.cpu.irqLatch &^= cassetteIrqMasks
+	vm.irqLatch &^= cassetteIrqMasks
 }
 
 // Check whether the software has enabled these interrupts.
 func (vm *vm) cassetteInterruptsEnabled() bool {
-	return vm.cpu.irqMask&cassetteIrqMasks != 0
+	return vm.irqMask&cassetteIrqMasks != 0
 }

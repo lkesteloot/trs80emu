@@ -14,7 +14,8 @@ var nnRegExp = regexp.MustCompile(`\bNN\b`)
 // Disassemble the instruction at the given pc and return the address,
 // machine language, and instruction. Return the PC of the following
 // instruction in newPc.
-func (vm *vm) disasm(pc word) (line string, nextPc word) {
+func (vm *vm) disasm(pc uint16) (line string, nextPc uint16) {
+	/*
 	// Look up the instruction.
 	instPc := pc
 	inst, byteData, wordData := vm.lookUpInst(&pc)
@@ -40,10 +41,14 @@ func (vm *vm) disasm(pc word) (line string, nextPc word) {
 		line += substituteData(inst.asm, byteData, wordData)
 	}
 	return
+	*/
+
+	// XXX
+	return "", pc + 1
 }
 
 // Fills the N and NN parts of assembly instructions with their real value.
-func substituteData(asm string, byteData byte, wordData word) string {
+func substituteData(asm string, byteData byte, wordData uint16) string {
 	// This does the wrong thing when the instruction has two byte N parameters.
 	// See instLd for more info.
 	asm = nRegExp.ReplaceAllLiteralString(asm, fmt.Sprintf("%02X", byteData))

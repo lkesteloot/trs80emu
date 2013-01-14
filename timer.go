@@ -11,18 +11,18 @@ const (
 )
 
 // Set or reset the timer interrupt.
-func (cpu *cpu) timerInterrupt(state bool) {
+func (vm *vm) timerInterrupt(state bool) {
 	if state {
-		cpu.irqLatch |= timerIrqMask
+		vm.irqLatch |= timerIrqMask
 	} else {
-		cpu.irqLatch &^= timerIrqMask
+		vm.irqLatch &^= timerIrqMask
 	}
 }
 
 // What to do when the hardware timer goes off.
 func (vm *vm) handleTimer() {
 	if !disableTimer {
-		vm.cpu.timerInterrupt(true)
-		vm.cpu.diskMotorOffInterrupt(vm.checkDiskMotorOff())
+		vm.timerInterrupt(true)
+		vm.diskMotorOffInterrupt(vm.checkDiskMotorOff())
 	}
 }

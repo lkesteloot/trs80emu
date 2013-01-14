@@ -6,6 +6,8 @@ package main
 
 import (
 	"flag"
+	/// "github.com/remogatto/z80"
+	"github.com/lkesteloot/z80"
 	"io/ioutil"
 	"log"
 	"time"
@@ -22,7 +24,7 @@ const (
 // parts like the clock interrupt hardware.
 type vm struct {
 	// The CPU state.
-	cpu cpu
+	z80 *z80.Z80
 
 	// All of addressable memory, including ROM, RAM, and memory-mapped I/O
 	// such as the display.
@@ -34,7 +36,22 @@ type vm struct {
 	memInit []bool
 
 	// Size of ROM, starting at memory location zero.
-	romSize word
+	romSize uint16
+
+	// Which IRQs should be handled.
+	irqMask byte
+
+	// Which IRQs have been requested by the hardware.
+	irqLatch byte
+
+	// Which NMIs should be handled.
+	nmiMask byte
+
+	// Which NMIs have been requested by the hardware.
+	nmiLatch byte
+
+	// Whether we've seen this NMI and handled it.
+	nmiSeen bool
 
 	// Simulated keyboard.
 	keyboard keyboard
@@ -62,7 +79,7 @@ type vm struct {
 	vmUpdateCh chan<- vmUpdate
 
 	// Keep last "historicalPcCount" PCs for debugging.
-	historicalPc [historicalPcCount]word
+	historicalPc [historicalPcCount]uint16
 	// Points to the most recent instruction added.
 	historicalPcPtr int
 
@@ -107,13 +124,15 @@ func createVm(vmUpdateCh chan<- vmUpdate) *vm {
 
 	// Make a CPU.
 	vm := &vm{
+		z80:		nil, // Set below.
 		memory:     memory,
 		memInit:    memInit,
-		romSize:    word(len(rom)),
+		romSize:    uint16(len(rom)),
 		vmUpdateCh: vmUpdateCh,
 		modeImage:  0x80,
 	}
-	vm.cpu.initialize()
+	vm.z80 = z80.NewZ80(vm, vm)
+	vm.z80.Reset()
 
 	// Specify the disks in the drive.
 	for drive, filename := range flag.Args() {
@@ -146,7 +165,7 @@ func (vm *vm) run(vmCommandCh <-chan vmCommand) {
 		case "press", "release":
 			vm.keyboard.keyEvent(msg.Data, msg.Cmd == "press")
 		case "add_breakpoint":
-			vm.breakpoints.add(breakpoint{pc: word(msg.Addr), active: true})
+			vm.breakpoints.add(breakpoint{pc: uint16(msg.Addr), active: true})
 			log.Printf("Breakpoint added at %04X", msg.Addr)
 		case "tron":
 			printDebug = !printDebug
@@ -184,12 +203,12 @@ func (vm *vm) run(vmCommandCh <-chan vmCommand) {
 				handleCmd(msg)
 			default:
 				// See if there's a breakpoint here.
-				bp := vm.breakpoints.find(vm.cpu.pc)
+				bp := vm.breakpoints.find(vm.z80.PC())
 				if bp != nil {
 					if vm.vmUpdateCh != nil {
-						vm.vmUpdateCh <- vmUpdate{Cmd: "breakpoint", Addr: int(vm.cpu.pc)}
+						vm.vmUpdateCh <- vmUpdate{Cmd: "breakpoint", Addr: int(vm.z80.PC())}
 					}
-					log.Printf("Breakpoint at %04X", vm.cpu.pc)
+					log.Printf("Breakpoint at %04X", vm.z80.PC())
 					vm.logHistoricalPc()
 					running = false
 				} else {
@@ -225,15 +244,15 @@ func (vm *vm) logHistoricalPc() {
 func (vm *vm) reset(powerOn bool) {
 	vm.resetCassette()
 	vm.diskInit(powerOn)
-	vm.cpu.setIrqMask(0)
-	vm.cpu.setNmiMask(0)
+	vm.setIrqMask(0)
+	vm.setNmiMask(0)
 	vm.keyboard.clearKeyboard()
-	vm.cpu.timerInterrupt(false)
+	vm.timerInterrupt(false)
 
 	if powerOn {
-		vm.cpu.reset()
+		vm.z80.Reset()
 		vm.startTime = time.Now().UnixNano()
 	} else {
-		vm.cpu.resetButtonInterrupt(true)
+		vm.resetButtonInterrupt(true)
 	}
 }
