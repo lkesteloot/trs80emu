@@ -14,6 +14,12 @@ import (
 )
 
 const (
+	// CPU clock on the Model III: 2.02752 MHz.
+	cpuHz = 2027520
+
+	// Nanoseconds per clock cycle.
+	cpuPeriodNs = 1000000000 / cpuHz
+
 	// How many instructions to keep around in a queue so that we can display
 	// the last historicalPcCount instructions when a problem happens.
 	historicalPcCount = 20
@@ -101,6 +107,14 @@ type vmCommand struct {
 	Cmd  string
 	Addr int
 	Data string
+}
+
+// Information about changes to the CPU or computer.
+type vmUpdate struct {
+	Cmd  string
+	Msg  string
+	Addr int
+	Data int
 }
 
 // Creates a new virtual machine. Updates will be sent to vmUpdateCh.
