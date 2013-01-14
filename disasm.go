@@ -4,55 +4,41 @@ package main
 
 import (
 	"fmt"
-	"regexp"
+	/// "github.com/remogatto/z80"
+	"github.com/lkesteloot/z80"
 )
-
-// Look for N and NN on word boundaries.
-var nRegExp = regexp.MustCompile(`\bN\b`)
-var nnRegExp = regexp.MustCompile(`\bNN\b`)
 
 // Disassemble the instruction at the given pc and return the address,
 // machine language, and instruction. Return the PC of the following
-// instruction in newPc.
+// instruction in nextPc.
 func (vm *vm) disasm(pc uint16) (line string, nextPc uint16) {
-	/*
-		// Look up the instruction.
-		instPc := pc
-		inst, byteData, wordData := vm.lookUpInst(&pc)
-		nextPc = pc
+	var asm string
 
-		// Address.
-		line = fmt.Sprintf("%04X ", instPc)
+	shift := 0
 
-		// Machine language.
-		for pc = instPc; pc < instPc+4; pc++ {
-			if pc < nextPc {
-				line += fmt.Sprintf("%02X ", vm.memory[pc])
-			} else {
-				line += fmt.Sprint("   ")
-			}
+	// Disassemble the instruction.
+	for {
+		asm, nextPc, shift = z80.Disassemble(vm, pc, shift)
+
+		// Keep going as long as shift != 0. This is for extended instructions like 0xCB.
+		if shift == 0 {
+			break
 		}
+	}
 
-		// Instruction.
-		if inst == nil {
-			line += "Unknown instruction"
+	// Address.
+	line = fmt.Sprintf("%04X ", pc)
+
+	// Machine language.
+	for addr := pc; addr < pc+4; addr++ {
+		if addr < nextPc {
+			line += fmt.Sprintf("%02X ", vm.memory[addr])
 		} else {
-			// Substitute N and NN.
-			line += substituteData(inst.asm, byteData, wordData)
+			line += fmt.Sprint("   ")
 		}
-		return
-	*/
+	}
 
-	// XXX
-	return "", pc + 1
-}
-
-// Fills the N and NN parts of assembly instructions with their real value.
-func substituteData(asm string, byteData byte, wordData uint16) string {
-	// This does the wrong thing when the instruction has two byte N parameters.
-	// See instLd for more info.
-	asm = nRegExp.ReplaceAllLiteralString(asm, fmt.Sprintf("%02X", byteData))
-	asm = nnRegExp.ReplaceAllLiteralString(asm, fmt.Sprintf("%04X", wordData))
-
-	return asm
+	// Instruction.
+	line += asm
+	return
 }
