@@ -15,6 +15,11 @@
         for (var y = 0; y < 16; y++) {
             for (var x = 0; x < 64; x++) {
                 var $ch = $("<span>").attr("id", "s" + addr).addClass("char");
+                if (x % 2 === 0) {
+                    $ch.addClass("even-column");
+                } else {
+                    $ch.addClass("odd-column");
+                }
                 $screen.append($ch);
                 addr++;
             }
@@ -122,7 +127,18 @@
 
                 if (addr >= 15360 && addr < 16384) {
                     // Screen.
-                    $("#s" + addr).attr("class", "char char-" + data);
+                    var $s = $("#s" + addr);
+                    var cls = $s.attr("class");
+                    var newCls = "char char-" + data;
+
+                    // Retain the odd/even columns. Could recompute this from
+                    // the address too.
+                    if (cls.indexOf("odd-column") >= 0) {
+                        newCls += " odd-column";
+                    } else {
+                        newCls += " even-column";
+                    }
+                    $s.attr("class", newCls);
                 }
 
                 addr++;
@@ -147,6 +163,13 @@
         } else if (cmd === "message") {
             // Show a generic message.
             $("#message").text(update.Msg);
+        } else if (cmd === "expanded") {
+            // Expanded character font.
+            if (update.Data !== 0) {
+                $("div.screen").addClass("expanded").removeClass("narrow");
+            } else {
+                $("div.screen").removeClass("expanded").addClass("narrow");
+            }
         } else {
             console.log("Unknown command \"" + cmd + "\"");
         }

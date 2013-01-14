@@ -127,6 +127,7 @@ func (vm *vm) writePort(port byte, value byte) {
 		// Various controls.
 		vm.modeImage = value
 		vm.setCassetteMotor(value&0x02 != 0)
+		vm.setExpandedCharacters(value&0x04 != 0)
 	case 0xF0:
 		// Disk command.
 		vm.writeDiskCommand(value)

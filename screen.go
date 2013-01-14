@@ -10,3 +10,14 @@ const (
 	screenBegin   = 0x3C00
 	screenEnd     = screenBegin + screenRows*screenColumns
 )
+
+func (vm *vm) setExpandedCharacters(expanded bool) {
+	if vm.vmUpdateCh != nil {
+		value := 0
+		if expanded {
+			value = 1
+		}
+
+		vm.vmUpdateCh <- vmUpdate{Cmd: "expanded", Data: value}
+	}
+}

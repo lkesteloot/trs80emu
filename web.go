@@ -47,14 +47,23 @@ func generateFontCss(w http.ResponseWriter, r *http.Request) {
 		width: 8px;
 		height: 24px;
 		background-image: url("static/font.png");
-		/* background-position: -248px -24px;*/ /* ? = 31*8, 1*24 */
 		background-position: 0 0; /* Blank */
 		background-repeat: no-repeat;
 }
+
+div.screen.expanded .char {
+	width: 16px;
+}
+
+div.screen.expanded .odd-column {
+	display: none;
+}
 `)
 	for ch := 0; ch < 256; ch++ {
-		fmt.Fprintf(bw, ".char-%d { background-position: %dpx %dpx; }\n",
+		fmt.Fprintf(bw, "div.screen.narrow .char-%d { background-position: %dpx %dpx; }\n",
 			ch, -(ch%32)*8, -(ch/32)*24)
+		fmt.Fprintf(bw, "div.screen.expanded .char-%d { background-position: %dpx %dpx; }\n",
+			ch, -(ch%32)*16, -(ch/32 + 10)*24)
 	}
 	bw.Flush()
 }
