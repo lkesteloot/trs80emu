@@ -11,12 +11,12 @@ package main
 //
 // JV3 is a Model III format that allows variable-sized sectors. There are two
 // blocks that specify where each sector is and how large it is. The first
-// block is at the beginning of the file. It describes at most 2901 sectors.
-// The next block is after that, followed by more sectors described by the
-// second block. Each block is 2901 3-byte sector info structures. The first
-// byte is the track number, the second is the sector number within that track,
-// and the third is some flags that specify the size of the sector. See the
-// jv3Sector structure.
+// block is at the beginning of the file. It describes at most 2901 sectors,
+// which follow the block. The next block is after that, followed by more
+// sectors described by the second block. Each block is 2901 3-byte sector info
+// structures. The first byte is the track number, the second is the sector
+// number within that track, and the third is some flags that specify the size
+// of the sector. See the jv3Sector structure.
 
 import (
 	"fmt"

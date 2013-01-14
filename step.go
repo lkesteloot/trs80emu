@@ -20,7 +20,6 @@ func (vm *vm) step() {
 
 	// Execute a single instruction.
 	vm.z80.DoOpcode()
-	vm.clock += 4 // XXX
 
 	// Dispatch scheduled events.
 	vm.events.dispatch(vm.clock)

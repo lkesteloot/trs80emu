@@ -85,6 +85,7 @@ func (vm *vm) readMem(addr uint16) (b byte) {
 // The rest of the file is to satisfy the z80.MemoryAccessor interface, which the
 // z80 uses.
 func (vm *vm) ReadByte(address uint16) byte {
+	vm.clock += 3
 	return vm.ReadByteInternal(address)
 }
 
@@ -93,6 +94,7 @@ func (vm *vm) ReadByteInternal(address uint16) byte {
 }
 
 func (vm *vm) WriteByte(address uint16, value byte) {
+	vm.clock += 3
 	vm.WriteByteInternal(address, value)
 }
 
@@ -101,23 +103,23 @@ func (vm *vm) WriteByteInternal(address uint16, value byte) {
 }
 
 func (vm *vm) ContendRead(address uint16, time uint) {
-	// Ignore.
+	vm.clock += uint64(time)
 }
 
 func (vm *vm) ContendReadNoMreq(address uint16, time uint) {
-	// Ignore.
+	vm.clock += uint64(time)
 }
 
 func (vm *vm) ContendReadNoMreq_loop(address uint16, time uint, count uint) {
-	// Ignore.
+	vm.clock += uint64(time*count)
 }
 
 func (vm *vm) ContendWriteNoMreq(address uint16, time uint) {
-	// Ignore.
+	vm.clock += uint64(time)
 }
 
 func (vm *vm) ContendWriteNoMreq_loop(address uint16, time uint, count uint) {
-	// Ignore.
+	vm.clock += uint64(time*count)
 }
 
 func (vm *vm) Read(address uint16) byte {
