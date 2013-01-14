@@ -16,31 +16,31 @@ var nnRegExp = regexp.MustCompile(`\bNN\b`)
 // instruction in newPc.
 func (vm *vm) disasm(pc uint16) (line string, nextPc uint16) {
 	/*
-	// Look up the instruction.
-	instPc := pc
-	inst, byteData, wordData := vm.lookUpInst(&pc)
-	nextPc = pc
+		// Look up the instruction.
+		instPc := pc
+		inst, byteData, wordData := vm.lookUpInst(&pc)
+		nextPc = pc
 
-	// Address.
-	line = fmt.Sprintf("%04X ", instPc)
+		// Address.
+		line = fmt.Sprintf("%04X ", instPc)
 
-	// Machine language.
-	for pc = instPc; pc < instPc+4; pc++ {
-		if pc < nextPc {
-			line += fmt.Sprintf("%02X ", vm.memory[pc])
-		} else {
-			line += fmt.Sprint("   ")
+		// Machine language.
+		for pc = instPc; pc < instPc+4; pc++ {
+			if pc < nextPc {
+				line += fmt.Sprintf("%02X ", vm.memory[pc])
+			} else {
+				line += fmt.Sprint("   ")
+			}
 		}
-	}
 
-	// Instruction.
-	if inst == nil {
-		line += "Unknown instruction"
-	} else {
-		// Substitute N and NN.
-		line += substituteData(inst.asm, byteData, wordData)
-	}
-	return
+		// Instruction.
+		if inst == nil {
+			line += "Unknown instruction"
+		} else {
+			// Substitute N and NN.
+			line += substituteData(inst.asm, byteData, wordData)
+		}
+		return
 	*/
 
 	// XXX

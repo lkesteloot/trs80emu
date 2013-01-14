@@ -117,7 +117,7 @@ func (vm *vm) setCassetteMotor(motorOn bool) {
 			vm.setCassetteState(cassetteStateClose)
 		}
 		cc.motorOn = motorOn
-		vm.updateCassetteMotorLight();
+		vm.updateCassetteMotorLight()
 	}
 }
 

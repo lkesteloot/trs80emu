@@ -124,7 +124,7 @@ func createVm(vmUpdateCh chan<- vmUpdate) *vm {
 
 	// Make a CPU.
 	vm := &vm{
-		z80:		nil, // Set below.
+		z80:        nil, // Set below.
 		memory:     memory,
 		memInit:    memInit,
 		romSize:    uint16(len(rom)),

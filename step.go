@@ -37,7 +37,7 @@ func (vm *vm) step() {
 	}
 
 	// Handle interrupts.
-	if (vm.irqLatch&vm.irqMask) != 0 {
+	if (vm.irqLatch & vm.irqMask) != 0 {
 		if printDebug {
 			log.Print("Maskable interrupt %02X", vm.irqLatch)
 		}

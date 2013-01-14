@@ -111,7 +111,7 @@ func (vm *vm) ContendReadNoMreq(address uint16, time uint) {
 }
 
 func (vm *vm) ContendReadNoMreq_loop(address uint16, time uint, count uint) {
-	vm.clock += uint64(time*count)
+	vm.clock += uint64(time * count)
 }
 
 func (vm *vm) ContendWriteNoMreq(address uint16, time uint) {
@@ -119,7 +119,7 @@ func (vm *vm) ContendWriteNoMreq(address uint16, time uint) {
 }
 
 func (vm *vm) ContendWriteNoMreq_loop(address uint16, time uint, count uint) {
-	vm.clock += uint64(time*count)
+	vm.clock += uint64(time * count)
 }
 
 func (vm *vm) Read(address uint16) byte {
