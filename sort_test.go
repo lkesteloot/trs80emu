@@ -7,7 +7,7 @@ import (
 )
 
 func TestCompareStringsNumerically(t *testing.T) {
-	cmp := func (a, b string, expected int) {
+	cmp := func(a, b string, expected int) {
 		result := compareStringsNumerically(a, b)
 		if result != expected {
 			t.Errorf("Comparing \"%s\" and \"%s\" returned %d, expected %d", a, b, result, expected)

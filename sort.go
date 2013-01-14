@@ -13,17 +13,17 @@ import (
 func compareStringsNumerically(a, b string) int {
 	var i, j int
 
-	var isDigit = func (ch byte) bool {
+	var isDigit = func(ch byte) bool {
 		return ch >= '0' && ch <= '9'
 	}
 
 	// Return the next "chunk" of the string, which is either the value of the byte
 	// at i, or the number starting at i.
-	var getChunk = func (s string, i int) (chunk int, nextI int) {
+	var getChunk = func(s string, i int) (chunk int, nextI int) {
 		if isDigit(s[i]) {
 			chunk = 0
 			for i < len(s) && isDigit(s[i]) {
-				chunk = chunk*10 + int(s[i] - '0')
+				chunk = chunk*10 + int(s[i]-'0')
 				i++
 			}
 		} else {

@@ -314,7 +314,7 @@ func (vm *vm) loadDisk(drive int, filename string) error {
 	if filename == "" {
 		err = vm.fdc.disks[drive].makeEmpty()
 	} else {
-		err = vm.fdc.disks[drive].load("disks/"+filename)
+		err = vm.fdc.disks[drive].load("disks/" + filename)
 	}
 
 	return err
