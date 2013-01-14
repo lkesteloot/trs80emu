@@ -18,6 +18,7 @@ const (
 	wavDebug           = false
 	crashOnRomWrite    = false
 	logOnRomWrite      = false
+	goFullSpeed        = false
 )
 
 // Same as above but can be changed at runtime. This is for

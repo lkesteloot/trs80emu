@@ -60,7 +60,7 @@ func (vm *vm) step() {
 	}
 
 	// Slow down CPU if we're going too fast.
-	if !*profiling && vm.clock > vm.previousAdjustClock+1000 {
+	if !goFullSpeed && !*profiling && vm.clock > vm.previousAdjustClock+1000 {
 		now := time.Now().UnixNano()
 		elapsedReal := time.Duration(now - vm.startTime)
 		elapsedFake := time.Duration(vm.clock * cpuPeriodNs)
