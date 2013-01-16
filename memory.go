@@ -106,32 +106,15 @@ func (vm *vm) ContendRead(address uint16, time uint) {
 	vm.clock += uint64(time)
 }
 
-func (vm *vm) ContendReadNoMreq(address uint16, time uint) {
-	vm.clock += uint64(time)
-}
-
-func (vm *vm) ContendReadNoMreq_loop(address uint16, time uint, count uint) {
-	vm.clock += uint64(time * count)
-}
-
-func (vm *vm) ContendWriteNoMreq(address uint16, time uint) {
-	vm.clock += uint64(time)
-}
-
-func (vm *vm) ContendWriteNoMreq_loop(address uint16, time uint, count uint) {
-	vm.clock += uint64(time * count)
-}
-
-func (vm *vm) Read(address uint16) byte {
-	// Not sure.
-	return vm.readMem(address)
-}
-
-func (vm *vm) Write(address uint16, value byte, protectROM bool) {
-	// Not sure.
-	vm.writeMem(address, value, protectROM)
-}
-
 func (vm *vm) Data() []byte {
 	return vm.memory
 }
+
+// Leave unimplemented
+
+func (vm *vm) ContendReadNoMreq(address uint16, time uint)                   {}
+func (vm *vm) ContendReadNoMreq_loop(address uint16, time uint, count uint)  {}
+func (vm *vm) ContendWriteNoMreq(address uint16, time uint)                  {}
+func (vm *vm) ContendWriteNoMreq_loop(address uint16, time uint, count uint) {}
+func (vm *vm) Read(address uint16) byte                                      { return 0 }
+func (vm *vm) Write(address uint16, value byte, protectROM bool)             {}
