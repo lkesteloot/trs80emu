@@ -5,7 +5,8 @@ package main
 // The VM (Virtual Machine) represents the entire machine.
 
 import (
-	"github.com/remogatto/z80"
+	/// "github.com/remogatto/z80"
+	"github.com/lkesteloot/z80"
 	"io/ioutil"
 	"log"
 	"time"

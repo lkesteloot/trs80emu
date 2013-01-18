@@ -63,7 +63,7 @@ div.screen.expanded .odd-column {
 		fmt.Fprintf(bw, "div.screen.narrow .char-%d { background-position: %dpx %dpx; }\n",
 			ch, -(ch%32)*8, -(ch/32)*24)
 		fmt.Fprintf(bw, "div.screen.expanded .char-%d { background-position: %dpx %dpx; }\n",
-			ch, -(ch%32)*16, -(ch/32+10)*24)
+			ch, -(ch%32)*16, -(ch/32 + 10)*24)
 	}
 	bw.Flush()
 }
