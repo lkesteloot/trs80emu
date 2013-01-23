@@ -1,5 +1,7 @@
 This is a TRS-80 Model III emulator written in Go. It uses a web page for its
-interface. It can read diskettes and cassettes.
+interface. It can read diskettes and cassettes. It uses the
+[Z80 emulation library](https://github.com/remogatto/z80) from
+[Andrea Fazzi](https://plus.google.com/u/0/100271912081202470197/about).
 
 Installing
 ----------
