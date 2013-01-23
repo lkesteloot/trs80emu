@@ -49,10 +49,6 @@ and 1500 baud are supported.
 Screenshots
 -----------
 
-Cassette BASIC:
-
-![Cassette BASIC](https://raw.github.com/lkesteloot/trs80/master/screenshots/01_boot.png)
-
 TRS-DOS:
 
 ![TRS-DOS](https://raw.github.com/lkesteloot/trs80/master/screenshots/02_disk_boot.png)
@@ -64,3 +60,7 @@ VisiCalc:
 Loading from cassette:
 
 ![Loading from cassette](https://raw.github.com/lkesteloot/trs80/master/screenshots/04_cload.png)
+
+Eliminator game (on aigames1.dsk):
+
+![Eliminator](https://raw.github.com/lkesteloot/trs80/master/screenshots/05_eliminator.png)
