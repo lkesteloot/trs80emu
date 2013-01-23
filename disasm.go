@@ -4,8 +4,7 @@ package main
 
 import (
 	"fmt"
-	/// "github.com/remogatto/z80"
-	"github.com/lkesteloot/z80"
+	"github.com/remogatto/z80"
 )
 
 // Disassemble the instruction at the given pc and return the address,
