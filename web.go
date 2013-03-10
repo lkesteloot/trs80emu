@@ -9,7 +9,7 @@ import (
 	"code.google.com/p/go.net/websocket"
 	"encoding/json"
 	"fmt"
-	"github.com/lkesteloot/goutil/sort"
+	"github.com/lkesteloot/goutil/sortutil"
 	"github.com/lkesteloot/goutil/webutil"
 	"io/ioutil"
 	"log"
