@@ -91,7 +91,7 @@ func generateFileList(w http.ResponseWriter, r *http.Request, dir, extension str
 
 	// The ReadDir() function returns the filenames sorted, but that puts "B12"
 	// before "B2".  So we re-sort taking into account numbers.
-	sort.SortNumerically(filenames)
+	sortutil.SortNumerically(filenames)
 
 	// JSON-encoded.
 	w.Header().Set("Content-Type", "application/json")
