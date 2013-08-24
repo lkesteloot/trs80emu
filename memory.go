@@ -102,24 +102,24 @@ func (vm *vm) WriteByteInternal(address uint16, value byte) {
 	vm.writeMem(address, value, true)
 }
 
-func (vm *vm) ContendRead(address uint16, time uint) {
+func (vm *vm) ContendRead(address uint16, time int) {
 	vm.clock += uint64(time)
 }
 
-func (vm *vm) ContendReadNoMreq(address uint16, time uint) {
+func (vm *vm) ContendReadNoMreq(address uint16, time int) {
 	vm.clock += uint64(time)
 }
 
-func (vm *vm) ContendReadNoMreq_loop(address uint16, time uint, count uint) {
-	vm.clock += uint64(time * count)
+func (vm *vm) ContendReadNoMreq_loop(address uint16, time int, count uint) {
+	vm.clock += uint64(time * int(count))
 }
 
-func (vm *vm) ContendWriteNoMreq(address uint16, time uint) {
+func (vm *vm) ContendWriteNoMreq(address uint16, time int) {
 	vm.clock += uint64(time)
 }
 
-func (vm *vm) ContendWriteNoMreq_loop(address uint16, time uint, count uint) {
-	vm.clock += uint64(time * count)
+func (vm *vm) ContendWriteNoMreq_loop(address uint16, time int, count uint) {
+	vm.clock += uint64(time * int(count))
 }
 
 func (vm *vm) Read(address uint16) byte {
