@@ -208,8 +208,6 @@ func serveWebsite() {
 	server := http.Server{
 		Addr:           address,
 		Handler:        webutil.LoggingHandler(handlers),
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: http.DefaultMaxHeaderBytes,
 	}
 
