@@ -176,8 +176,14 @@ func (w *wavFile) parseShort() (uint16, error) {
 // Loads a sample.
 func (w *wavFile) readSample() (int16, error) {
 	// Only handle simple case.
-	if w.channelCount != 1 || w.bytesPerSample != 2 || w.bitsPerSample != 16 {
-		panic("Don't handle WAV file format")
+	if w.channelCount != 1 {
+		panic("We only handle mono WAV files")
+	}
+	if w.bytesPerSample != 2 {
+		panic("We only handle WAV files with two bytes per sample")
+	}
+	if w.bitsPerSample != 16 {
+		panic("We only handle 16-bit WAV files")
 	}
 
 	if w.isEof {
