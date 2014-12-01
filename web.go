@@ -15,7 +15,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
+	"path"
 	"time"
 )
 
@@ -69,33 +69,42 @@ div.screen.expanded .odd-column {
 	bw.Flush()
 }
 
-// Generate a JSON document of files in a directory.
-func generateFileList(w http.ResponseWriter, r *http.Request, dir, extension string) {
+// Append files in a directory matching an extension to a list of pathnames.
+// Recurses into subdirectories.
+func addDirectory(pathnames *[]string, prefixPath, dir, extension string) {
 	// Get list of files.
 	fileInfos, err := ioutil.ReadDir(dir)
 	if err != nil {
-		http.Error(w, "Internal Server Error", 500)
-		return
-	}
+		log.Printf("Can't read directory \"%s\": %s", dir, err)
+	} else {
+		// The ReadDir() function returns the filenames sorted, but that puts "B12"
+		// before "B2".  So we re-sort taking into account numbers.
+		sortutil.SortFileInfoNumerically(fileInfos)
 
-	// Convert to list of strings.
-	filenames := []string{}
-	for _, fileInfo := range fileInfos {
-		filename := fileInfo.Name()
+		for _, fileInfo := range fileInfos {
+			filename := fileInfo.Name()
 
-		// Only keep the right files.
-		if strings.HasSuffix(strings.ToLower(filename), extension) {
-			filenames = append(filenames, fileInfo.Name())
+			if fileInfo.IsDir() {
+				addDirectory(pathnames, path.Join(prefixPath, filename),
+					path.Join(dir, filename), extension)
+			} else {
+				if path.Ext(filename) == extension {
+					*pathnames = append(*pathnames, path.Join(prefixPath, filename))
+				}
+			}
 		}
 	}
+}
 
-	// The ReadDir() function returns the filenames sorted, but that puts "B12"
-	// before "B2".  So we re-sort taking into account numbers.
-	sortutil.SortNumerically(filenames)
+// Generate a JSON document of files in a directory tree.
+func generateFileList(w http.ResponseWriter, r *http.Request, dir, extension string) {
+	// Get list of pathnames.
+	pathnames := []string{}
+	addDirectory(&pathnames, ".", dir, extension)
 
 	// JSON-encoded.
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(filenames)
+	json.NewEncoder(w).Encode(pathnames)
 }
 
 // Top-level handler.
