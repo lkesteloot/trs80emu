@@ -19,6 +19,10 @@ div.screen span {
     white-space: pre;
 }
 
+.resetButton {
+    display: none;
+}
+
 td.control-panel {
     vertical-align: top;
     padding: 10px;

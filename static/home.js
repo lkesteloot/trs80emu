@@ -32,14 +32,17 @@
     var createControlPanel = function () {
         var $controlPanel = $("td.control-panel");
 
-        $("#bootButton").click(function () {
+        $(".bootButton button").click(function () {
             if (g_ws) {
                 g_ws.send(JSON.stringify({Cmd: "boot"}));
+                $(this).blur().hide();
+                $(".resetButton").show();
             }
         });
-        $("#resetButton").click(function () {
+        $(".resetButton button").click(function () {
             if (g_ws) {
                 g_ws.send(JSON.stringify({Cmd: "reset"}));
+                $(this).blur();
             }
         });
 
@@ -50,6 +53,7 @@
         $("#traceButton").click(function () {
             if (g_ws) {
                 g_ws.send(JSON.stringify({Cmd: "tron"}));
+                $(this).blur();
             }
         });
         $("#addBreakpointButton").click(function () {
