@@ -98,6 +98,8 @@ type vm struct {
 	startTime           int64
 	previousAdjustClock uint64
 	previousTimerClock  uint64
+	cassetteRiseInterruptCount uint64
+	cassetteFallInterruptCount uint64
 }
 
 // Command to the VM from the UI, such as keyboard presses or boot.

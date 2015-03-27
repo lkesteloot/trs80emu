@@ -44,15 +44,20 @@ func (vm *vm) step() {
 		vm.z80.Interrupt()
 	}
 
+	// Print something periodically.
 	if vm.clock > vm.previousDumpClock+cpuHz {
 		now := time.Now()
 		if vm.previousDumpClock > 0 {
 			elapsed := now.Sub(vm.previousDumpTime)
 			computerTime := float64(vm.clock-vm.previousDumpClock) / float64(cpuHz)
-			log.Printf("Computer time: %.1fs, elapsed: %.1fs, mult: %.1f, slept: %dms",
+			log.Printf("Computer time: %.1fs, elapsed: %.1fs, mult: %.1f, slept: %dms (%d,%d)",
 				computerTime, elapsed.Seconds(), computerTime/elapsed.Seconds(),
-				vm.sleptSinceDump/time.Millisecond)
+				vm.sleptSinceDump/time.Millisecond,
+				vm.cassetteRiseInterruptCount,
+				vm.cassetteFallInterruptCount)
 			vm.sleptSinceDump = 0
+			vm.cassetteRiseInterruptCount = 0
+			vm.cassetteFallInterruptCount = 0
 		}
 		vm.previousDumpTime = now
 		vm.previousDumpClock = vm.clock

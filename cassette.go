@@ -131,7 +131,7 @@ func (vm *vm) updateCassette() {
 			uint64(cc.cassette.samplesPerSecond) / cpuHz)
 
 		// Catch up.
-		for samplesToRead > cc.samplesRead {
+		for cc.samplesRead < samplesToRead {
 			s, err := cc.cassette.readSample()
 			if err != nil {
 				panic(err)

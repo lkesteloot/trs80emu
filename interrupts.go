@@ -80,12 +80,14 @@ func (vm *vm) diskDrqInterrupt(state bool) {
 
 // Saw a positive edge on cassette.
 func (vm *vm) cassetteRiseInterrupt() {
+	vm.cassetteRiseInterruptCount++
 	vm.irqLatch = (vm.irqLatch &^ cassetteRiseIrqMask) |
 		(vm.irqMask & cassetteRiseIrqMask)
 }
 
 // Saw a negative edge on cassette.
 func (vm *vm) cassetteFallInterrupt() {
+	vm.cassetteFallInterruptCount++
 	vm.irqLatch = (vm.irqLatch &^ cassetteFallIrqMask) |
 		(vm.irqMask & cassetteFallIrqMask)
 }
