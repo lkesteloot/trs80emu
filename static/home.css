@@ -62,3 +62,11 @@ div.motorLight {
 .motorLightOn {
     background-color: #d00;
 }
+
+.floppies {
+    max-width: 250px;
+}
+
+.floppies-top, .floppies-bottom {
+    display: none;
+}

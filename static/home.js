@@ -3,6 +3,8 @@
 (function () {
     var SHOW_DEBUG = false;
     var g_ws = null;
+    // Which floppy drive motors are on.
+    var g_motor_on = [false, false, false, false];
 
     // Set up the DOM for the screen, which is an array of spans of fixed size with the
     // same background (font.png). We move the background around for each cell to show
@@ -160,6 +162,20 @@
                 $motor.addClass("motorLightOn");
             } else {
                 $motor.removeClass("motorLightOn");
+            }
+
+            // Update the full images of the floppy drives.
+            console.log(update.Addr + " " + motorOn);
+            if (update.Addr >= 0) {
+                g_motor_on[update.Addr] = motorOn;
+                $(".floppies").hide();
+                if (g_motor_on[0]) {
+                    $(".floppies-bottom").show();
+                } else if (g_motor_on[1]) {
+                    $(".floppies-top").show();
+                } else {
+                    $(".floppies-off").show();
+                }
             }
         } else if (cmd === "breakpoint") {
             // We've hit a breakpoint. This could just be a message.
