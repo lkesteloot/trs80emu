@@ -35,3 +35,15 @@ Disk notes:
         Needed second index hole to flip disk.
         Drives sold by Radio Shack had 35 tracks, 160K.
     http://en.wikipedia.org/wiki/Western_Digital_FD1771
+
+To make floppies image:
+
+    To get rid of perspective:
+        In CS6, use Perspective Crop tool (long-click Crop tool).
+    To get rid of background:
+        Use magic wand, select background, replace with gray (#c2c2c3).
+    To make lid-up versions:
+        Duplicate layer.
+        Use Elliptical Marquee tool to select a centered circle (Alt-Shift).
+        Use Hue/Saturation tool to increase saturation by 80, lightness by 20.
+

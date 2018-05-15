@@ -2,6 +2,7 @@
 body {
     margin: 0;
     padding: 10px;
+    background: #c2c2c3;
 }
 
 div.screen {
@@ -11,6 +12,7 @@ div.screen {
     background-color: #334843;
     color: white;
     font-family: monospace;
+    border-radius: 8px;
     /* Pack the lines tightly: */
     line-height: 1px;
 }
