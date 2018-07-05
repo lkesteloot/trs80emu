@@ -197,8 +197,6 @@ func wsHandler(ws *websocket.Conn) {
 
 // Serve the website. This function blocks.
 func serveWebsite() {
-	port := 8080
-
 	// Sanity check to make sure we're in the right directory.
 	_, err := os.Stat("static/font.png")
 	if err != nil {
@@ -213,7 +211,7 @@ func serveWebsite() {
 		http.FileServer(http.Dir("static"))))
 
 	// Create server.
-	address := fmt.Sprintf(":%d", port)
+	address := fmt.Sprintf(":%d", *webPort)
 	server := http.Server{
 		Addr:           address,
 		Handler:        webutil.LoggingHandler(handlers),
