@@ -5,7 +5,6 @@ package main
 // Handle I/O ports.
 
 import (
-	"fmt"
 	"log"
 )
 
@@ -101,7 +100,9 @@ func (vm *vm) readPort(port byte) byte {
 		return (vm.modeImage & 0x7E) | vm.getCassetteByte()
 	}
 
-	panic(fmt.Sprintf("Can't read from unknown port %02X", port))
+	// Ignore.
+	log.Printf("Can't read from unknown port %02X", port)
+	return 0
 }
 
 // Write a byte to a port.
@@ -158,7 +159,8 @@ func (vm *vm) writePort(port byte, value byte) {
 			vm.putCassetteByte(value & 0x03)
 		}
 	default:
-		panic(fmt.Sprintf("Can't write %02X to unknown port %02X", value, port))
+		// Ignore.
+		log.Printf("Can't write %02X to unknown port %02X", value, port)
 	}
 }
 
