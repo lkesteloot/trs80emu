@@ -200,7 +200,7 @@ func serveWebsite() {
 	// Sanity check to make sure we're in the right directory.
 	_, err := os.Stat("static/font.png")
 	if err != nil {
-		log.Fatal("You must be in the trs80 source directory (github.com/lkesteloot/trs80)")
+		log.Fatal("You must be in the trs80emu source directory (github.com/lkesteloot/trs80emu)")
 	}
 
 	// Create handlers.

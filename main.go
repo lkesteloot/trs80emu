@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	profileFilename     = "trs80.prof"
+	profileFilename     = "trs80emu.prof"
 	defaultCassettesDir = "cassettes"
 )
 

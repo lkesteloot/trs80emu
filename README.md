@@ -8,17 +8,17 @@ Installing
 
 Install with:
 
-    go get github.com/lkesteloot/trs80
+    go get github.com/lkesteloot/trs80emu
 
 Go to the source directory, which is probably:
 
-    $GOPATH/src/github.com/lkesteloot/trs80
+    $GOPATH/src/github.com/lkesteloot/trs80emu
 
 (If you have more than one item in your $GOPATH, use only the first one.)
 
 Run with:
 
-    ../../../../bin/trs80
+    ../../../../bin/trs80emu
 
 or just:
 
@@ -51,16 +51,16 @@ Screenshots
 
 TRS-DOS:
 
-![TRS-DOS](https://raw.github.com/lkesteloot/trs80/master/screenshots/02_disk_boot.png)
+![TRS-DOS](https://raw.github.com/lkesteloot/trs80emu/master/screenshots/02_disk_boot.png)
 
 VisiCalc:
 
-![VisiCalc](https://raw.github.com/lkesteloot/trs80/master/screenshots/03_visicalc.png)
+![VisiCalc](https://raw.github.com/lkesteloot/trs80emu/master/screenshots/03_visicalc.png)
 
 Loading from cassette:
 
-![Loading from cassette](https://raw.github.com/lkesteloot/trs80/master/screenshots/04_cload.png)
+![Loading from cassette](https://raw.github.com/lkesteloot/trs80emu/master/screenshots/04_cload.png)
 
 Eliminator game (on aigames1.dsk):
 
-![Eliminator](https://raw.github.com/lkesteloot/trs80/master/screenshots/05_eliminator.png)
+![Eliminator](https://raw.github.com/lkesteloot/trs80emu/master/screenshots/05_eliminator.png)
